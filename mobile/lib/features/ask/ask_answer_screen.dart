@@ -270,12 +270,8 @@ class _AnswerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: AppColors.card,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: AppColors.line, width: 2),
-    ),
+    padding: const EdgeInsets.all(18),
+    decoration: AppDecor.card(),
     child: Text(
       text,
       style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600, height: 1.35),

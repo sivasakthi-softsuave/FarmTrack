@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FarmTrack UI Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Design tokens: the proposal for lib/core/theme/app_theme.dart. Colour meanings are unchanged:
+     green = yes/done, red = no/stop/danger, amber = warning only, blue = information, grey = waiting. */
+  :root {
+    --ground: #F3F6F1;
+    --card: #FFFFFF;
+    --ink: #17201A;
+    --ink2: #4F5B52;
+    --line: #E1E7DE;
+    --neutral: #EEF2EC;
+    --brand: #14532D;
+    --green: #1B7F3A;
+    --green-soft: #E3F2E7;
+    --blue: #1F5FA8;
+    --blue-soft: #E3EDF8;
+    --amber: #F2A900;
+    --amber-dark: #8A5A00;
+    --amber-soft: #FFF3D1;
+    --red: #C62828;
+    --red-soft: #FCE4E2;
+    --shadow: 0 1px 2px rgba(16, 40, 24, .06), 0 6px 18px rgba(16, 40, 24, .07);
+    --page: #E6EAE4;
+    --page-ink: #17201A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--page-ink);
+    font-family: "Noto Sans", "Noto Sans Devanagari", system-ui, sans-serif;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  /* ---------- page around the phones ---------- */
+  .intro { max-width: 1240px; margin: 0 auto; padding: 40px 24px 8px; }
+  .intro h1 { font-size: 32px; margin: 0 0 6px; }
+  .intro p { margin: 0 0 16px; color: #3E4A41; font-size: 16px; max-width: 820px; line-height: 1.5; }
+  .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin: 20px 0 8px; }
+  .principle { background: #fff; border-radius: 16px; padding: 14px 16px; font-size: 14px; line-height: 1.45; color: #3E4A41; }
+  .principle b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 2px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .sw { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 999px; padding: 6px 12px 6px 6px; font-size: 13px; }
+  .sw i { width: 22px; height: 22px; border-radius: 50%; display: block; }
+  section.row { max-width: 1840px; margin: 0 auto; padding: 32px 24px 8px; }
+  section.row h2 { font-size: 22px; margin: 0 0 4px; max-width: 1240px; margin-inline: auto; }
+  section.row .sub { color: #3E4A41; margin: 0 auto 22px; font-size: 15px; max-width: 1240px; }
+  .phones { display: flex; flex-wrap: wrap; justify-content: center; gap: 40px 36px; }
+  .shot { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .shot figcaption { font-weight: 700; font-size: 15px; }
+  .shot figcaption span { display: block; font-weight: 400; font-size: 13px; color: #4F5B52; text-align: center; max-width: 360px; margin-top: 2px; }
+  figure { margin: 0; }
+
+  /* ---------- phone ---------- */
+  .phone {
+    width: 390px; height: 844px; background: var(--ground); border-radius: 44px; overflow: hidden;
+    position: relative; display: flex; flex-direction: column; color: var(--ink);
+    box-shadow: 0 0 0 10px #1C221E, 0 0 0 11px #3A433D, 0 24px 60px rgba(0, 0, 0, .28);
+  }
+  .phone.dark { background: #0E1510; color: #fff; }
+  .notch { height: 30px; flex: 0 0 30px; }
+  .body { flex: 1; overflow-y: auto; scrollbar-width: none; }
+  .body::-webkit-scrollbar { display: none; }
+  .pad { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  svg.i { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  svg.i.lg { width: 30px; height: 30px; }
+  svg.i.xl { width: 38px; height: 38px; }
+  svg.i.sm { width: 20px; height: 20px; }
+  svg.i.bold { stroke-width: 2.6; }
+
+  /* top bar of inner screens */
+  .topbar { height: 64px; flex: 0 0 64px; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--card); border-bottom: 1px solid var(--line); }
+  .topbar .title { flex: 1; font-size: 20px; font-weight: 700; }
+  .ibtn { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--neutral); border: 0; position: relative; flex: none; }
+  .ibtn.voice { background: var(--green-soft); color: var(--green); }
+  .ibtn.glass { background: rgba(255, 255, 255, .14); color: #fff; }
+  .badge { position: absolute; top: -2px; right: -2px; min-width: 22px; height: 22px; border-radius: 11px; background: var(--red); color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; padding: 0 6px; border: 2px solid var(--brand); }
+
+  .card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 16px; }
+  .label { font-size: 13px; font-weight: 700; color: var(--ink2); letter-spacing: .04em; text-transform: uppercase; margin: 6px 4px -2px; }
+  .muted { color: var(--ink2); }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .grow { flex: 1; min-width: 0; }
+  .dot { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; flex: none; }
+  .round { border-radius: 50%; }
+  .chev { color: #8A958C; }
+  .h-name { font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .h-meta { font-size: 14px; color: var(--ink2); line-height: 1.35; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+
+  /* bottom action bar of flow screens */
+  .actions { padding: 12px 16px 22px; background: var(--card); border-top: 1px solid var(--line); display: flex; gap: 12px; flex: none; }
+  .btn { height: 60px; border-radius: 18px; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; border: 0; flex: 1; }
+  .btn.primary { background: var(--green); color: #fff; box-shadow: 0 6px 16px rgba(27, 127, 58, .28); }
+  .btn.outline { background: #fff; color: var(--ink); border: 2px solid var(--line); }
+  .btn.sq { flex: 0 0 60px; }
+
+  /* bottom navigation of the four main sections */
+  .nav { height: 80px; flex: 0 0 80px; background: var(--card); border-top: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-around; padding-top: 8px; position: relative; }
+  .nav a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 600; color: var(--ink2); width: 64px; text-decoration: none; }
+  .nav a .pl { width: 56px; height: 32px; border-radius: 16px; display: grid; place-items: center; }
+  .nav a.on { color: var(--green); font-weight: 700; }
+  .nav a.on .pl { background: var(--green-soft); }
+  .nav a.scan { margin-top: -34px; color: var(--ink); font-weight: 700; }
+  .nav a.scan .fab { width: 68px; height: 68px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; border: 5px solid #fff; box-shadow: 0 6px 16px rgba(27, 127, 58, .35); }
+
+  /* the spoken sentence, floating above the bottom bar */
+  .caption { position: absolute; left: 16px; right: 16px; background: var(--ink); color: #fff; border-radius: 16px; padding: 11px 14px; display: flex; gap: 12px; align-items: center; font-size: 15px; line-height: 1.35; box-shadow: 0 8px 24px rgba(0, 0, 0, .22); z-index: 3; }
+  .caption .txt { flex: 1; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .wave { display: flex; gap: 3px; align-items: center; height: 20px; flex: none; }
+  .wave span { width: 3px; border-radius: 2px; background: #7CD992; animation: w 1s ease-in-out infinite; }
+  .wave span:nth-child(1) { height: 8px; } .wave span:nth-child(2) { height: 16px; animation-delay: .15s; }
+  .wave span:nth-child(3) { height: 11px; animation-delay: .3s; } .wave span:nth-child(4) { height: 18px; animation-delay: .45s; }
+  @keyframes w { 50% { transform: scaleY(.45); } }
+  @media (prefers-reduced-motion: reduce) { .wave span { animation: none; } }
+
+  /* fields */
+  .field-l { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; margin: 4px 2px 8px; }
+  .input { height: 58px; border-radius: 16px; background: #fff; border: 2px solid var(--line); display: flex; align-items: center; gap: 12px; padding: 0 8px 0 16px; font-size: 18px; font-weight: 600; }
+  .input.focus { border-color: var(--green); box-shadow: 0 0 0 4px rgba(27, 127, 58, .14); }
+
+  /* segmented choices (settings) */
+  .seg { display: grid; gap: 8px; }
+  .seg button { height: 56px; border-radius: 14px; border: 2px solid var(--line); background: #fff; font-weight: 700; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .seg button.on { border-color: var(--green); background: var(--green-soft); color: var(--green); }
+
+  .hi { font-family: "Noto Sans Devanagari", "Noto Sans", sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- Icon set: stroke pictures, one per meaning (the voice prompts name these pictures). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol>
+  <symbol id="i-field" viewBox="0 0 24 24"><path d="M12 21V11"/><path d="M12 11c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 14c0-3-2.5-5-6-5 0 3 2.5 5 6 5z"/><path d="M4 21h16"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18"/><path d="M10 8h5M10 12h5"/></symbol>
+  <symbol id="i-ask" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.8 9.5a2.3 2.3 0 0 1 4.4.8c0 1.5-2.2 2-2.2 3.2"/><path d="M12 16.5h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="M11 18l-6-6 6-6"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-danger" viewBox="0 0 24 24"><path d="M7.9 2h8.2L22 7.9v8.2L16.1 22H7.9L2 16.1V7.9z"/><path d="M12 8v4M12 16h.01"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6"/><path d="M10 3v6L4.5 18.5A2 2 0 0 0 6.2 21h11.6a2 2 0 0 0 1.7-2.5L14 9V3"/><path d="M7 15h10"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H8a5 5 0 1 1 1-9.9A6 6 0 0 1 20.5 11 4 4 0 0 1 17.5 19z"/></symbol>
+  <symbol id="i-rain" viewBox="0 0 24 24"><path d="M16 13H8a4 4 0 1 1 .8-7.9A5 5 0 0 1 18 7a3 3 0 0 1-2 6z"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/></symbol>
+  <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10z"/><path d="M2 21c0-3 1.9-5.4 5.1-6"/></symbol>
+  <symbol id="i-soil" viewBox="0 0 24 24"><path d="M3 15h18M3 19h18"/><path d="M8 11V8M12 11V4M16 11V7"/></symbol>
+  <symbol id="i-gallery" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-captions" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 12h4M13 12h4M7 15h10"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
+  <symbol id="i-expert" viewBox="0 0 24 24"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="2.5" y="13" width="5" height="6" rx="2"/><rect x="16.5" y="13" width="5" height="6" rx="2"/><path d="M19 19v.5a2.5 2.5 0 0 1-2.5 2.5H13"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-hour" viewBox="0 0 24 24"><path d="M6 2h12M6 22h12"/><path d="M7 2v4a5 5 0 0 0 10 0V2M7 22v-4a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></symbol>
+</svg>
+
+<div class="intro">
+  <h1>FarmTrack: new look (mockup)</h1>
+  <p>A proposal for the Flutter app, shown on 12 screens at real phone size (390 × 844). The content inside each phone scrolls.
+     Nothing in the app has changed yet: after you approve, the same design goes into <code>app_theme.dart</code> and the screens.
+     Medicine, dose and warnings on the advice screen are the app's own demo data (HP 2026 schedule); names and places are the demo farmer F001.</p>
+  <div class="principles">
+    <div class="principle"><b>Calmer, lighter screens</b>White cards with soft shadows instead of thick coloured borders; a light green-grey ground; more room between things.</div>
+    <div class="principle"><b>Right-sized</b>Text 15–26 px instead of 20–36 px. Main buttons stay large (60–68 px); nothing is smaller than 48 px.</div>
+    <div class="principle"><b>Clear structure</b>Bottom bar for Home, Field, Scan, Diary, Ask. Scan is the big green button in the middle, on every main page.</div>
+    <div class="principle"><b>Voice stays first</b>The speaker button is on every screen; the spoken sentence floats as a dark caption. Green tick, red cross and the pictures the voice names are kept.</div>
+    <div class="principle"><b>Same colour meanings</b>Green = yes / done, red = stop / danger, amber = warning only, blue = information, grey = waiting.</div>
+    <div class="principle"><b>Hindi ready</b>Noto Sans with Noto Sans Devanagari, so Hindi and English look the same weight and size.</div>
+  </div>
+  <div class="swatches">
+    <span class="sw"><i style="background:#14532D"></i>Brand #14532D</span>
+    <span class="sw"><i style="background:#1B7F3A"></i>Green #1B7F3A</span>
+    <span class="sw"><i style="background:#F3F6F1;border:1px solid #ccc"></i>Ground #F3F6F1</span>
+    <span class="sw"><i style="background:#1F5FA8"></i>Blue #1F5FA8</span>
+    <span class="sw"><i style="background:#F2A900"></i>Amber #F2A900</span>
+    <span class="sw"><i style="background:#C62828"></i>Red #C62828</span>
+    <span class="sw"><i style="background:#17201A"></i>Ink #17201A</span>
+  </div>
+</div>
+
+<!-- ======================================================================================= -->
+<section class="row">
+  <h2>1. Start and home</h2>
+  <p class="sub">Log in, the new home page in English and Hindi, and settings.</p>
+  <div class="phones">
+
+    <!-- LOGIN -->
+    <figure class="shot">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="body">
+          <div class="pad" style="padding:8px 20px 140px;gap:14px">
+            <div class="row" style="justify-content:space-between">
+              <div class="row" style="gap:10px">
+                <div class="dot" style="background:var(--brand);color:#fff;border-radius:14px"><svg class="i"><use href="#i-leaf"/></svg></div>
+                <div style="font-size:20px;font-weight:800">FarmTrack</div>
+              </div>
+              <button class="ibtn voice" aria-label="Listen again"><svg class="i"><use href="#i-speaker"/></svg></button>
+            </div>
+            <!-- hills illustration -->
+            <svg viewBox="0 0 350 150" style="width:100%;height:150px;border-radius:24px;background:#E3F2E7" aria-hidden="true">
+              <circle cx="270" cy="48" r="22" fill="#F2C94C"/>
+              <path d="M0 110 C60 70 110 70 170 100 S280 80 350 95 V150 H0Z" fill="#9CCFA8"/>
+              <path d="M0 130 C70 100 140 110 200 125 S300 110 350 120 V150 H0Z" fill="#4E9F62"/>
+              <g fill="#1B7F3A"><circle cx="70" cy="96" r="12"/><rect x="68" y="104" width="4" height="12" fill="#6B4E2E"/>
+              <circle cx="105" cy="92" r="10"/><rect x="103" y="98" width="4" height="12" fill="#6B4E2E"/>
+              <circle cx="240" cy="98" r="12"/><rect x="238" y="106" width="4" height="12" fill="#6B4E2E"/></g>
+              <g fill="#C62828"><circle cx="66" cy="94" r="2"/><circle cx="75" cy="99" r="2"/><circle cx="244" cy="95" r="2"/><circle cx="108" cy="90" r="2"/></g>
+            </svg>
+            <div>
+              <div style="font-size:28px;font-weight:800;line-height:1.2">Log in</div>
+              <div class="muted" style="font-size:16px;margin-top:4px">Welcome. Please log in to come in.</div>
+            </div>
+            <div>
+              <div class="field-l"><svg class="i sm" style="color:var(--green)"><use href="#i-user"/></svg>User name</div>
+              <div class="input">f001</div>
+            </div>
+            <div>
+              <div class="field-l"><svg class="i sm" style="color:var(--green)"><use href="#i-lock"/></svg>Password</div>
+              <div class="input focus"><span class="grow" style="letter-spacing:4px">••••••••</span>
+                <button class="ibtn" aria-label="Show password"><svg class="i"><use href="#i-eye"/></svg></button></div>
+            </div>
+            <div class="row muted" style="font-size:13px;gap:8px;margin-top:2px">
+              <svg class="i sm"><use href="#i-server"/></svg><span class="grow" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Server: 192.168.1.5:8000</span>
+              <span style="color:var(--blue);font-weight:700">Change</span>
+            </div>
+          </div>
+        </div>
+        <div class="caption" style="bottom:106px"><div class="wave"><span></span><span></span><span></span><span></span></div><div class="txt">To log in, tap the green tick.</div></div>
+        <div class="actions"><button class="btn primary"><svg class="i lg bold"><use href="#i-check"/></svg>Log in</button></div>
+      </div>
+      <figcaption>Login<span>Fields 58 px with the picture in the label; one wide green tick button instead of a round one in the corner.</span></figcaption>
+    </figure>
+
+    <!-- HOME -->
+    <figure class="shot">
+      <div class="phone">
+        <div class="body">
+          <div style="background:var(--brand);color:#fff;padding:40px 16px 76px;border-radius:0 0 28px 28px">
+            <div class="row">
+              <div class="dot round" style="width:48px;height:48px;background:rgba(255,255,255,.16);font-weight:800">DS</div>
+              <div class="grow">
+                <div style="font-size:20px;font-weight:700">Namaste, Dinesh</div>
+                <div style="font-size:14px;opacity:.85">Theog, Shimla · Apple</div>
+              </div>
+              <button class="ibtn glass" aria-label="Alerts"><svg class="i"><use href="#i-bell"/></svg><span class="badge">2</span></button>
+              <button class="ibtn glass" aria-label="Settings"><svg class="i"><use href="#i-gear"/></svg></button>
+            </div>
+          </div>
+          <div class="pad" style="margin-top:-60px;padding-bottom:110px">
+            <!-- hero scan card -->
+            <div class="card" style="padding:18px;border-radius:24px">
+              <div class="row" style="gap:16px">
+                <div class="dot round" style="width:76px;height:76px;background:var(--green);color:#fff;box-shadow:0 6px 16px rgba(27,127,58,.3)"><svg class="i xl"><use href="#i-camera"/></svg></div>
+                <div class="grow">
+                  <div style="font-size:22px;font-weight:800;line-height:1.2">Scan a leaf</div>
+                  <div class="muted" style="font-size:15px;margin-top:2px">Take a photo, hear the advice</div>
+                </div>
+                <div class="dot round" style="width:40px;height:40px;background:var(--green-soft);color:var(--green)"><svg class="i"><use href="#i-next"/></svg></div>
+              </div>
+              <div class="row" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);gap:10px;color:var(--ink2);font-size:14px;font-weight:600">
+                <svg class="i sm"><use href="#i-gallery"/></svg>Or choose a photo from the gallery
+              </div>
+            </div>
+            <div class="label">Last advice</div>
+            <div class="card row">
+              <div class="dot" style="background:var(--amber-soft);color:var(--amber-dark)"><svg class="i"><use href="#i-warn"/></svg></div>
+              <div class="grow"><div class="h-name">Apple scab</div><div class="h-meta">Be careful · 12 May</div></div>
+              <svg class="i chev"><use href="#i-chev"/></svg>
+            </div>
+            <div class="label">Now in your field</div>
+            <div class="card" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:14px 10px">
+              <div style="text-align:center"><svg class="i" style="color:var(--blue)"><use href="#i-sun"/></svg><div class="h-meta" style="font-size:13px">Warmth</div><div style="font-weight:700">Pleasant</div></div>
+              <div style="text-align:center;border-inline:1px solid var(--line)"><svg class="i" style="color:var(--blue)"><use href="#i-drop"/></svg><div class="h-meta" style="font-size:13px">Air</div><div style="font-weight:700">Damp</div></div>
+              <div style="text-align:center"><svg class="i" style="color:var(--blue)"><use href="#i-leaf"/></svg><div class="h-meta" style="font-size:13px">Leaves</div><div style="font-weight:700">A little wet</div></div>
+            </div>
+            <div class="card row" style="background:var(--neutral);box-shadow:none">
+              <div class="dot" style="background:#fff;color:var(--ink2)"><svg class="i"><use href="#i-clock"/></svg></div>
+              <div class="grow"><div class="h-name" style="font-size:16px">Waiting to send: 1</div><div class="h-meta">Sent when you have internet</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption" style="bottom:92px"><div class="wave"><span></span><span></span><span></span><span></span></div><div class="txt">This is the first page. Tap a big picture to begin.</div><svg class="i sm" style="opacity:.7"><use href="#i-x"/></svg></div>
+        <nav class="nav">
+          <a class="on"><span class="pl"><svg class="i"><use href="#i-home"/></svg></span>Home</a>
+          <a><span class="pl"><svg class="i"><use href="#i-field"/></svg></span>Field</a>
+          <a class="scan"><span class="fab"><svg class="i lg"><use href="#i-camera"/></svg></span>Scan</a>
+          <a><span class="pl"><svg class="i"><use href="#i-book"/></svg></span>Diary</a>
+          <a><span class="pl"><svg class="i"><use href="#i-ask"/></svg></span>Ask</a>
+        </nav>
+      </div>
+      <figcaption>Home<span>Greeting and village on a deep-green header; one big scan card; last advice and field at a glance; bottom bar.</span></figcaption>
+    </figure>
+
+    <!-- HOME HINDI -->
+    <figure class="shot">
+      <div class="phone hi" lang="hi">
+        <div class="body">
+          <div style="background:var(--brand);color:#fff;padding:40px 16px 76px;border-radius:0 0 28px 28px">
+            <div class="row">
+              <div class="dot round" style="width:48px;height:48px;background:rgba(255,255,255,.16);font-weight:800">दि</div>
+              <div class="grow">
+                <div style="font-size:20px;font-weight:700">नमस्ते, दिनेश</div>
+                <div style="font-size:14px;opacity:.85">ठियोग, शिमला · सेब</div>
+              </div>
+              <button class="ibtn glass" aria-label="सूचनाएँ"><svg class="i"><use href="#i-bell"/></svg><span class="badge">2</span></button>
+              <button class="ibtn glass" aria-label="सेटिंग"><svg class="i"><use href="#i-gear"/></svg></button>
+            </div>
+          </div>
+          <div class="pad" style="margin-top:-60px;padding-bottom:110px">
+            <div class="card" style="padding:18px;border-radius:24px">
+              <div class="row" style="gap:16px">
+                <div class="dot round" style="width:76px;height:76px;background:var(--green);color:#fff;box-shadow:0 6px 16px rgba(27,127,58,.3)"><svg class="i xl"><use href="#i-camera"/></svg></div>
+                <div class="grow">
+                  <div style="font-size:22px;font-weight:800;line-height:1.3">पत्ती की फोटो लीजिए</div>
+                  <div class="muted" style="font-size:15px;margin-top:2px">फोटो लीजिए, सलाह सुनिए</div>
+                </div>
+                <div class="dot round" style="width:40px;height:40px;background:var(--green-soft);color:var(--green)"><svg class="i"><use href="#i-next"/></svg></div>
+              </div>
+            </div>
+            <div class="label" style="text-transform:none;letter-spacing:0;font-size:14px">पिछली सलाह</div>
+            <div class="card row">
+              <div class="dot" style="background:var(--amber-soft);color:var(--amber-dark)"><svg class="i"><use href="#i-warn"/></svg></div>
+              <div class="grow"><div class="h-name">सेब का स्कैब (पपड़ी रोग)</div><div class="h-meta">सावधान · 12 मई</div></div>
+              <svg class="i chev"><use href="#i-chev"/></svg>
+            </div>
+            <div class="label" style="text-transform:none;letter-spacing:0;font-size:14px">अभी आपके खेत में</div>
+            <div class="card" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:14px 10px">
+              <div style="text-align:center"><svg class="i" style="color:var(--blue)"><use href="#i-sun"/></svg><div class="h-meta" style="font-size:13px">तापमान</div><div style="font-weight:700">अच्छा</div></div>
+              <div style="text-align:center;border-inline:1px solid var(--line)"><svg class="i" style="color:var(--blue)"><use href="#i-drop"/></svg><div class="h-meta" style="font-size:13px">हवा</div><div style="font-weight:700">नम</div></div>
+              <div style="text-align:center"><svg class="i" style="color:var(--blue)"><use href="#i-leaf"/></svg><div class="h-meta" style="font-size:13px">पत्तियाँ</div><div style="font-weight:700">थोड़ी गीली</div></div>
+            </div>
+            <div class="card row" style="background:var(--neutral);box-shadow:none">
+              <div class="dot" style="background:#fff;color:var(--ink2)"><svg class="i"><use href="#i-clock"/></svg></div>
+              <div class="grow"><div class="h-name" style="font-size:16px">भेजने के लिए रुके हैं: 1</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption" style="bottom:92px"><div class="wave"><span></span><span></span><span></span><span></span></div><div class="txt">यह पहला पन्ना है। शुरू करने के लिए कोई बड़ी तस्वीर दबाइए।</div></div>
+        <nav class="nav">
+          <a class="on"><span class="pl"><svg class="i"><use href="#i-home"/></svg></span>होम</a>
+          <a><span class="pl"><svg class="i"><use href="#i-field"/></svg></span>खेत</a>
+          <a class="scan"><span class="fab"><svg class="i lg"><use href="#i-camera"/></svg></span>फोटो</a>
+          <a><span class="pl"><svg class="i"><use href="#i-book"/></svg></span>डायरी</a>
+          <a><span class="pl"><svg class="i"><use href="#i-ask"/></svg></span>सवाल</a>
+        </nav>
+      </div>
+      <figcaption>Home in Hindi<span>Same layout in Devanagari. New Hindi words here (greeting, scan card, caption, “होम”) are drafts for native review.</span></figcaption>
+    </figure>
+
+    <!-- SETTINGS -->
+    <figure class="shot">
+      <div class="phone">
+        <div class="notch" style="background:#fff"></div>
+        <div class="topbar">
+          <button class="ibtn" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
+          <div class="title">Settings</div>
+          <button class="ibtn voice" aria-label="Listen again"><svg class="i"><use href="#i-speaker"/></svg></button>
+        </div>
+        <div class="body">
+          <div class="pad" style="padding-bottom:24px">
+            <div class="card row">
+              <div class="dot round" style="width:52px;height:52px;background:var(--green-soft);color:var(--green);font-weight:800">DS</div>
+              <div class="grow"><div class="h-name">Dinesh Sharma</div><div class="h-meta">f001 · Theog, Shimla</div></div>
+            </div>
+            <div class="label">Language</div>
+            <div class="seg" style="grid-template-columns:1fr 1fr">
+              <button class="on hi"><span class="dot round" style="width:32px;height:32px;background:var(--green);color:#fff;font-size:16px">अ</span>हिन्दी</button>
+              <button><span class="dot round" style="width:32px;height:32px;background:var(--neutral);font-size:16px">A</span>English</button>
+            </div>
+            <div class="label">Voice speed</div>
+            <div class="seg" style="grid-template-columns:repeat(3,1fr)">
+              <button>Slow</button><button class="on">Normal</button><button>Fast</button>
+            </div>
+            <div class="label">Volume</div>
+            <div class="seg" style="grid-template-columns:repeat(3,1fr)">
+              <button>Low</button><button>Medium</button><button class="on">High</button>
+            </div>
+            <div class="card row">
+              <div class="dot" style="background:var(--neutral)"><svg class="i"><use href="#i-captions"/></svg></div>
+              <div class="grow h-name" style="font-size:16px">Show written words</div>
+              <span style="width:52px;height:32px;border-radius:16px;background:var(--green);position:relative;flex:none"><span style="position:absolute;right:4px;top:4px;width:24px;height:24px;border-radius:50%;background:#fff"></span></span>
+            </div>
+            <div class="card" style="padding:4px 16px">
+              <div class="row" style="height:56px"><svg class="i muted"><use href="#i-server"/></svg><div class="grow h-meta" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Server: 192.168.1.5:8000</div><svg class="i chev"><use href="#i-chev"/></svg></div>
+              <div class="row" style="height:48px;border-top:1px solid var(--line)"><div class="h-meta">FarmTrack, version 0.1.0</div></div>
+            </div>
+            <button class="btn outline" style="color:var(--red);border-color:#F2C2BE;flex:none"><svg class="i"><use href="#i-logout"/></svg>Log out</button>
+          </div>
+        </div>
+      </div>
+      <figcaption>Settings<span>Grouped choices as big segmented buttons; language shows its letter badge; log out in red.</span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ======================================================================================= -->
+<section class="row">
+  <h2>2. Check my plant</h2>
+  <p class="sub">Photo, waiting, the advice, and the “not sure” result that goes to an expert.</p>
+  <div class="phones">
+
+    <!-- SCAN -->
+    <figure class="shot">
+      <div class="phone dark">
+        <div class="notch"></div>
+        <div class="row" style="padding:6px 16px;height:60px">
+          <button class="ibtn glass" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
+          <div class="grow" style="text-align:center"><span class="pill" style="background:rgba(255,255,255,.14)">Photo 2 of 4</span></div>
+          <button class="ibtn glass" aria-label="Listen again"><svg class="i"><use href="#i-speaker"/></svg></button>
+        </div>
+        <div style="flex:1;position:relative;display:grid;place-items:center">
+          <!-- viewfinder -->
+          <div style="position:relative;width:300px;height:340px">
+            <svg viewBox="0 0 300 340" style="width:100%;height:100%" aria-hidden="true">
+              <rect width="300" height="340" rx="24" fill="#16261A"/>
+              <path d="M150 40 C230 80 250 190 160 300 C70 250 50 120 150 40Z" fill="#3E8E4A"/>
+              <path d="M150 52 L158 296" stroke="#2C6B37" stroke-width="4" fill="none"/>
+              <path d="M152 120 L205 95 M154 170 L218 150 M156 220 L205 215 M151 140 L100 115 M153 195 L90 175 M155 245 L110 240" stroke="#2C6B37" stroke-width="2.5" fill="none"/>
+              <g fill="#5B4630" opacity=".9"><circle cx="190" cy="130" r="9"/><circle cx="120" cy="160" r="7"/><circle cx="175" cy="200" r="11"/><circle cx="125" cy="225" r="6"/><circle cx="200" cy="175" r="5"/></g>
+            </svg>
+            <span style="position:absolute;left:-6px;top:-6px;width:44px;height:44px;border-left:5px solid #fff;border-top:5px solid #fff;border-radius:14px 0 0 0"></span>
+            <span style="position:absolute;right:-6px;top:-6px;width:44px;height:44px;border-right:5px solid #fff;border-top:5px solid #fff;border-radius:0 14px 0 0"></span>
+            <span style="position:absolute;left:-6px;bottom:-6px;width:44px;height:44px;border-left:5px solid #fff;border-bottom:5px solid #fff;border-radius:0 0 0 14px"></span>
+            <span style="position:absolute;right:-6px;bottom:-6px;width:44px;height:44px;border-right:5px solid #fff;border-bottom:5px solid #fff;border-radius:0 0 14px 0"></span>
+          </div>
+          <div class="pill" style="position:absolute;bottom:14px;background:rgba(0,0,0,.5);height:36px;font-size:14px"><svg class="i sm" style="color:#F2C94C"><use href="#i-sun"/></svg>Take the photo in daylight.</div>
+        </div>
+        <div style="background:#0B110D;padding:14px 16px 26px;border-radius:28px 28px 0 0">
+          <div class="row" style="gap:10px;margin-bottom:16px">
+            <div style="position:relative;width:60px;height:60px;border-radius:14px;background:#2C6B37;display:grid;place-items:center"><svg class="i lg" style="color:#BFE5C8"><use href="#i-leaf"/></svg>
+              <span class="dot round" style="position:absolute;top:-8px;right:-8px;width:26px;height:26px;background:var(--red);border:2px solid #0B110D"><svg class="i sm bold" style="width:14px;height:14px"><use href="#i-x"/></svg></span></div>
+            <div style="position:relative;width:60px;height:60px;border-radius:14px;background:#2C6B37;display:grid;place-items:center"><svg class="i lg" style="color:#BFE5C8"><use href="#i-leaf"/></svg>
+              <span class="dot round" style="position:absolute;top:-8px;right:-8px;width:26px;height:26px;background:var(--red);border:2px solid #0B110D"><svg class="i sm bold" style="width:14px;height:14px"><use href="#i-x"/></svg></span></div>
+            <div style="width:60px;height:60px;border-radius:14px;border:2px dashed rgba(255,255,255,.35);display:grid;place-items:center"><svg class="i lg"><use href="#i-plus"/></svg></div>
+            <div class="grow" style="text-align:right;font-size:13px;opacity:.75">up to 4 photos</div>
+          </div>
+          <div class="row" style="justify-content:space-between;padding:0 6px">
+            <div style="text-align:center;font-size:12.5px;opacity:.85"><button class="ibtn glass" style="width:56px;height:56px" aria-label="Choose a photo from the gallery"><svg class="i"><use href="#i-gallery"/></svg></button><div style="margin-top:4px">Gallery</div></div>
+            <button aria-label="Take photo" style="width:88px;height:88px;border-radius:50%;border:5px solid #fff;background:transparent;display:grid;place-items:center;padding:0"><span style="width:68px;height:68px;border-radius:50%;background:#fff;display:block"></span></button>
+            <div style="text-align:center;font-size:12.5px;opacity:.85"><button class="ibtn" style="width:56px;height:56px;background:var(--green);color:#fff" aria-label="Send photos"><svg class="i lg bold"><use href="#i-check"/></svg></button><div style="margin-top:4px">Send</div></div>
+          </div>
+        </div>
+      </div>
+      <figcaption>Take photos<span>Full-screen camera with a leaf frame and one tip; photos in a strip (red cross removes, plus adds); green tick sends.</span></figcaption>
+    </figure>
+
+    <!-- ANALYSING -->
+    <figure class="shot">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="row" style="padding:0 16px;height:56px;justify-content:flex-end">
+          <button class="ibtn voice" aria-label="Listen again"><svg class="i"><use href="#i-speaker"/></svg></button>
+        </div>
+        <div class="body">
+          <div class="pad" style="align-items:center;padding-top:10px;gap:18px">
+            <div style="position:relative;width:180px;height:180px">
+              <svg viewBox="0 0 180 180" style="width:180px;height:180px;transform:rotate(-90deg)" aria-hidden="true">
+                <circle cx="90" cy="90" r="80" fill="none" stroke="#DCE7DD" stroke-width="12"/>
+                <circle cx="90" cy="90" r="80" fill="none" stroke="#1B7F3A" stroke-width="12" stroke-linecap="round" stroke-dasharray="502" stroke-dashoffset="230"/>
+              </svg>
+              <div class="dot round" style="position:absolute;inset:26px;width:auto;height:auto;background:#fff;box-shadow:var(--shadow);color:var(--green)"><svg class="i" style="width:60px;height:60px;stroke-width:1.6"><use href="#i-leaf"/></svg></div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:26px;font-weight:800">Looking at your leaf</div>
+              <div class="muted" style="font-size:16px;margin-top:6px">Please wait, this takes a little time.</div>
+            </div>
+            <div class="card" style="width:100%;padding:6px 16px">
+              <div class="row" style="height:58px"><div class="dot round" style="width:34px;height:34px;background:var(--green);color:#fff"><svg class="i sm bold"><use href="#i-check"/></svg></div><div class="grow h-name" style="font-size:16px">Photos sent</div></div>
+              <div class="row" style="height:58px;border-top:1px solid var(--line)"><div class="dot round" style="width:34px;height:34px;background:var(--green);color:#fff"><svg class="i sm bold"><use href="#i-check"/></svg></div><div class="grow h-name" style="font-size:16px">Crop found</div><span class="pill" style="background:var(--green-soft);color:var(--green)">Apple</span></div>
+              <div class="row" style="height:58px;border-top:1px solid var(--line)"><div class="dot round" style="width:34px;height:34px;border:3px solid var(--green);border-right-color:#DCE7DD"></div><div class="grow h-name" style="font-size:16px">Finding the disease</div></div>
+              <div class="row" style="height:58px;border-top:1px solid var(--line);color:var(--ink2)"><div class="dot round" style="width:34px;height:34px;border:2px dashed #B9C4BB"></div><div class="grow" style="font-size:16px;font-weight:600">Choosing the medicine</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption" style="bottom:24px"><div class="wave"><span></span><span></span><span></span><span></span></div><div class="txt">We are looking at your leaf. Please wait, this takes a little time.</div></div>
+      </div>
+      <figcaption>Waiting<span>A progress ring and four steps, so the farmer sees that something is happening. Step names are new text.</span></figcaption>
+    </figure>
+
+    <!-- ADVICE -->
+    <figure class="shot">
+      <div class="phone">
+        <div class="notch" style="background:#fff"></div>
+        <div class="topbar">
+          <button class="ibtn" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
+          <div class="title">Advice</div>
+          <button class="ibtn voice" aria-label="Listen again"><svg class="i"><use href="#i-speaker"/></svg></button>
+        </div>
+        <div class="body">
+          <div class="pad" style="padding-bottom:100px">
+            <div class="card" style="background:var(--amber-soft);box-shadow:none;border:1px solid #EFD891">
+              <div class="row" style="gap:14px">
+                <div class="dot round" style="width:60px;height:60px;background:var(--amber);color:var(--ink)"><svg class="i lg"><use href="#i-warn"/></svg></div>
+                <div class="grow">
+                  <span class="pill" style="background:#fff;color:var(--amber-dark);height:26px;padding:0 10px">Be careful</span>
+                  <div style="font-size:26px;font-weight:800;line-height:1.2;margin-top:6px">Apple scab</div>
+                </div>
+              </div>
+              <div style="font-size:15px;margin-top:12px;line-height:1.45;color:#3B3320">There are brown, velvety spots on the leaves. Spray soon, before the next rain.</div>
+            </div>
+
+            <div class="label">Medicine</div>
+            <div class="card">
+              <div class="row">
+                <div class="dot round" style="width:52px;height:52px;background:var(--blue-soft);color:var(--blue)"><svg class="i lg"><use href="#i-flask"/></svg></div>
+                <div class="grow"><div style="font-size:19px;font-weight:700">Difenoconazole</div><div class="h-meta">Score · 25 EC</div></div>
+              </div>
+              <div style="height:1px;background:var(--line);margin:14px 0"></div>
+              <div class="row" style="align-items:flex-start"><svg class="i" style="color:var(--blue);margin-top:2px"><use href="#i-drop"/></svg><div style="font-size:17px;font-weight:700;line-height:1.4">Thirty millilitres in two hundred litres of water.</div></div>
+              <div class="row" style="align-items:flex-start;margin-top:10px"><svg class="i" style="color:var(--ink2);margin-top:1px"><use href="#i-clock"/></svg><div style="font-size:16px;line-height:1.4">Wait 14 days before harvest</div></div>
+            </div>
+
+            <div class="label">When</div>
+            <div class="card row" style="background:var(--green-soft);box-shadow:none;align-items:flex-start">
+              <div class="dot round" style="width:36px;height:36px;background:var(--green);color:#fff"><svg class="i sm bold"><use href="#i-check"/></svg></div>
+              <div style="font-size:16px;font-weight:700;line-height:1.45">Spray today. No rain is expected in the next twelve hours.</div>
+            </div>
+
+            <div class="label">Careful</div>
+            <div class="card row" style="align-items:flex-start;padding:14px 16px">
+              <svg class="i" style="color:var(--amber-dark);margin-top:1px"><use href="#i-warn"/></svg>
+              <div style="font-size:15.5px;line-height:1.45">Do not mix any other chemical, nutrient or hormone with this spray.</div>
+            </div>
+            <div class="card row" style="align-items:flex-start;padding:14px 16px;background:var(--red-soft);box-shadow:none">
+              <svg class="i" style="color:var(--red);margin-top:1px"><use href="#i-danger"/></svg>
+              <div style="font-size:15.5px;line-height:1.45">If heavy rain comes within twelve hours, spray again within seven days.</div>
+            </div>
+            <button class="btn outline" style="height:52px;font-size:16px;color:var(--blue);flex:none">More<svg class="i"><use href="#i-down"/></svg></button>
+          </div>
+        </div>
+        <div class="caption" style="bottom:106px"><div class="wave"><span></span><span></span><span></span><span></span></div><div class="txt">This is apple scab. Spray Difenoconazole, the brand name is Score.</div></div>
+        <div class="actions">
+          <button class="btn outline sq" aria-label="First page"><svg class="i"><use href="#i-home"/></svg></button>
+          <button class="btn primary"><svg class="i lg bold"><use href="#i-check"/></svg>I sprayed</button>
+        </div>
+      </div>
+      <figcaption>Advice<span>Severity first (colour + picture + word), then medicine, when, and warnings as separate cards. Scroll inside the phone.</span></figcaption>
+    </figure>
+
+    <!-- EXPERT -->
+    <figure class="shot">
+      <div class="phone">
+        <div class="notch" style="background:#fff"></div>
+        <div class="topbar">
+          <button class="ibtn" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
+          <div class="title">Result</div>
+          <button class="ibtn voice" aria-label="Listen again"><svg class="i"><use href="#i-speaker"/></svg></button>
+        </div>
+        <div class="body">
+          <div class="pad" style="padding-bottom:100px">
+            <div class="card" style="background:var(--blue-soft);box-shadow:none;text-align:center;padding:24px 18px">
+              <div class="dot round" style="width:72px;height:72px;background:var(--blue);color:#fff;margin:0 auto"><svg class="i xl"><use href="#i-expert"/></svg></div>
+              <div style="font-size:26px;font-weight:800;margin-top:12px">Not sure yet</div>
+              <div style="font-size:16px;line-height:1.45;margin-top:6px;color:#22364F">An expert will look at your photos and call you on your phone.</div>
+            </div>
+            <div class="card">
+              <div class="row">
+                <div style="width:56px;height:56px;border-radius:12px;background:#2C6B37;display:grid;place-items:center;color:#BFE5C8"><svg class="i"><use href="#i-leaf"/></svg></div>
+                <div style="width:56px;height:56px;border-radius:12px;background:#2C6B37;display:grid;place-items:center;color:#BFE5C8"><svg class="i"><use href="#i-leaf"/></svg></div>
+                <div class="grow h-meta">2 photos</div>
+                <span class="pill" style="background:var(--green);color:#fff"><svg class="i sm bold"><use href="#i-check"/></svg>Saved</span>
+              </div>
+            </div>
+            <div class="card row">
+              <div class="dot" style="background:var(--green-soft);color:var(--green)"><svg class="i"><use href="#i-phone"/></svg></div>
+              <div class="grow"><div class="h-meta">We will call you on</div><div class="h-name">+91 00000 00001</div></div>
+            </div>
+            <div class="card row">
+              <div class="dot" style="background:var(--neutral);color:var(--ink2)"><svg class="i"><use href="#i-clock"/></svg></div>
+              <div class="grow"><div class="h-name" style="font-size:16px">Keep your phone with you</div><div class="h-meta">The expert calls from the FarmTrack office</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption" style="bottom:106px"><div class="wave"><span></span><span></span><span></span><span></span></div><div class="txt">Done. Your photos are saved.</div></div>
+        <div class="actions">
+          <button class="btn outline"><svg class="i"><use href="#i-refresh"/></svg>Take the photo again</button>
+          <button class="btn primary sq" aria-label="First page"><svg class="i lg"><use href="#i-home"/></svg></button>
+        </div>
+      </div>
+      <figcaption>Not sure: expert<span>Blue = information. Says plainly that an expert will phone. The two lines under the photos are new text.</span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ======================================================================================= -->
+<section class="row">
+  <h2>3. Daily tools</h2>
+  <p class="sub">Field weather, spray diary, alerts and questions.</p>
+  <div class="phones">
+
+    <!-- FIELD -->
+    <figure class="shot">
+      <div class="phone">
+        <div class="notch" style="background:#fff"></div>
+        <div class="topbar">
+          <div class="title" style="padding-left:4px">My field</div>
+          <button class="ibtn" aria-label="Look again"><svg class="i"><use href="#i-refresh"/></svg></button>
+          <button class="ibtn voice" aria-label="Listen again"><svg class="i"><use href="#i-speaker"/></svg></button>
+        </div>
+        <div class="body">
+          <div class="pad" style="padding-bottom:110px">
+            <div class="h-meta" style="margin:0 4px">Theog · today, 08:00</div>
+            <div class="card" style="background:var(--amber-soft);box-shadow:none;border:1px solid #EFD891">
+              <div class="row" style="align-items:flex-start">
+                <div class="dot round" style="background:var(--amber);color:var(--ink)"><svg class="i"><use href="#i-warn"/></svg></div>
+                <div class="grow"><div class="h-name">Weather danger</div><div style="font-size:15px;line-height:1.45;margin-top:2px">The leaves stay wet for a long time. Scab can spread.</div></div>
+              </div>
+            </div>
+            <div class="label">Now in your field</div>
+            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+              <div class="card"><div class="dot round" style="width:40px;height:40px;background:var(--blue-soft);color:var(--blue)"><svg class="i"><use href="#i-sun"/></svg></div><div class="h-meta" style="margin-top:10px">Warmth</div><div style="font-size:19px;font-weight:700">Pleasant</div><div class="h-meta">18 °C</div></div>
+              <div class="card"><div class="dot round" style="width:40px;height:40px;background:var(--blue-soft);color:var(--blue)"><svg class="i"><use href="#i-drop"/></svg></div><div class="h-meta" style="margin-top:10px">Air</div><div style="font-size:19px;font-weight:700">Damp</div><div class="h-meta">82 %</div></div>
+              <div class="card"><div class="dot round" style="width:40px;height:40px;background:var(--blue-soft);color:var(--blue)"><svg class="i"><use href="#i-rain"/></svg></div><div class="h-meta" style="margin-top:10px">Rain, last day</div><div style="font-size:19px;font-weight:700">Light rain</div><div class="h-meta">3 mm</div></div>
+              <div class="card"><div class="dot round" style="width:40px;height:40px;background:var(--blue-soft);color:var(--blue)"><svg class="i"><use href="#i-leaf"/></svg></div><div class="h-meta" style="margin-top:10px">Leaves</div><div style="font-size:19px;font-weight:700">A little wet</div><div class="h-meta">6 hours</div></div>
+            </div>
+            <div class="label">Next seven days</div>
+            <div class="card" style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding:12px 6px;text-align:center;font-size:13px">
+              <div><b>Mon</b><svg class="i" style="color:var(--blue);margin:6px auto;display:block"><use href="#i-sun"/></svg>21°<div class="muted">9°</div></div>
+              <div><b>Tue</b><svg class="i" style="color:var(--blue);margin:6px auto;display:block"><use href="#i-cloud"/></svg>19°<div class="muted">10°</div></div>
+              <div><b>Wed</b><svg class="i" style="color:var(--blue);margin:6px auto;display:block"><use href="#i-rain"/></svg>16°<div class="muted">9°</div></div>
+              <div><b>Thu</b><svg class="i" style="color:var(--blue);margin:6px auto;display:block"><use href="#i-rain"/></svg>15°<div class="muted">8°</div></div>
+              <div><b>Fri</b><svg class="i" style="color:var(--blue);margin:6px auto;display:block"><use href="#i-cloud"/></svg>18°<div class="muted">9°</div></div>
+              <div><b>Sat</b><svg class="i" style="color:var(--blue);margin:6px auto;display:block"><use href="#i-sun"/></svg>21°<div class="muted">10°</div></div>
+              <div><b>Sun</b><svg class="i" style="color:var(--blue);margin:6px auto;display:block"><use href="#i-sun"/></svg>22°<div class="muted">11°</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption" style="bottom:92px"><div class="wave"><span></span><span></span><span></span><span></span></div><div class="txt">This is your field page. You can see your weather and sprays here.</div></div>
+        <nav class="nav">
+          <a><span class="pl"><svg class="i"><use href="#i-home"/></svg></span>Home</a>
+          <a class="on"><span class="pl"><svg class="i"><use href="#i-field"/></svg></span>Field</a>
+          <a class="scan"><span class="fab"><svg class="i lg"><use href="#i-camera"/></svg></span>Scan</a>
+          <a><span class="pl"><svg class="i"><use href="#i-book"/></svg></span>Diary</a>
+          <a><span class="pl"><svg class="i"><use href="#i-ask"/></svg></span>Ask</a>
+        </nav>
+      </div>
+      <figcaption>My field<span>Danger first, then four readings as tiles, then the week. Sample numbers. (Weather is switched off on the backend today.)</span></figcaption>
+    </figure>
+
+    <!-- DIARY -->
+    <figure class="shot">
+      <div class="phone">
+        <div class="notch" style="background:#fff"></div>
+        <div class="topbar">
+          <div class="title" style="padding-left:4px">Diary</div>
+          <button class="ibtn voice" aria-label="Listen again"><svg class="i"><use href="#i-speaker"/></svg></button>
+        </div>
+        <div class="body">
+          <div class="pad" style="padding-bottom:180px">
+            <div class="label">Today</div>
+            <div class="card row">
+              <div class="dot" style="background:var(--blue-soft);color:var(--blue)"><svg class="i"><use href="#i-flask"/></svg></div>
+              <div class="grow"><div class="h-name">Difenoconazole</div><div class="h-meta">Score · apple</div></div>
+              <span class="pill" style="background:var(--neutral);color:var(--ink2)"><svg class="i sm"><use href="#i-clock"/></svg>Waiting</span>
+            </div>
+            <div class="label">2 May</div>
+            <div class="card">
+              <div class="row">
+                <div class="dot" style="background:var(--blue-soft);color:var(--blue)"><svg class="i"><use href="#i-flask"/></svg></div>
+                <div class="grow"><div class="h-name">Captan</div><div class="h-meta">apple</div></div>
+                <span class="dot round" style="width:30px;height:30px;background:var(--green-soft);color:var(--green)"><svg class="i sm bold"><use href="#i-check"/></svg></span>
+              </div>
+              <div class="row" style="margin-top:12px;background:var(--amber-soft);border-radius:12px;padding:10px 12px;gap:10px;font-size:14px;font-weight:600">
+                <svg class="i sm" style="color:var(--amber-dark)"><use href="#i-warn"/></svg>Still allowed, but proposed to be banned.
+              </div>
+            </div>
+            <div class="label">24 April</div>
+            <div class="card row">
+              <div class="dot" style="background:var(--blue-soft);color:var(--blue)"><svg class="i"><use href="#i-flask"/></svg></div>
+              <div class="grow"><div class="h-name">Dodine</div><div class="h-meta">apple</div></div>
+              <span class="dot round" style="width:30px;height:30px;background:var(--green-soft);color:var(--green)"><svg class="i sm bold"><use href="#i-check"/></svg></span>
+            </div>
+          </div>
+        </div>
+        <button class="btn primary" style="position:absolute;right:16px;bottom:164px;height:60px;padding:0 22px;flex:none;z-index:4"><svg class="i lg"><use href="#i-plus"/></svg>Write a spray</button>
+        <div class="caption" style="bottom:92px"><div class="wave"><span></span><span></span><span></span><span></span></div><div class="txt">This is your spray diary. Write here what you sprayed on your field.</div></div>
+        <nav class="nav">
+          <a><span class="pl"><svg class="i"><use href="#i-home"/></svg></span>Home</a>
+          <a><span class="pl"><svg class="i"><use href="#i-field"/></svg></span>Field</a>
+          <a class="scan"><span class="fab"><svg class="i lg"><use href="#i-camera"/></svg></span>Scan</a>
+          <a class="on"><span class="pl"><svg class="i"><use href="#i-book"/></svg></span>Diary</a>
+          <a><span class="pl"><svg class="i"><use href="#i-ask"/></svg></span>Ask</a>
+        </nav>
+      </div>
+      <figcaption>Diary<span>Sprays grouped by day; grey clock = waiting to send, green tick = saved; warnings inside the entry. Floating “Write a spray”.</span></figcaption>
+    </figure>
+
+    <!-- ALERTS -->
+    <figure class="shot">
+      <div class="phone">
+        <div class="notch" style="background:#fff"></div>
+        <div class="topbar">
+          <button class="ibtn" aria-label="Back"><svg class="i"><use href="#i-back"/></svg></button>
+          <div class="title">Alerts</div>
+          <button class="ibtn voice" aria-label="Listen again"><svg class="i"><use href="#i-speaker"/></svg></button>
+        </div>
+        <div class="body">
+          <div class="pad">
+            <div class="card">
+              <div class="row" style="align-items:flex-start">
+                <div class="dot round" style="background:var(--red);color:#fff"><svg class="i"><use href="#i-rain"/></svg></div>
+                <div class="grow">
+                  <div class="row" style="gap:8px"><div class="h-name grow">Heavy rain after your spray</div><span class="pill" style="background:var(--blue);color:#fff;height:24px;padding:0 9px;font-size:12px">New</span></div>
+                  <div style="font-size:15px;line-height:1.45;margin-top:2px">Spray again within seven days. Do not use the same medicine.</div>
+                  <div class="h-meta" style="font-size:13px;margin-top:6px">Today, 07:30</div>
+                </div>
+              </div>
+              <button class="btn outline" style="height:50px;font-size:15px;margin-top:12px;width:100%"><svg class="i sm"><use href="#i-speaker"/></svg>Listen</button>
+            </div>
+            <div class="card row" style="align-items:flex-start">
+              <div class="dot round" style="background:var(--amber);color:var(--ink)"><svg class="i"><use href="#i-warn"/></svg></div>
+              <div class="grow">
+                <div class="row" style="gap:8px"><div class="h-name grow">Scab weather</div><span class="pill" style="background:var(--blue);color:#fff;height:24px;padding:0 9px;font-size:12px">New</span></div>
+                <div style="font-size:15px;line-height:1.45;margin-top:2px">The leaves stayed wet for many hours.</div>
+                <div class="h-meta" style="font-size:13px;margin-top:6px">Yesterday</div>
+              </div>
+            </div>
+            <div class="card row" style="align-items:flex-start;opacity:.85">
+              <div class="dot round" style="background:var(--green-soft);color:var(--green)"><svg class="i"><use href="#i-check"/></svg></div>
+              <div class="grow">
+                <div class="h-name">Result ready: tap to see</div>
+                <div style="font-size:15px;line-height:1.45;margin-top:2px">Apple scab</div>
+                <div class="h-meta" style="font-size:13px;margin-top:6px">12 May</div>
+              </div>
+              <svg class="i chev"><use href="#i-chev"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption>Alerts<span>Colour and picture show how urgent; a blue “New” tag; each alert can be heard again. Sample alerts.</span></figcaption>
+    </figure>
+
+    <!-- ASK -->
+    <figure class="shot">
+      <div class="phone">
+        <div class="notch" style="background:#fff"></div>
+        <div class="topbar">
+          <div class="title" style="padding-left:4px">Ask</div>
+          <button class="ibtn voice" aria-label="Listen again"><svg class="i"><use href="#i-speaker"/></svg></button>
+        </div>
+        <div class="body">
+          <div class="pad" style="padding-bottom:110px">
+            <div class="muted" style="font-size:16px;margin:2px 4px">Here you can ask a question about your crop.</div>
+            <div class="card row"><div class="dot" style="background:var(--blue-soft);color:var(--blue)"><svg class="i"><use href="#i-drop"/></svg></div><div class="grow"><div class="h-name">Rain after spraying</div><div class="h-meta">What should I do if it rains after I spray?</div></div><svg class="i chev"><use href="#i-chev"/></svg></div>
+            <div class="card row"><div class="dot" style="background:var(--blue-soft);color:var(--blue)"><svg class="i"><use href="#i-hour"/></svg></div><div class="grow"><div class="h-name">Days before harvest</div><div class="h-meta">How many days should I wait between my last spray and the harvest?</div></div><svg class="i chev"><use href="#i-chev"/></svg></div>
+            <div class="card row"><div class="dot" style="background:var(--blue-soft);color:var(--blue)"><svg class="i"><use href="#i-flask"/></svg></div><div class="grow"><div class="h-name">Mixing medicines</div><div class="h-meta">Can I mix other chemicals with my spray?</div></div><svg class="i chev"><use href="#i-chev"/></svg></div>
+            <div class="card row"><div class="dot" style="background:var(--blue-soft);color:var(--blue)"><svg class="i"><use href="#i-shield"/></svg></div><div class="grow"><div class="h-name">Stay safe</div><div class="h-meta">How do I protect myself when I spray?</div></div><svg class="i chev"><use href="#i-chev"/></svg></div>
+            <div class="card row"><div class="dot" style="background:var(--blue-soft);color:var(--blue)"><svg class="i"><use href="#i-leaf"/></svg></div><div class="grow"><div class="h-name">Apple scab</div><div class="h-meta">When does apple scab spread?</div></div><svg class="i chev"><use href="#i-chev"/></svg></div>
+            <button class="btn outline" style="flex:none;margin-top:4px"><svg class="i"><use href="#i-pen"/></svg>Ask my own question</button>
+          </div>
+        </div>
+        <div class="caption" style="bottom:92px"><div class="wave"><span></span><span></span><span></span><span></span></div><div class="txt">Here you can ask a question about your crop.</div></div>
+        <nav class="nav">
+          <a><span class="pl"><svg class="i"><use href="#i-home"/></svg></span>Home</a>
+          <a><span class="pl"><svg class="i"><use href="#i-field"/></svg></span>Field</a>
+          <a class="scan"><span class="fab"><svg class="i lg"><use href="#i-camera"/></svg></span>Scan</a>
+          <a><span class="pl"><svg class="i"><use href="#i-book"/></svg></span>Diary</a>
+          <a class="on"><span class="pl"><svg class="i"><use href="#i-ask"/></svg></span>Ask</a>
+        </nav>
+      </div>
+      <figcaption>Ask<span>The app's ready questions as a clean list with pictures; typing your own is one button below.</span></figcaption>
+    </figure>
+  </div>
+</section>
+
+<div class="intro" style="padding-bottom:60px">
+  <p style="font-size:14px">Text marked as sample (weather numbers, alerts, the diary list, step names on the waiting screen) is only there to show the layout.
+  Hindi on the Hindi home screen is a draft for native review.</p>
+</div>
+</body>
+</html>

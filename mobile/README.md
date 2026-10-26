@@ -33,9 +33,15 @@ Real backend check: `tool/run_live_check.ps1` (or `.sh`) starts a local offline 
 ## How it works
 - **Voice:** prompts in `assets/voice/prompts.json` (copy of `../voice/prompts.json`; run `python tool/sync_voice_assets.py`
   after changing it). Per sentence: bundled mp3, else server audio (cached by hash), else the phone's TTS. Dynamic advice
-  text comes from the server (`spoken`). Every screen is built with `VoiceScaffold` (speaks once on entry): one slim top bar (back, the screen's small buttons, the speaker), the
-  content, and at the bottom only the screen's one main action. The spoken sentence floats over the content as a one-line caption while it is
-  spoken (tap to open all of it); there is no footer. Colours: green = done/yes, red = stop/no, grey = waiting, yellow = warning only, blue = information.
+  text comes from the server (`spoken`). Every screen is built with `VoiceScaffold` (speaks once on entry): one slim white top bar (back,
+  an optional title, the screen's small buttons, the speaker), the content, and at the bottom only the screen's one main action on a white
+  strip. Home uses the deep-green header instead (`brandHeader`: greeting, village, bell, gear, speaker). The spoken sentence floats over the
+  content as a dark one-line caption while it is spoken (tap to open all of it). Colours: green = done/yes, red = stop/no, grey = waiting,
+  yellow = warning only, blue = information.
+- **Look (26 Oct 2026 redesign):** light green-grey ground, white cards with soft shadows, tinted panels with thin borders; thick borders
+  only where they mean "chosen" or "new". Tokens and helpers in `lib/core/theme/app_theme.dart` (`AppColors`, `AppDecor`). Approved mockup:
+  `../docs/design/ui-redesign-mockup.html` (its bottom navigation bar was not built: Home keeps its big picture cards, which the tests and
+  the low-literacy rule require to be at least 96 dp).
 - **Languages are data:** `assets/l10n/languages.json`, `strings.json`, the prompt file. A new language needs no code.
 - **Voice package (24 Oct 2026):** at start the app loads the saved server catalogue, fetches a fresh one and, only over Wi-Fi or a cable,
   downloads every prompt audio file not on the phone yet (`VoicePackage` in `lib/core/voice/catalogue_sync.dart`; again when the phone reaches Wi-Fi;

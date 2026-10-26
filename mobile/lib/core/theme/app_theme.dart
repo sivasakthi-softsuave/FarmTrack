@@ -7,6 +7,8 @@ import '../models/models.dart';
 class AppColors {
   const AppColors._();
 
+  /// Deep green of the Home header: a surface, never a button (buttons stay [green]).
+  static const brand = Color(0xFF14532D);
   static const green = Color(0xFF1B7F3A);
   static const greenSoft = Color(0xFFDDF3E2);
   static const red = Color(0xFFC62828);
@@ -18,14 +20,19 @@ class AppColors {
   /// 1.8 to 2.0:1.
   static const amberDark = Color(0xFF946100);
   static const amberSoft = Color(0xFFFFF1C7);
-  static const neutralSoft = Color(0xFFECEEF1);
+  static const neutralSoft = Color(0xFFEEF2EC);
   static const blue = Color(0xFF1F5FA8);
-  static const blueSoft = Color(0xFFDCEAF9);
-  static const ink = Color(0xFF14181F);
-  static const inkSoft = Color(0xFF4A5260);
-  static const paper = Color(0xFFFBF8F1);
+  static const blueSoft = Color(0xFFE3EDF8);
+  static const ink = Color(0xFF17201A);
+  static const inkSoft = Color(0xFF4B574E);
+
+  /// The screen background: a light green-grey, so the white cards stand out without borders.
+  static const paper = Color(0xFFF3F6F1);
   static const card = Color(0xFFFFFFFF);
-  static const line = Color(0xFFD9D3C5);
+  static const line = Color(0xFFE1E7DE);
+
+  /// Colour of the soft card shadows.
+  static const shadow = Color(0x33102818);
 
   static Color severity(Severity s) => switch (s) {
     Severity.green => green,
@@ -59,7 +66,41 @@ class Dimens {
   static const primary = 96.0;
   static const hero = 148.0;
   static const gutter = 16.0;
-  static const radius = 24.0;
+  static const radius = 20.0;
+  static const radiusSmall = 14.0;
+}
+
+/// The card look shared by every screen: white cards with a soft shadow on the light ground, and tinted panels with a
+/// thin border of their colour. Thick borders are kept only where they mean "chosen" or "new".
+class AppDecor {
+  const AppDecor._();
+
+  static const shadows = [
+    BoxShadow(color: Color(0x0F102818), blurRadius: 2, offset: Offset(0, 1)),
+    BoxShadow(color: Color(0x12102818), blurRadius: 18, offset: Offset(0, 6)),
+  ];
+
+  /// A white card with a soft shadow.
+  static BoxDecoration card({Color color = AppColors.card, double radius = Dimens.radius}) =>
+      BoxDecoration(color: color, borderRadius: BorderRadius.circular(radius), boxShadow: shadows);
+
+  /// A tinted panel (warning, timing, risk): the soft colour with a thin border of its accent.
+  static BoxDecoration panel(Color fill, Color accent, {double radius = Dimens.radius}) => BoxDecoration(
+    color: fill,
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(color: accent.withValues(alpha: 0.45), width: 1.5),
+  );
+
+  /// The outline of a [Material] card: a hairline, or the full colour when [strong] (chosen, new).
+  static BorderSide side(Color color, {bool strong = false}) {
+    if (strong) return BorderSide(color: color, width: 2.5);
+    return BorderSide(color: color.withValues(alpha: 0.4), width: 1.5);
+  }
+
+  /// The rounded shape of a [Material] card with [side].
+  static RoundedRectangleBorder shape(BorderSide side, {double radius = Dimens.radius}) {
+    return RoundedRectangleBorder(borderRadius: BorderRadius.circular(radius), side: side);
+  }
 }
 
 /// The picture of every button, in one place. The voice prompts name exactly these pictures.
@@ -117,35 +158,56 @@ ThemeData buildAppTheme() {
     onSurface: AppColors.ink,
   );
 
-  const text = TextStyle(color: AppColors.ink, height: 1.3);
+  // Calmer sizes than before (body 16-17, titles 18-22); the farmer's own text-size setting still scales them.
+  const text = TextStyle(color: AppColors.ink, height: 1.35);
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: AppColors.paper,
     materialTapTargetSize: MaterialTapTargetSize.padded,
+    dividerColor: AppColors.line,
     textTheme: TextTheme(
-      displaySmall: text.copyWith(fontSize: 36, fontWeight: FontWeight.w800),
-      headlineMedium: text.copyWith(fontSize: 30, fontWeight: FontWeight.w800),
-      headlineSmall: text.copyWith(fontSize: 26, fontWeight: FontWeight.w700),
-      titleLarge: text.copyWith(fontSize: 24, fontWeight: FontWeight.w700),
-      titleMedium: text.copyWith(fontSize: 22, fontWeight: FontWeight.w700),
-      bodyLarge: text.copyWith(fontSize: 22),
-      bodyMedium: text.copyWith(fontSize: 20),
-      labelLarge: text.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
+      displaySmall: text.copyWith(fontSize: 30, fontWeight: FontWeight.w800, height: 1.2),
+      headlineMedium: text.copyWith(fontSize: 26, fontWeight: FontWeight.w800, height: 1.2),
+      headlineSmall: text.copyWith(fontSize: 22, fontWeight: FontWeight.w700, height: 1.25),
+      titleLarge: text.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
+      titleMedium: text.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
+      bodyLarge: text.copyWith(fontSize: 17),
+      bodyMedium: text.copyWith(fontSize: 16),
+      labelLarge: text.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size(Dimens.minTouch, Dimens.minTouch),
-        textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimens.radius)),
+        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(Dimens.minTouch, Dimens.minTouch),
-        textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-        side: const BorderSide(color: AppColors.ink, width: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Dimens.radius)),
+        foregroundColor: AppColors.ink,
+        backgroundColor: AppColors.card,
+        textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+        side: const BorderSide(color: AppColors.line, width: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.card,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.line, width: 2),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.line, width: 2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.green, width: 2.5),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
@@ -154,6 +216,10 @@ ThemeData buildAppTheme() {
     iconButtonTheme: IconButtonThemeData(
       style: IconButton.styleFrom(minimumSize: const Size(Dimens.minTouch, Dimens.minTouch)),
     ),
-    progressIndicatorTheme: const ProgressIndicatorThemeData(color: AppColors.green, linearMinHeight: 12),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: AppColors.green,
+      linearTrackColor: Color(0xFFDCE7DD),
+      linearMinHeight: 10,
+    ),
   );
 }

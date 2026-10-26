@@ -5,6 +5,7 @@ on:
     paths: ['mobile/**', 'voice/**', '.github/workflows/mobile.yml']
   pull_request:
     paths: ['mobile/**', 'voice/**', '.github/workflows/mobile.yml']
+  workflow_dispatch:          # build an APK on demand (Actions tab, or `gh workflow run mobile`)
 
 # Least privilege: the job only reads the repository (no token write scopes, no secrets are used).
 permissions:
@@ -33,7 +34,62 @@ jobs:
           python tool/sync_voice_assets.py
           git diff --exit-code -- assets pubspec.yaml
       - run: flutter pub get
-      - run: dart format --output=none --set-exit-if-changed lib test
-      - run: flutter analyze
-      - run: flutter test
-      # An APK or IPA build needs the Android SDK / Xcode: not done here (see docs/design-notes/mobile1.md).
+      # Each check reports what it found as annotations on the run (readable without the full log), and the later
+      # checks still run when an earlier one fails, so one push shows every problem.
+      - name: Formatting (dart format)
+        run: |
+          dart format lib test > /dev/null
+          if ! git diff --quiet -- lib test; then
+            for f in $(git -C .. diff --name-only -- mobile/lib mobile/test); do
+              msg=$(git -C .. diff -U0 -- "$f" | tail -n +5 | head -c 3000 | sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g')
+              echo "::error file=$f,title=dart format wants::$msg"
+            done
+            exit 1
+          fi
+      - name: Analyze
+        if: success() || failure()
+        run: |
+          git checkout -- lib test
+          if ! flutter analyze > analyze.txt 2>&1; then
+            grep -E "^ *(error|warning|info) " analyze.txt | head -40 | while read -r line; do echo "::error title=analyze::$line"; done
+            exit 1
+          fi
+      - name: Test
+        if: success() || failure()
+        run: |
+          if ! flutter test --reporter expanded > test.txt 2>&1; then
+            grep -nE "\[E\]|Expected:|Actual:|Which:|══╡|reason:|Error:|overflow|lib/[a-z_/]+\.dart:[0-9]+" test.txt | grep -v "package:flutter/" | head -c 60000 > fail.txt
+            split -b 3000 fail.txt part_
+            for p in part_*; do echo "::error title=test failures::$(sed ':a;N;$!ba;s/%/%25/g;s/\r/%0D/g;s/\n/%0A/g' "$p")"; done
+            tail -3 test.txt
+            exit 1
+          fi
+
+  # Android APK (arm64, release mode) built on the runner's preinstalled Android SDK, so no developer PC needs the SDK.
+  # Server address: the app default (API_BASE_URL; changeable in the app). Signed with the runner's throwaway debug key, so a
+  # new APK cannot be installed over one from another run: uninstall the old app first. An IPA needs Xcode: not done here.
+  build-apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build apk --release --target-platform android-arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FarmTrack-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14

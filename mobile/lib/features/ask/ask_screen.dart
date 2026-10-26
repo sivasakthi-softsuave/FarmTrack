@@ -10,6 +10,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/haptics.dart';
 import '../../core/voice/utterance.dart';
 import '../../core/widgets/voice_scaffold.dart';
+import '../home/app_bottom_nav.dart';
 import 'ask_flow.dart';
 import 'ask_suggestions.dart';
 
@@ -31,49 +32,37 @@ class AskScreen extends ConsumerWidget {
     final t = ref.watch(stringsProvider);
     final lang = ref.watch(languageProvider);
     final suggestions = ref.watch(askSuggestionsProvider).value ?? const <AskSuggestion>[];
-    // Two cards per row, one per row when the text is large (a label must never be squeezed).
-    final twoColumns = MediaQuery.textScalerOf(context).scale(20) < 26;
-
-    Widget card(AskSuggestion s) => _SuggestionCard(
-      key: ValueKey('ask-card-${s.id}'),
-      icon: s.icon,
-      label: s.label.forLang(lang),
-      wide: !twoColumns,
-      onTap: () => _ask(context, ref, s),
-    );
 
     return VoiceScaffold(
+      title: t('home_ask_label'),
+      alignTop: true,
+      bottomNav: const AppBottomNav(current: AppTab.ask),
       script: promptList(const ['ask_intro', 'ask_tap_picture']),
+      // The ready questions as a list (picture, short title, the question itself), then "ask my own question".
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          for (final s in suggestions)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _SuggestionCard(
+                key: ValueKey('ask-card-${s.id}'),
+                icon: s.icon,
+                label: s.label.forLang(lang),
+                question: s.question.forLang(lang),
+                onTap: () => _ask(context, ref, s),
+              ),
+            ),
+          const SizedBox(height: 4),
           _OwnQuestionButton(label: t('ask_own'), onTap: () => context.push(Routes.askType)),
-          const SizedBox(height: 14),
-          if (twoColumns)
-            for (var i = 0; i < suggestions.length; i += 2)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: card(suggestions[i])),
-                      const SizedBox(width: 12),
-                      Expanded(child: i + 1 < suggestions.length ? card(suggestions[i + 1]) : const SizedBox.shrink()),
-                    ],
-                  ),
-                ),
-              )
-          else
-            for (final s in suggestions) Padding(padding: const EdgeInsets.only(bottom: 12), child: card(s)),
         ],
       ),
     );
   }
 }
 
-/// The wide button that opens the typing screen.
+/// The white button under the list that opens the typing screen.
 class _OwnQuestionButton extends StatelessWidget {
   const _OwnQuestionButton({required this.label, required this.onTap});
 
@@ -87,26 +76,24 @@ class _OwnQuestionButton extends StatelessWidget {
     excludeSemantics: true,
     child: Material(
       key: const ValueKey('ask-own'),
-      color: AppColors.blue,
-      borderRadius: BorderRadius.circular(Dimens.radius),
-      elevation: 3,
+      color: AppColors.card,
+      shape: AppDecor.shape(const BorderSide(color: AppColors.line, width: 2), radius: 18),
       child: InkWell(
-        borderRadius: BorderRadius.circular(Dimens.radius),
+        borderRadius: BorderRadius.circular(18),
         onTap: () {
           Haptics.tap();
           onTap();
         },
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: Dimens.primary),
+          constraints: const BoxConstraints(minHeight: 64),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.keyboard_rounded, size: 56, color: Colors.white),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(label, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
-                ),
+                const Icon(Icons.edit_rounded, size: 26, color: AppColors.ink),
+                const SizedBox(width: 10),
+                Flexible(child: Text(label, style: Theme.of(context).textTheme.titleMedium)),
               ],
             ),
           ),
@@ -116,24 +103,24 @@ class _OwnQuestionButton extends StatelessWidget {
   );
 }
 
+/// One ready question: its picture in a soft blue circle, a short title, the question itself and an arrow.
 class _SuggestionCard extends StatelessWidget {
-  const _SuggestionCard({super.key, required this.icon, required this.label, required this.wide, required this.onTap});
+  const _SuggestionCard({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.question,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
-
-  /// One card per row: picture on the left, words on the right.
-  final bool wide;
+  final String question;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final picture = Icon(icon, size: 52, color: AppColors.blue);
-    final words = Text(
-      label,
-      textAlign: wide ? TextAlign.start : TextAlign.center,
-      style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
-    );
+    final theme = Theme.of(context).textTheme;
     return Semantics(
       button: true,
       label: label,
@@ -141,10 +128,8 @@ class _SuggestionCard extends StatelessWidget {
       child: Material(
         color: AppColors.card,
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimens.radius),
-          side: const BorderSide(color: AppColors.blue, width: 3),
-        ),
+        shadowColor: AppColors.shadow,
+        shape: AppDecor.shape(BorderSide.none),
         child: InkWell(
           borderRadius: BorderRadius.circular(Dimens.radius),
           onTap: () {
@@ -152,21 +137,37 @@ class _SuggestionCard extends StatelessWidget {
             onTap();
           },
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: Dimens.primary),
+            constraints: const BoxConstraints(minHeight: 76),
             child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: wide
-                  ? Row(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(color: AppColors.blueSoft, borderRadius: BorderRadius.circular(14)),
+                    child: Icon(icon, size: 26, color: AppColors.blue),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        picture,
-                        const SizedBox(width: 12),
-                        Expanded(child: words),
+                        Text(label, style: theme.titleMedium),
+                        if (question.isNotEmpty)
+                          Text(
+                            question,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.bodyMedium?.copyWith(fontSize: 14, color: AppColors.inkSoft),
+                          ),
                       ],
-                    )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [picture, const SizedBox(height: 8), words],
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.chevron_right_rounded, size: 26, color: AppColors.inkSoft),
+                ],
+              ),
             ),
           ),
         ),

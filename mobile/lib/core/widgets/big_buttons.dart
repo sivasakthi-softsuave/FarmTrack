@@ -29,10 +29,15 @@ class BigIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
+    // Coloured buttons float a little; white and soft ones sit flat with a hairline, like the cards.
+    final filled = color.computeLuminance() < 0.5;
     final button = Material(
       color: enabled ? color : AppColors.line,
-      shape: const CircleBorder(),
-      elevation: enabled ? 3 : 0,
+      shape: CircleBorder(
+        side: filled || !enabled ? BorderSide.none : const BorderSide(color: AppColors.line, width: 1.5),
+      ),
+      elevation: enabled && filled ? 3 : 0,
+      shadowColor: color.withValues(alpha: 0.5),
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: enabled
@@ -74,22 +79,113 @@ class BigIconButton extends StatelessWidget {
   }
 }
 
-/// The green tick: "yes" / "continue" / "send".
+/// The green tick: "yes" / "continue" / "send". With [showLabel] it is a wide green pill, the tick followed by the
+/// word (its [semanticLabel]); the voice still calls it "the green tick".
 class TickButton extends StatelessWidget {
-  const TickButton({super.key, required this.onPressed, required this.semanticLabel, this.size = Dimens.primary});
+  const TickButton({
+    super.key,
+    required this.onPressed,
+    required this.semanticLabel,
+    this.size = Dimens.primary,
+    this.showLabel = false,
+  });
 
   final VoidCallback? onPressed;
   final String semanticLabel;
   final double size;
+  final bool showLabel;
 
   @override
-  Widget build(BuildContext context) => BigIconButton(
-    icon: AppIcons.tick,
-    onPressed: onPressed,
-    semanticLabel: semanticLabel,
-    color: AppColors.green,
-    size: size,
-  );
+  Widget build(BuildContext context) {
+    if (showLabel) {
+      return PillButton(icon: AppIcons.tick, label: semanticLabel, onPressed: onPressed, height: size.clamp(64, 80));
+    }
+    return BigIconButton(
+      icon: AppIcons.tick,
+      onPressed: onPressed,
+      semanticLabel: semanticLabel,
+      color: AppColors.green,
+      size: size,
+    );
+  }
+}
+
+/// A wide rounded button: a picture and a short word, green by default. It sizes itself to its content (the screen's
+/// action row scales it down on a narrow phone).
+class PillButton extends StatelessWidget {
+  const PillButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.color = AppColors.green,
+    this.foreground = Colors.white,
+    this.height = 64,
+  }) : assert(height >= Dimens.minTouch, 'touch targets must be at least 56 dp');
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final Color color;
+  final Color foreground;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    final fg = enabled ? foreground : AppColors.inkSoft;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        color: enabled ? color : AppColors.line,
+        shape: const StadiumBorder(),
+        elevation: enabled ? 3 : 0,
+        shadowColor: color.withValues(alpha: 0.5),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: enabled
+              ? () {
+                  Haptics.tap();
+                  onPressed!();
+                }
+              : null,
+          // Natural width in an action row; the whole width (the word shrinks if it must) in a wide strip.
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final word = Text(
+                label,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(color: fg, fontWeight: FontWeight.w800),
+              );
+              return ConstrainedBox(
+                constraints: BoxConstraints(minHeight: height, minWidth: height * 2),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: height * 0.4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: height * 0.5, color: fg),
+                      const SizedBox(width: 10),
+                      if (constraints.hasBoundedWidth)
+                        Flexible(
+                          child: FittedBox(fit: BoxFit.scaleDown, child: word),
+                        )
+                      else
+                        word,
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// The red cross: "no" / "remove".
@@ -111,6 +207,8 @@ class CrossButton extends StatelessWidget {
 }
 
 /// A large rounded picture tile (Home buttons, crop choices). [child] is the picture; [label] a short word.
+/// A white tile is a card with a soft shadow and a hairline of [borderColor]; a tinted tile (a chosen language) gets
+/// the full [borderColor] so the choice is plain to see.
 class PictureTile extends StatelessWidget {
   const PictureTile({
     super.key,
@@ -139,11 +237,9 @@ class PictureTile extends StatelessWidget {
       excludeSemantics: true,
       child: Material(
         color: color,
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimens.radius),
-          side: BorderSide(color: borderColor, width: 3),
-        ),
+        elevation: color == AppColors.card ? 2 : 0,
+        shadowColor: AppColors.shadow,
+        shape: AppDecor.shape(AppDecor.side(borderColor, strong: color != AppColors.card)),
         child: InkWell(
           borderRadius: BorderRadius.circular(Dimens.radius),
           onTap: onPressed == null

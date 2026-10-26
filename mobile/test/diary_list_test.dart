@@ -51,7 +51,8 @@ void main() {
       final env = await listEnv();
       await openList(tester, env);
       expect(keyed('diary-empty'), findsOneWidget);
-      expect(find.byIcon(Icons.edit_note_rounded), findsOneWidget);
+      // The notebook picture of the empty page, and the Diary picture of the bottom bar.
+      expect(find.byIcon(Icons.edit_note_rounded), findsNWidgets(2));
       expect(keyed('diary-add'), findsOneWidget);
       expect(env.voice.spokenIds, ['diary_intro', 'diary_empty']);
       expect(env.voice.unknownIds, isEmpty);

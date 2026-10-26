@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/errors/api_exception.dart';
+import '../../core/models/models.dart';
 import '../../core/offline/offline_queue.dart';
 import '../../core/offline/offline_status.dart';
 import '../../core/providers.dart';
@@ -74,7 +75,6 @@ class _OfflineCardsState extends ConsumerState<OfflineCards> {
   Widget build(BuildContext context) {
     final status = ref.watch(offlineStatusProvider);
     final t = ref.watch(stringsProvider);
-    final words = ref.watch(dateWordsProvider);
     var last = ref.watch(lastResultProvider);
     // A result that is ready to open is the same answer: one card is enough.
     if (last != null && status.ready.any((r) => r.scanId == last!.scan.id)) last = null;
@@ -108,21 +108,21 @@ class _OfflineCardsState extends ConsumerState<OfflineCards> {
             style: text,
             onTap: _speakWaiting,
           ),
-        if (last != null)
-          _Card(
-            key: const ValueKey('last-result-card'),
-            label: t('last_result_card', args: {'date': words.written(last.savedAt.toLocal())}),
-            background: AppColors.card,
-            border: AppColors.green,
-            icon: Icon(
-              lastSprayed ? AppIcons.tick : Icons.history_rounded,
-              key: ValueKey(lastSprayed ? 'last-result-sprayed' : 'last-result-open'),
-              size: 40,
-              color: AppColors.green,
+        if (last != null) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+            child: Text(
+              t('home_last_advice'),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.inkSoft),
             ),
-            style: text,
+          ),
+          _LastAdviceCard(
+            key: const ValueKey('last-result-card'),
+            last: last,
+            sprayed: lastSprayed,
             onTap: () => _openLast(last!),
           ),
+        ],
       ],
     );
   }
@@ -150,17 +150,16 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
+    padding: const EdgeInsets.only(bottom: 10),
     child: Semantics(
       button: true,
       label: label,
       excludeSemantics: true,
       child: Material(
         color: background,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimens.radius),
-          side: BorderSide(color: border, width: 3),
-        ),
+        elevation: background == AppColors.card ? 2 : 0,
+        shadowColor: AppColors.shadow,
+        shape: AppDecor.shape(AppDecor.side(border)),
         child: InkWell(
           borderRadius: BorderRadius.circular(Dimens.radius),
           onTap: onTap == null
@@ -172,7 +171,7 @@ class _Card extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: Dimens.minTouch),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Row(
                 children: [
                   icon,
@@ -202,4 +201,89 @@ class _Card extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// The last advice as a card: a picture of its severity, the disease name, the severity word and the day, and a tick
+/// once it was written into the diary. A result without a medicine advice says "Last advice: `day`".
+class _LastAdviceCard extends ConsumerWidget {
+  const _LastAdviceCard({super.key, required this.last, required this.sprayed, required this.onTap});
+
+  final LastResult last;
+  final bool sprayed;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = ref.watch(stringsProvider);
+    final lang = ref.watch(languageProvider);
+    final words = ref.watch(dateWordsProvider);
+    final theme = Theme.of(context).textTheme;
+    final advice = last.scan.advice;
+    final day = words.written(last.savedAt.toLocal());
+    final severity = advice?.severity;
+    final headline = advice?.headline.forLang(lang) ?? '';
+    final title = headline.isEmpty ? t('last_result_card', args: {'date': day}) : headline;
+    final meta = severity == null || headline.isEmpty ? '' : '${t('severity_${severity.wire}')} · $day';
+    final (icon, fill, color) = switch (severity) {
+      Severity.red => (AppIcons.danger, AppColors.redSoft, AppColors.red),
+      Severity.yellow => (AppIcons.warning, AppColors.amberSoft, AppColors.amberDark),
+      Severity.green => (AppIcons.tick, AppColors.greenSoft, AppColors.green),
+      null => (Icons.history_rounded, AppColors.greenSoft, AppColors.green),
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Semantics(
+        button: true,
+        label: title,
+        excludeSemantics: true,
+        child: Material(
+          color: AppColors.card,
+          elevation: 2,
+          shadowColor: AppColors.shadow,
+          shape: AppDecor.shape(BorderSide.none),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Dimens.radius),
+            onTap: () {
+              Haptics.tap();
+              onTap();
+            },
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 72),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(color: fill, borderRadius: BorderRadius.circular(14)),
+                      child: Icon(icon, size: 26, color: color),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.titleMedium),
+                          if (meta.isNotEmpty)
+                            Text(meta, style: theme.bodyMedium?.copyWith(fontSize: 14, color: AppColors.inkSoft)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      sprayed ? AppIcons.tick : Icons.chevron_right_rounded,
+                      key: ValueKey(sprayed ? 'last-result-sprayed' : 'last-result-open'),
+                      size: sprayed ? 30 : 28,
+                      color: sprayed ? AppColors.green : AppColors.inkSoft,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

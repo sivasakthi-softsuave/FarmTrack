@@ -81,74 +81,83 @@ class _ExpertScreenState extends ConsumerState<ExpertScreen> {
     final advice = scan.advice;
     final script = <Utterance>[PromptUtterance(variant), ?scan.spoken.toUtterance(lang)];
 
+    final fill = switch (scan.status) {
+      ScanStatus.needsExpert => AppColors.amberSoft,
+      ScanStatus.noApprovedData => AppColors.blueSoft,
+      _ => AppColors.neutralSoft,
+    };
+
     return VoiceScaffold(
       owner: _owner,
       script: script,
       onBack: () => context.go(Routes.home),
+      alignTop: true,
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(icon, size: 96, color: color, key: ValueKey('expert-icon-${scan.status.wire}')),
-          const SizedBox(height: 8),
-          Text(t(labelKey), textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
+          // What happened, in one tinted card: the picture in a full-colour circle and the words under it.
+          Container(
+            padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
+            decoration: AppDecor.panel(fill, color),
+            child: Column(
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  child: Icon(icon, size: 40, color: Colors.white, key: ValueKey('expert-icon-${scan.status.wire}')),
+                ),
+                const SizedBox(height: 12),
+                Text(t(labelKey), textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
+              ],
+            ),
+          ),
           if (advice != null) ...[const SizedBox(height: 16), AdviceCards(advice: advice)],
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              BigIconButton(
-                key: const ValueKey('expert-camera'),
-                icon: AppIcons.camera,
-                semanticLabel: t('a11y_camera'),
-                size: Dimens.minTouch + 8,
-                onPressed: () {
-                  ref.read(scanFlowProvider.notifier).reset();
-                  context.go(Routes.scan);
-                },
-              ),
-              const SizedBox(width: 20),
-              BigIconButton(
-                key: const ValueKey('expert-home'),
-                icon: AppIcons.house,
-                semanticLabel: t('a11y_home'),
-                color: AppColors.card,
-                foreground: AppColors.ink,
-                size: Dimens.minTouch + 8,
-                onPressed: () => context.go(Routes.home),
-              ),
-            ],
+        ],
+      ),
+      // A camera for a new photo, a house, and the wide blue "save this case" (a green "Saved" once it is sent).
+      wideAction: true,
+      bottomRight: Row(
+        children: [
+          BigIconButton(
+            key: const ValueKey('expert-camera'),
+            icon: AppIcons.camera,
+            semanticLabel: t('a11y_camera'),
+            color: AppColors.card,
+            foreground: AppColors.ink,
+            size: Dimens.minTouch,
+            onPressed: () {
+              ref.read(scanFlowProvider.notifier).reset();
+              context.go(Routes.scan);
+            },
+          ),
+          const SizedBox(width: 10),
+          BigIconButton(
+            key: const ValueKey('expert-home'),
+            icon: AppIcons.house,
+            semanticLabel: t('a11y_home'),
+            color: AppColors.card,
+            foreground: AppColors.ink,
+            size: Dimens.minTouch,
+            onPressed: () => context.go(Routes.home),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _sent
+                ? Center(
+                    child: SprayStatusChip(key: const ValueKey('expert-sent'), waiting: false, label: t('expert_sent')),
+                  )
+                : PillButton(
+                    key: const ValueKey('ask-expert'),
+                    icon: AppIcons.expert,
+                    label: t('a11y_expert'),
+                    color: AppColors.blue,
+                    onPressed: _sending ? null : () => _askExpert(scan),
+                  ),
           ),
         ],
       ),
-      bottomRight: _sent
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  key: const ValueKey('expert-sent'),
-                  width: 96,
-                  height: 96,
-                  decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
-                  child: const Icon(AppIcons.tick, size: 56, color: Colors.white),
-                ),
-                SizedBox(
-                  width: 128,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(t('expert_sent'), style: Theme.of(context).textTheme.labelLarge),
-                  ),
-                ),
-              ],
-            )
-          : BigIconButton(
-              key: const ValueKey('ask-expert'),
-              icon: AppIcons.expert,
-              color: AppColors.blue,
-              size: 104,
-              semanticLabel: t('a11y_expert'),
-              onPressed: _sending ? null : () => _askExpert(scan),
-            ),
     );
   }
 }

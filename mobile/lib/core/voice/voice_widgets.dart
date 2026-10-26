@@ -7,9 +7,12 @@ import '../widgets/big_buttons.dart';
 import 'speak_on_enter.dart';
 import 'voice_service.dart';
 
-/// The speaker picture, always the right-most button of the top bar. Plays the screen's speech again.
+/// The speaker picture, always the right-most button of the top bar. Plays the screen's speech again; a green ring
+/// shows while this screen is speaking. [onDark] is for the deep-green Home header.
 class SpeakerButton extends ConsumerWidget {
-  const SpeakerButton({super.key});
+  const SpeakerButton({super.key, this.onDark = false});
+
+  final bool onDark;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -20,17 +23,19 @@ class SpeakerButton extends ConsumerWidget {
       valueListenable: voice.state,
       builder: (context, state, _) {
         final speaking = state.speaking && session != null && state.owner == session.owner;
+        final ring = onDark ? Colors.white : AppColors.green;
         return Container(
           key: const ValueKey('speaker-button'),
           padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: speaking ? AppColors.blue : Colors.transparent, width: 2),
+            border: Border.all(color: speaking ? ring : Colors.transparent, width: 2),
           ),
           child: BigIconButton(
             icon: AppIcons.speaker,
             semanticLabel: t('a11y_listen'),
-            color: AppColors.blue,
+            color: onDark ? Colors.white : AppColors.greenSoft,
+            foreground: AppColors.green,
             size: Dimens.minTouch,
             onPressed: session == null ? null : () => session.replay(),
           ),
@@ -75,14 +80,13 @@ class _VoiceCaptionState extends ConsumerState<VoiceCaption> {
           container: true,
           label: text,
           excludeSemantics: true,
+          // A dark bubble over the light screen: it reads as "what the phone is saying", apart from the content.
           child: Material(
             key: const ValueKey('voice-caption'),
-            color: AppColors.card,
-            elevation: 3,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppColors.line, width: 2),
-            ),
+            color: AppColors.ink,
+            elevation: 6,
+            shadowColor: AppColors.shadow,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             // A plain gesture, not a button: opening the caption is a convenience, the screen never depends on it.
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -90,12 +94,12 @@ class _VoiceCaptionState extends ConsumerState<VoiceCaption> {
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: maxHeight),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   child: Row(
                     crossAxisAlignment: _open ? CrossAxisAlignment.start : CrossAxisAlignment.center,
                     children: [
-                      const Icon(AppIcons.captions, size: 24, color: AppColors.inkSoft),
-                      const SizedBox(width: 8),
+                      const Icon(AppIcons.captions, size: 22, color: _captionAccent),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: _open
                             ? SingleChildScrollView(child: Text(text, style: _captionStyle(context)))
@@ -113,8 +117,11 @@ class _VoiceCaptionState extends ConsumerState<VoiceCaption> {
   }
 
   TextStyle? _captionStyle(BuildContext context) =>
-      Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 18, fontWeight: FontWeight.w600);
+      Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white);
 }
+
+/// Light green of the caption picture on the dark bubble (8:1 on [AppColors.ink]).
+const _captionAccent = Color(0xFF7CD992);
 
 /// Shown when this phone has no voice for the farmer's language: the words stay readable on screen.
 class VoiceMissingBanner extends ConsumerWidget {

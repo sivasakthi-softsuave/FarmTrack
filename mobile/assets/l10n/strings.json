@@ -5,6 +5,10 @@
     "home_field_label": {"en": "Field", "hi": "खेत"},
     "home_diary_label": {"en": "Diary", "hi": "डायरी"},
     "home_ask_label": {"en": "Ask", "hi": "सवाल"},
+    "home_greeting": {"en": "Namaste, {name}", "hi": "नमस्ते, {name}"},
+    "home_scan_hint": {"en": "Take a photo of one leaf", "hi": "एक पत्ती की फोटो लीजिए"},
+    "home_last_advice": {"en": "Last advice", "hi": "पिछली सलाह"},
+    "nav_home": {"en": "Home", "hi": "होम"},
     "a11y_yes": {"en": "Yes", "hi": "हाँ"},
     "a11y_no": {"en": "No", "hi": "नहीं"},
     "a11y_camera": {"en": "Camera", "hi": "कैमरा"},
@@ -104,6 +108,8 @@
     "login_show_password": {"en": "Show password", "hi": "पासवर्ड दिखाएँ"},
     "login_hide_password": {"en": "Hide password", "hi": "पासवर्ड छिपाएँ"},
     "a11y_login": {"en": "Log in", "hi": "लॉग इन"},
+    "login_welcome": {"en": "Welcome. Please log in to come in.", "hi": "स्वागत है। अंदर आने के लिए कृपया लॉग इन कीजिए।"},
+    "login_server_change": {"en": "Change", "hi": "बदलिए"},
     "offline_waiting_card": {"en": "Waiting to send: {n}", "hi": "भेजने के लिए रुके हैं: {n}"},
     "offline_result_card": {"en": "Result ready: tap to see", "hi": "नतीजा आ गया: देखने के लिए दबाइए"},
     "last_result_card": {"en": "Last advice: {date}", "hi": "पिछली सलाह: {date}"},
@@ -156,6 +162,7 @@
     "analysing": {"en": "Looking at your leaf", "hi": "पत्ती देख रहे हैं"},
     "retake_title": {"en": "Take the photo again", "hi": "फोटो फिर से खींचिए"},
     "coming_soon": {"en": "Coming soon", "hi": "जल्द आएगा"},
+    "scan_tip": {"en": "One leaf, close, in daylight", "hi": "एक पत्ती, पास से, दिन की रोशनी में"},
     "photo_count": {"en": "{n} of {max}", "hi": "{n} / {max}"}
   },
   "crops": {

@@ -9,6 +9,7 @@ import '../../core/voice/utterance.dart';
 import '../../core/widgets/big_buttons.dart';
 import '../../core/widgets/status_views.dart';
 import '../../core/widgets/voice_scaffold.dart';
+import '../home/app_bottom_nav.dart';
 import 'date_words.dart';
 import 'diary_providers.dart';
 import 'diary_widgets.dart';
@@ -77,15 +78,17 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
 
     return VoiceScaffold(
       owner: _owner,
+      title: t('home_diary_label'),
       script: script,
       speakEnabled: !loading,
       onBack: _back,
-      bottomRight: BigIconButton(
+      alignTop: true,
+      bottomNav: const AppBottomNav(current: AppTab.diary),
+      // Floats over the list, above the bottom bar: a green "+ Write a spray".
+      bottomRight: PillButton(
         key: const ValueKey('diary-add'),
         icon: AppIcons.plus,
-        color: AppColors.green,
-        size: 96,
-        semanticLabel: t('diary_add_label'),
+        label: t('diary_add_label'),
         onPressed: () => context.push(Routes.diaryAdd),
       ),
       body: loading

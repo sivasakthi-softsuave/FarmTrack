@@ -28,10 +28,18 @@ class ErrorRetryScreen extends ConsumerWidget {
       script: promptList([errorPromptFor(error)]),
       onBack: onBack,
       showBack: onBack != null,
-      body: Icon(
-        connection ? AppIcons.offline : AppIcons.warning,
-        size: Dimens.hero,
-        color: connection ? AppColors.inkSoft : AppColors.amberDark,
+      body: Container(
+        width: 168,
+        height: 168,
+        decoration: BoxDecoration(
+          color: connection ? AppColors.neutralSoft : AppColors.amberSoft,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          connection ? AppIcons.offline : AppIcons.warning,
+          size: 96,
+          color: connection ? AppColors.inkSoft : AppColors.amberDark,
+        ),
       ),
       bottomRight: BigIconButton(
         key: const ValueKey('retry-button'),
@@ -68,13 +76,31 @@ class ProcessingBody extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 96, color: AppColors.green),
-        const SizedBox(height: 12),
-        Text(label, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 16),
+        // The picture in a white circle inside a turning green ring.
+        SizedBox(
+          width: 168,
+          height: 168,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const SizedBox.expand(
+                child: CircularProgressIndicator(strokeWidth: 10, backgroundColor: Color(0xFFDCE7DD)),
+              ),
+              Container(
+                width: 132,
+                height: 132,
+                decoration: _ringCentre,
+                child: Icon(icon, size: 64, color: AppColors.green),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(label, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
+        const SizedBox(height: 20),
         ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: LinearProgressIndicator(key: const ValueKey('progress'), value: progress, minHeight: 14),
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(key: const ValueKey('progress'), value: progress, minHeight: 12),
         ),
         if (onCancel != null) ...[
           const SizedBox(height: 20),
@@ -84,3 +110,5 @@ class ProcessingBody extends StatelessWidget {
     );
   }
 }
+
+const _ringCentre = BoxDecoration(color: AppColors.card, shape: BoxShape.circle, boxShadow: AppDecor.shadows);

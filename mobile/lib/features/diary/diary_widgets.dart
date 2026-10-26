@@ -22,16 +22,16 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
       color: background,
       borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: color, width: 2),
+      border: Border.all(color: color.withValues(alpha: 0.6), width: 1.5),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 22, color: color),
+        Icon(icon, size: 18, color: color),
         const SizedBox(width: 6),
         Flexible(
           child: Text(label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700)),
@@ -75,12 +75,12 @@ class DiaryEntryCard extends ConsumerWidget {
     return Material(
       key: ValueKey('diary-entry-${entry.id}'),
       color: AppColors.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: entry.pending ? AppColors.inkSoft : AppColors.line, width: 2),
-      ),
+      elevation: 2,
+      shadowColor: AppColors.shadow,
+      // A waiting entry keeps a grey outline, so "not sent yet" shows without the pill too.
+      shape: AppDecor.shape(entry.pending ? AppDecor.side(AppColors.inkSoft, strong: true) : BorderSide.none),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Dimens.radius),
         onTap: () {
           Haptics.tap();
           onTap();
@@ -88,10 +88,10 @@ class DiaryEntryCard extends ConsumerWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 88),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                CropPicture(cropId: entry.cropId.toLowerCase(), size: 56),
+                CropPicture(cropId: entry.cropId.toLowerCase(), size: 52),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -103,7 +103,7 @@ class DiaryEntryCard extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.titleMedium,
                       ),
-                      Text(date, style: theme.bodyLarge),
+                      Text(date, style: theme.bodyMedium?.copyWith(color: AppColors.inkSoft)),
                       if (worst != null || entry.pending) ...[
                         const SizedBox(height: 6),
                         Wrap(
@@ -125,7 +125,7 @@ class DiaryEntryCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Icon(AppIcons.speaker, size: 28, color: AppColors.blue),
+                const Icon(AppIcons.speaker, size: 26, color: AppColors.green),
               ],
             ),
           ),
@@ -152,12 +152,8 @@ class DiaryWarningCard extends ConsumerWidget {
     return Container(
       key: ValueKey('warning-${warning.code}'),
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.severitySoft(level),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.severityAccent(level), width: 3),
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: AppDecor.panel(AppColors.severitySoft(level), AppColors.severityAccent(level)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -182,7 +178,8 @@ class DiaryWarningCard extends ConsumerWidget {
             key: ValueKey('warning-speak-${warning.code}'),
             icon: AppIcons.speaker,
             semanticLabel: t('diary_listen_warning'),
-            color: AppColors.blue,
+            color: AppColors.card,
+            foreground: AppColors.green,
             size: Dimens.minTouch,
             onPressed: onSpeak,
           ),
@@ -209,12 +206,14 @@ class MedicineCard extends ConsumerWidget {
     return Material(
       key: ValueKey('diary-product-${product.productId}'),
       color: selected ? AppColors.greenSoft : AppColors.card,
+      elevation: selected ? 0 : 2,
+      shadowColor: AppColors.shadow,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: selected ? AppColors.green : AppColors.blue, width: selected ? 4 : 2),
+        borderRadius: BorderRadius.circular(Dimens.radius),
+        side: selected ? const BorderSide(color: AppColors.green, width: 4) : AppDecor.side(AppColors.blue),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Dimens.radius),
         onTap: () {
           Haptics.tap();
           onTap();
@@ -237,7 +236,7 @@ class MedicineCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(product.activeIngredient.forLang(lang), style: theme.titleLarge),
-                      if (brand.isNotEmpty) Text(brand, style: theme.bodyLarge),
+                      if (brand.isNotEmpty) Text(brand, style: theme.bodyMedium?.copyWith(color: AppColors.inkSoft)),
                       if (dose.isNotEmpty) Text(dose, style: theme.bodyMedium),
                     ],
                   ),
@@ -340,12 +339,11 @@ class _DayButton extends StatelessWidget {
       excludeSemantics: true,
       child: Material(
         color: selected ? AppColors.green : AppColors.card,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.green, width: 3),
-        ),
+        elevation: selected ? 3 : 1,
+        shadowColor: selected ? AppColors.green.withValues(alpha: 0.5) : AppColors.shadow,
+        shape: AppDecor.shape(AppDecor.side(AppColors.green, strong: selected), radius: 18),
         child: InkWell(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           onTap: () {
             Haptics.tap();
             onTap();
@@ -408,12 +406,11 @@ class DayChooser extends ConsumerWidget {
                     return Material(
                       key: ValueKey('day-option-$back'),
                       color: back == 0 ? AppColors.greenSoft : AppColors.card,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: const BorderSide(color: AppColors.green, width: 3),
-                      ),
+                      elevation: back == 0 ? 0 : 1,
+                      shadowColor: AppColors.shadow,
+                      shape: AppDecor.shape(AppDecor.side(AppColors.green, strong: back == 0), radius: 18),
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(18),
                         onTap: () {
                           Haptics.tap();
                           onPick(back);

@@ -66,12 +66,16 @@ class _AskTypeScreenState extends ConsumerState<AskTypeScreen> {
           filled: true,
           fillColor: AppColors.card,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: const BorderSide(color: AppColors.ink, width: 2),
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFFC9D3C6), width: 2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: Color(0xFFC9D3C6), width: 2),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: const BorderSide(color: AppColors.blue, width: 3),
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.green, width: 3),
           ),
         ),
       ),

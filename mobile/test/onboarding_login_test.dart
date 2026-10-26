@@ -335,11 +335,15 @@ void main() {
       final env = await TestEnv.create(onboardingDone: true);
       await openLogin(tester, env);
       expectBigTouchTargets(tester);
-      for (final key in ['login-username', 'login-password', 'login-eye', 'login-submit']) {
+      for (final key in ['login-username', 'login-password', 'login-submit']) {
         final size = tester.getSize(keyed(key));
         expect(size.height, greaterThanOrEqualTo(64), reason: '$key height');
         expect(size.width, greaterThanOrEqualTo(64), reason: '$key width');
       }
+      // The eye sits inside the password box: the app's smallest target, still 56 dp.
+      final eye = tester.getSize(keyed('login-eye'));
+      expect(eye.height, greaterThanOrEqualTo(56));
+      expect(eye.width, greaterThanOrEqualTo(56));
     });
 
     for (final language in ['hi', 'en']) {

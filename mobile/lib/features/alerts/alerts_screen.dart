@@ -45,6 +45,7 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
 
     return VoiceScaffold(
       owner: _owner,
+      title: t('a11y_alerts'),
       script: promptList([items.isEmpty ? 'alert_none' : 'alert_open']),
       speakEnabled: !loading,
       onBack: _back,

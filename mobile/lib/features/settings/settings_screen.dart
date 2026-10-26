@@ -11,7 +11,6 @@ import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/voice/utterance.dart';
 import '../../core/voice/voice_service.dart';
-import '../../core/widgets/big_buttons.dart';
 import '../../core/widgets/voice_scaffold.dart';
 import '../onboarding/language_screen.dart';
 
@@ -44,6 +43,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return VoiceScaffold(
       owner: _owner,
+      title: t('a11y_settings'),
       script: promptList(const ['settings_speed', 'settings_volume']),
       body: Column(
         mainAxisSize: MainAxisSize.min,
@@ -107,6 +107,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               padding: const EdgeInsets.only(top: 8),
               child: OutlinedButton.icon(
                 key: const ValueKey('log-out'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.red,
+                  side: const BorderSide(color: Color(0xFFF2C2BE), width: 2),
+                ),
                 icon: const Icon(AppIcons.logout),
                 label: Text(t('log_out')),
                 onPressed: () => context.push(Routes.settingsLogout),
@@ -160,20 +164,22 @@ class _Section extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+    decoration: AppDecor.card(),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 10),
         child,
       ],
     ),
   );
 }
 
-/// Three round pictures, the chosen one ringed in green.
+/// A segmented choice (two or three parts side by side), the chosen one in green.
 class _Choices<T> extends StatelessWidget {
   const _Choices({
     required this.keyPrefix,
@@ -195,25 +201,72 @@ class _Choices<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
     children: [
-      for (var i = 0; i < values.length; i++)
-        Container(
-          padding: const EdgeInsets.all(5),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: values[i] == selected ? AppColors.green : Colors.transparent, width: 5),
-          ),
-          child: BigIconButton(
+      for (var i = 0; i < values.length; i++) ...[
+        if (i > 0) const SizedBox(width: 8),
+        Expanded(
+          child: _Choice(
             key: ValueKey('$keyPrefix-${ids[i]}'),
             icon: icons[i],
-            semanticLabel: labels[i],
-            color: values[i] == selected ? AppColors.green : AppColors.card,
-            foreground: values[i] == selected ? Colors.white : AppColors.ink,
-            size: 72,
-            onPressed: () => onChosen(values[i]),
+            label: labels[i],
+            selected: values[i] == selected,
+            onTap: () => onChosen(values[i]),
           ),
         ),
+      ],
     ],
   );
 }
+
+/// One part of a segmented choice: a picture and a word; the chosen one is green with a green border.
+class _Choice extends StatelessWidget {
+  const _Choice({super.key, required this.icon, required this.label, required this.selected, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppColors.green : AppColors.ink;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      excludeSemantics: true,
+      child: Material(
+        color: selected ? AppColors.greenSoft : AppColors.card,
+        shape: AppDecor.shape(selected ? _chosenSide : _plainSide, radius: 16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: SizedBox(
+            height: 68,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 24, color: color),
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(fontSize: 14, color: color),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+const _chosenSide = BorderSide(color: AppColors.green, width: 2.5);
+const _plainSide = BorderSide(color: AppColors.line, width: 2);
