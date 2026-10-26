@@ -9,18 +9,18 @@ import '../../core/router/routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/haptics.dart';
 import '../../core/voice/utterance.dart';
-import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../../core/widgets/redirect.dart';
 import '../../core/widgets/status_views.dart';
 import '../../core/widgets/voice_scaffold.dart';
 import '../diary/date_words.dart';
-import '../result/advice_widgets.dart';
+import 'alert_widgets.dart';
 import 'alerts_providers.dart';
 import 'open_scan.dart';
 
 /// One alert, opened from the list or from a push message: the level as colour, picture and word, the title and
-/// text, and the spoken version, which starts by itself. An alert that is about a photo check has a big green arrow
-/// that opens that scan's result. Opening an alert marks it as read.
+/// text, and the spoken version, which starts by itself. An alert that is about a photo check has a wide green action
+/// with the green arrow that opens that scan's result. Opening an alert marks it as read.
 class AlertDetailScreen extends ConsumerStatefulWidget {
   const AlertDetailScreen({super.key, required this.alertId});
 
@@ -86,6 +86,7 @@ class _AlertDetailScreenState extends ConsumerState<AlertDetailScreen> {
     final items = alerts.value?.items;
     if (items == null) {
       return VoiceScaffold(
+        title: ref.watch(stringsProvider)('a11y_alerts'),
         script: const [],
         speakEnabled: false,
         onBack: _back,
@@ -102,42 +103,36 @@ class _AlertDetailScreenState extends ConsumerState<AlertDetailScreen> {
     final t = ref.watch(stringsProvider);
     final words = ref.watch(dateWordsProvider);
     final now = ref.watch(clockProvider)();
-    final theme = Theme.of(context).textTheme;
     final body = alert.body.forLang(lang);
     final created = alert.createdAt;
-    final date = created == null
-        ? ''
-        : [words.relative(created, now), words.written(created)].whereType<String>().join(', ');
+    final when = created == null ? '' : alertWhen(words, created, now);
     final hasScan = alert.scanId != null && alert.scanId!.isNotEmpty;
 
     final spoken = alert.spoken.toUtterance(lang) ?? (body.isEmpty ? null : TextUtterance(body, lang: lang));
     return VoiceScaffold(
       owner: _owner,
+      title: t('a11y_alerts'),
       script: [?spoken, if (hasScan) const PromptUtterance('alert_see_scan')],
       onBack: _back,
+      alignTop: true,
+      bodyPadding: const EdgeInsets.fromLTRB(Dimens.gutter, Dimens.gutter, Dimens.gutter, 0),
+      // The photo's result: the mockup's wide green action under the content, the green arrow the voice names.
+      wideAction: true,
       bottomRight: hasScan
           ? (_opening
-                ? const SizedBox(width: 96, height: 96, child: Center(child: CircularProgressIndicator()))
-                : BigIconButton(
+                ? const SizedBox(
+                    height: Dimens.actionButton,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : AppButton(
                     key: const ValueKey('alert-open-scan'),
                     icon: AppIcons.greenArrow,
-                    size: 96,
+                    label: t('alerts_open_scan_label'),
                     semanticLabel: t('alerts_open_scan_label'),
                     onPressed: () => _openScan(alert),
                   ))
           : null,
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SeverityBand(severity: alert.level, headline: alert.title.forLang(lang)),
-          if (body.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(body, key: const ValueKey('alert-body'), style: theme.bodyLarge),
-          ],
-          if (date.isNotEmpty) ...[const SizedBox(height: 12), Text(date, style: theme.bodyMedium)],
-        ],
-      ),
+      body: AlertSummaryCard(alert: alert, when: when),
     );
   }
 }

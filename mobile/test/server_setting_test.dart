@@ -36,6 +36,7 @@ void main() {
     await tester.enterText(keyed('server-field'), '192.168.1.5');
     await tapKey(tester, 'server-save');
     expect(keyed('server-field'), findsOneWidget, reason: 'the dialog stays open');
+    expect(find.textContaining('ऐसा पता लिखें'), findsOneWidget, reason: 'and says what is wrong');
     expect(env.prefs.getString(serverOverrideKey), isNull);
     expect(container.read(apiBaseUrlProvider), 'http://10.0.2.2:8000');
   });

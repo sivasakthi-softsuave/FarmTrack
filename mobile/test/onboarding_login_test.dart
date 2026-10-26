@@ -6,6 +6,7 @@ import 'package:farmtrack/core/errors/api_exception.dart';
 import 'package:farmtrack/core/providers.dart';
 import 'package:farmtrack/core/router/app_router.dart';
 import 'package:farmtrack/core/theme/app_theme.dart';
+import 'package:farmtrack/features/auth/auth_widgets.dart';
 
 import 'support/finders.dart';
 import 'support/harness.dart';
@@ -72,6 +73,9 @@ void main() {
       expect(env.voice.log, ['choose_language@hi', 'choose_language@en']);
       expect(find.text('हिन्दी'), findsOneWidget);
       expect(find.text('English'), findsOneWidget);
+      // The request is written in both languages too (the first one big, the other in grey under it).
+      expect(find.text('अपनी भाषा चुनिए'), findsOneWidget);
+      expect(find.text('Choose your language'), findsOneWidget);
       expectBigTouchTargets(tester);
     });
 
@@ -101,6 +105,7 @@ void main() {
       final env = await TestEnv.create();
       final container = await pumpApp(tester, env);
       expect(env.voice.spokenIds, ['welcome', 'tap_green_tick']);
+      expect(find.text('शुरू करें'), findsOneWidget, reason: 'the wide green button says what it does');
       await tapKey(tester, 'welcome-continue');
       expect(container.read(settingsProvider).onboardingDone, isTrue);
       expect(keyed('login-username'), findsOneWidget);
@@ -323,10 +328,11 @@ void main() {
       expect(env.voice.spokenIds, loginScript);
     });
 
-    testWidgets('the back arrow returns to the welcome screen', (tester) async {
+    testWidgets('the phone back button returns to the welcome screen (the mockup draws no back arrow)', (tester) async {
       final env = await TestEnv.create(onboardingDone: true);
       await openLogin(tester, env);
-      await tester.tap(find.byIcon(AppIcons.back));
+      expect(find.byIcon(AppIcons.back), findsNothing);
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(keyed('welcome-continue'), findsOneWidget);
     });
@@ -337,13 +343,26 @@ void main() {
       expectBigTouchTargets(tester);
       for (final key in ['login-username', 'login-password', 'login-submit']) {
         final size = tester.getSize(keyed(key));
-        expect(size.height, greaterThanOrEqualTo(64), reason: '$key height');
-        expect(size.width, greaterThanOrEqualTo(64), reason: '$key width');
+        expect(size.height, greaterThanOrEqualTo(56), reason: '$key height');
+        expect(size.width, greaterThanOrEqualTo(56), reason: '$key width');
       }
       // The eye sits inside the password box: the app's smallest target, still 56 dp.
       final eye = tester.getSize(keyed('login-eye'));
       expect(eye.height, greaterThanOrEqualTo(56));
       expect(eye.width, greaterThanOrEqualTo(56));
+    });
+
+    testWidgets('the sizes of the mockup: fields 58 high, the green button 60 high, the eye a 48 circle in a 56 area', (
+      tester,
+    ) async {
+      final env = await TestEnv.create(onboardingDone: true);
+      await openLogin(tester, env);
+      expect(tester.getSize(keyed('login-username')).height, closeTo(58, 0.5));
+      expect(tester.getSize(keyed('login-password')).height, closeTo(58, 0.5));
+      expect(tester.getSize(keyed('login-submit')).height, 60);
+      expect(tester.getSize(keyed('login-eye')), const Size(56, 56));
+      // The hills picture (350 x 150 in the mockup) is there with the screen's 20 dp gutter.
+      expect(tester.getSize(find.byType(HillsPicture)), const Size(320, 150));
     });
 
     for (final language in ['hi', 'en']) {

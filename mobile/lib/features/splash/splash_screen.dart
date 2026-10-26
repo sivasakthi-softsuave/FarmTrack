@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/design.dart';
+import '../auth/auth_widgets.dart';
 
 /// Checks the saved login and the onboarding flag, then moves on. Silent: no language is known yet.
 class SplashScreen extends ConsumerStatefulWidget {
@@ -71,37 +73,67 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(stringsProvider);
-    final small = Theme.of(context).textTheme.bodyMedium;
+    // Paper ground, the deep-green brand tile (the login's, bigger) and the name; nothing else unless the start is stuck.
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 140,
-                height: 140,
-                decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
-                child: const Icon(AppIcons.leaf, size: 88, color: Colors.white),
-              ),
-              const SizedBox(height: 24),
-              Text(t('app_name'), style: Theme.of(context).textTheme.displaySmall),
-              if (_error != null) ...[
-                const SizedBox(height: 24),
-                SelectableText('Start problem: $_error', key: const ValueKey('splash-error'), style: small),
-                const SizedBox(height: 16),
-                FilledButton(
-                  key: const ValueKey('splash-retry'),
-                  style: FilledButton.styleFrom(minimumSize: const Size(120, 64)),
-                  onPressed: _start,
-                  child: const Icon(AppIcons.roundArrow, size: 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Center(child: BrandTile(size: 112)),
+                const SizedBox(height: 20),
+                Text(
+                  t('app_name'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, height: 1.2, color: AppColors.ink),
                 ),
-              ] else if (_slow) ...[
-                const SizedBox(height: 24),
-                Text('Still starting… ($_step)', key: const ValueKey('splash-slow'), style: small),
+                if (_error != null) ...[
+                  const SizedBox(height: 24),
+                  AppCard(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const IconDot(AppIcons.warning, background: AppColors.redSoft, foreground: AppColors.red),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: SelectableText(
+                                'Start problem: $_error',
+                                key: const ValueKey('splash-error'),
+                                style: AppText.hMeta.copyWith(color: AppColors.ink),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        AppButton(
+                          key: const ValueKey('splash-retry'),
+                          icon: AppIcons.roundArrow,
+                          label: t('a11y_retry'),
+                          semanticLabel: t('a11y_retry'),
+                          onPressed: _start,
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else if (_slow) ...[
+                  const SizedBox(height: 24),
+                  Text(
+                    'Still starting… ($_step)',
+                    key: const ValueKey('splash-slow'),
+                    textAlign: TextAlign.center,
+                    style: AppText.hMeta,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

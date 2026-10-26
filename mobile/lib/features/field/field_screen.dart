@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/haptics.dart';
 import '../../core/voice/utterance.dart';
 import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../../core/widgets/status_views.dart';
 import '../../core/widgets/voice_scaffold.dart';
 import '../diary/date_words.dart';
@@ -17,8 +18,9 @@ import 'field_providers.dart';
 import 'field_widgets.dart';
 import 'field_words.dart';
 
-/// Route `/field`: "My field". Big picture tiles with a word for the weather now, risk cards (scab first), a
-/// seven-day strip, and a round arrow to look again. It says the server's spoken summary when it opens.
+/// Route `/field`: "My field". The danger cards first (scab first), then picture tiles with a word for the weather now,
+/// the week in one card, and a round arrow to look again; the layout is the approved mockup's. It says the server's
+/// spoken summary when it opens.
 ///
 /// Old information (a quiet sensor, or the last answer kept on the phone because there is no internet) is marked on
 /// the screen and announced with `field_stale`; an answer with nothing in it says `field_no_data`.
@@ -114,15 +116,44 @@ class _FieldScreenState extends ConsumerState<FieldScreen> {
       return ErrorRetryScreen(error: field.error!, onRetry: () => ref.invalidate(fieldProvider), onBack: _back);
     }
     final view = field.value;
-    final theme = Theme.of(context).textTheme;
+    final tiles = view == null ? const <ReadingTile>[] : readingTiles(view.field.readings, weather: weatherOn);
+
+    // The mockup's `.pad`: the blocks are 12 apart; a label and what it heads are 10 apart.
+    Widget group(String label, Widget content) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionLabel(label, hindi: isDevanagari(label)),
+        const SizedBox(height: 10),
+        content,
+      ],
+    );
+    final blocks = <Widget>[
+      if (view != null) ...[
+        ?_header(view.field, words),
+        if (view.isOld && !view.hasNoData) OldInfoBanner(since: view.fromCache ? view.savedAt : null),
+        if (view.hasNoData)
+          const NoFieldData()
+        else ...[
+          // The danger first: it is what the farmer must see without scrolling.
+          for (final risk in sortedRisks(view.field.risks)) RiskCard(risk: risk, onSpeak: () => _sayRisk(risk)),
+          if (tiles.isNotEmpty) group(t('field_readings_title'), ReadingTiles(tiles: tiles, onSpeak: _say)),
+          // No forecast strip when the server has weather switched off.
+          if (weatherOn && view.field.forecast.isNotEmpty)
+            group(t('field_forecast_title'), ForecastStrip(days: view.field.forecast.take(7).toList())),
+        ],
+      ],
+    ];
 
     return VoiceScaffold(
       owner: _owner,
-      title: t('home_field_label'),
+      // A main page of the bottom bar: no back arrow (the phone's back button still goes home).
+      title: t('field_title'),
+      showBack: false,
       script: view == null ? const [] : _script(view),
       speakEnabled: view != null,
       onBack: _back,
       alignTop: true,
+      bodyPadding: const EdgeInsets.fromLTRB(Dimens.gutter, Dimens.gutter, Dimens.gutter, 0),
       bottomNav: const AppBottomNav(current: AppTab.field),
       topRight: [
         BigIconButton(
@@ -142,63 +173,35 @@ class _FieldScreenState extends ConsumerState<FieldScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (_reloading) const Padding(padding: EdgeInsets.only(bottom: 8), child: LinearProgressIndicator()),
-                if (view.isOld && !view.hasNoData) ...[
-                  OldInfoBanner(since: view.fromCache ? view.savedAt : null),
-                  const SizedBox(height: 12),
-                ],
-                _header(view.field, words, theme),
-                if (view.hasNoData)
-                  const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: NoFieldData())
-                else ...[
-                  // The danger first: it is what the farmer must see without scrolling.
-                  if (view.field.risks.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text(t('field_risks_title'), style: theme.titleLarge),
-                    const SizedBox(height: 8),
-                    for (final risk in sortedRisks(view.field.risks))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: RiskCard(risk: risk, onSpeak: () => _sayRisk(risk)),
-                      ),
-                  ],
-                  const SizedBox(height: 12),
-                  ReadingTiles(
-                    tiles: readingTiles(view.field.readings, weather: weatherOn),
-                    onSpeak: _say,
-                  ),
-                  // No forecast strip when the server has weather switched off.
-                  if (weatherOn && view.field.forecast.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text(t('field_forecast_title'), style: theme.titleLarge),
-                    const SizedBox(height: 8),
-                    ForecastStrip(days: view.field.forecast.take(7).toList()),
-                  ],
-                ],
+                for (var i = 0; i < blocks.length; i++) ...[if (i > 0) const SizedBox(height: 12), blocks[i]],
               ],
             ),
     );
   }
 
-  /// The village, and when the information is from (small digits).
-  Widget _header(FieldOut field, DateWords words, TextTheme theme) {
+  /// The mockup's grey line "Theog · today, 08:00": the village and when the information is from (null: nothing to say).
+  Widget? _header(FieldOut field, DateWords words) {
     final village = field.village;
     final asOf = field.asOf;
-    if ((village == null || village.isEmpty) && asOf == null) return const SizedBox.shrink();
+    final hasVillage = village != null && village.isNotEmpty;
+    if (!hasVillage && asOf == null) return null;
     final local = asOf?.toLocal();
-    final time = local == null
-        ? ''
-        : '${words.written(local)}, ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-    return Column(
-      children: [
-        if (village != null && village.isNotEmpty)
-          Text(village, key: const ValueKey('field-village'), textAlign: TextAlign.center, style: theme.headlineSmall),
-        if (time.isNotEmpty)
-          Text(
-            time,
-            key: const ValueKey('field-as-of'),
-            style: theme.bodyMedium?.copyWith(color: AppColors.inkSoft),
-          ),
-      ],
+    String time = '';
+    if (local != null) {
+      // "today" / "yesterday" when it is one of them, else the date.
+      final relative = words.relative(local, ref.read(clockProvider)());
+      final day = relative == null ? words.written(local) : (hasVillage ? relative.toLowerCase() : relative);
+      time = '$day, ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Wrap(
+        children: [
+          if (hasVillage)
+            Text(time.isEmpty ? village : '$village · ', key: const ValueKey('field-village'), style: AppText.hMeta),
+          if (time.isNotEmpty) Text(time, key: const ValueKey('field-as-of'), style: AppText.hMeta),
+        ],
+      ),
     );
   }
 }

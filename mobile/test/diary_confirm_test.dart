@@ -8,8 +8,10 @@ import 'package:farmtrack/core/network/mock_api_client.dart';
 import 'package:farmtrack/core/network/mock_data.dart';
 import 'package:farmtrack/core/offline/offline_queue.dart';
 import 'package:farmtrack/core/voice/utterance.dart';
+import 'package:farmtrack/core/widgets/design.dart';
 import 'package:farmtrack/features/diary/date_words.dart';
 import 'package:farmtrack/features/diary/diary_providers.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'support/feature_fakes.dart';
 import 'support/finders.dart';
@@ -98,6 +100,18 @@ void main() {
       expect(find.text('डिफेनोकोनाज़ोल'), findsOneWidget);
       expect(keyed('diary-save'), findsOneWidget);
       expect(keyed('diary-cancel'), findsOneWidget);
+      // The strip: a square red-outlined cross and the wide green tick (60 high, the mockup's buttons).
+      expect(tester.getSize(keyed('diary-cancel')), const Size(60, 60));
+      expect(tester.getSize(keyed('diary-save')).height, 60);
+      expect(tester.getSize(keyed('diary-save')).width, greaterThan(200));
+      expect(tester.widget<AppButton>(keyed('diary-cancel')).style, AppButtonStyle.danger);
+      expect(tester.widget<AppButton>(keyed('diary-save')).style, AppButtonStyle.primary);
+      // The medicine is a white card with the flask in a 44 dp square; the three days are segmented buttons.
+      expect(
+        tester.getSize(find.descendant(of: keyed('diary-product-P007'), matching: find.byType(IconDot))),
+        const Size(44, 44),
+      );
+      expect(tester.getSize(keyed('day-today')).height, 56);
       expect(env.voice.spokenTexts, ['डिफेनोकोनाज़ोल, Score']);
       expect(env.voice.spokenIds, ['diary_did_spray', 'diary_tick_sprayed', 'diary_cross_back']);
       // The name comes first, then the question.
@@ -155,13 +169,10 @@ void main() {
       await tapKey(tester, 'diary-product-P006');
       expect(env.voice.spokenTexts, ['प्रोपीनेब, Antracol', 'एक लीटर पानी में दो ग्राम।']);
       expect(
-        find.descendant(of: keyed('diary-product-P006'), matching: find.byIcon(Icons.check_rounded)),
+        find.descendant(of: keyed('diary-product-P006'), matching: find.byIcon(AppIcons.tickBold)),
         findsOneWidget,
       );
-      expect(
-        find.descendant(of: keyed('diary-product-P007'), matching: find.byIcon(Icons.check_rounded)),
-        findsNothing,
-      );
+      expect(find.descendant(of: keyed('diary-product-P007'), matching: find.byIcon(AppIcons.tickBold)), findsNothing);
       expectBigTouchTargets(tester);
 
       await tapKey(tester, 'diary-save');
@@ -294,10 +305,10 @@ void main() {
         final yellow = keyed('warning-too_soon');
         expect(red, findsOneWidget);
         expect(yellow, findsOneWidget);
-        expect(find.descendant(of: red, matching: find.byIcon(Icons.report_rounded)), findsOneWidget);
+        expect(find.descendant(of: red, matching: find.byIcon(AppIcons.danger)), findsOneWidget);
         expect(find.descendant(of: red, matching: find.text('गंभीर')), findsOneWidget);
         expect(find.descendant(of: red, matching: find.text('इस फसल पर मंज़ूर नहीं है।')), findsOneWidget);
-        expect(find.descendant(of: yellow, matching: find.byIcon(Icons.warning_amber_rounded)), findsOneWidget);
+        expect(find.descendant(of: yellow, matching: find.byIcon(AppIcons.warning)), findsOneWidget);
         expect(find.descendant(of: yellow, matching: find.text('सावधान')), findsOneWidget);
         expect(find.descendant(of: yellow, matching: find.text('आपने कुछ दिन पहले यही छिड़का था।')), findsOneWidget);
         final decoration = tester.widget<Container>(red).decoration! as BoxDecoration;
@@ -306,6 +317,57 @@ void main() {
         expectBigTouchTargets(tester);
       },
     );
+
+    testWidgets('three warnings: a small green header, three tinted cards, then the entry; all on a small phone', (
+      tester,
+    ) async {
+      final env = await envWith(
+        api: ScriptedSprayApi(
+          (log) => SprayLogOut(
+            id: 'log-1',
+            cropId: log.cropId,
+            productName: 'Difenoconazole (Score)',
+            warnings: [
+              WarningOut(
+                code: 'a_red',
+                level: Severity.red,
+                text: LocalizedText.pair(en: 'One.', hi: 'पहली बात।'),
+              ),
+              WarningOut(
+                code: 'b_yellow',
+                level: Severity.yellow,
+                text: LocalizedText.pair(en: 'Two.', hi: 'दूसरी बात।'),
+              ),
+              WarningOut(
+                code: 'c_yellow',
+                level: Severity.yellow,
+                text: LocalizedText.pair(en: 'Three.', hi: 'तीसरी बात।'),
+              ),
+            ],
+          ),
+        ),
+      );
+      await openConfirm(tester, env, size: const Size(360, 800));
+      await tapKey(tester, 'diary-save');
+      expect(tester.takeException(), isNull);
+      // The header with warnings is the small one (52 dp circle); each card shows its level word and its text.
+      expect(tester.getSize(keyed('saved-ok')), const Size(52, 52));
+      for (final code in ['a_red', 'b_yellow', 'c_yellow']) {
+        expect(keyed('warning-$code'), findsOneWidget);
+        expect(keyed('warning-speak-$code'), findsOneWidget);
+      }
+      expect(find.descendant(of: keyed('warning-a_red'), matching: find.text('गंभीर')), findsOneWidget);
+      expect(find.descendant(of: keyed('warning-b_yellow'), matching: find.text('सावधान')), findsOneWidget);
+      // The entry under them: the medicine and, under it, the crop and the day.
+      expect(find.text('Difenoconazole (Score)'), findsOneWidget);
+      expect(find.textContaining('सेब · आज'), findsOneWidget);
+      // Red is a red-soft card with the red danger picture; yellow a soft amber one with the warning picture.
+      final red = tester.widget<Container>(keyed('warning-a_red')).decoration! as BoxDecoration;
+      final amber = tester.widget<Container>(keyed('warning-b_yellow')).decoration! as BoxDecoration;
+      expect(red.color, AppColors.redSoft);
+      expect(amber.color, AppColors.amberSoft);
+      expectBigTouchTargets(tester);
+    });
 
     testWidgets('each card has a speaker button that says only that warning', (tester) async {
       final env = await envWith(api: ScriptedSprayApi(twoWarnings));
@@ -352,7 +414,7 @@ void main() {
       env.voice.clear();
       await tapKey(tester, 'diary-save');
       expect(env.voice.log, ['diary_saved@hi']);
-      expect(find.byIcon(Icons.report_rounded), findsNothing);
+      expect(find.byIcon(AppIcons.danger), findsNothing);
     });
   });
 
@@ -387,8 +449,8 @@ void main() {
       await tapKey(tester, 'home-diary');
       final entry = keyed('diary-entry-${queue.sprayLogs.single.key}');
       expect(entry, findsOneWidget);
-      expect(find.descendant(of: entry, matching: find.text('भेजना बाकी है')), findsOneWidget);
-      expect(find.descendant(of: entry, matching: find.byIcon(Icons.schedule_rounded)), findsOneWidget);
+      expect(find.descendant(of: entry, matching: find.text('इंतज़ार में')), findsOneWidget);
+      expect(find.descendant(of: entry, matching: find.byIcon(AppIcons.clock)), findsOneWidget);
       expect(find.descendant(of: entry, matching: find.textContaining('Score')), findsOneWidget);
     });
 

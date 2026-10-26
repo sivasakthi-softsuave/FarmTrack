@@ -4,14 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/models.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/utils/haptics.dart';
 import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../diary/date_words.dart';
-import '../diary/diary_widgets.dart';
-import '../result/advice_widgets.dart';
 import 'field_words.dart';
 
 /// "This information is old": shown when the server says the sensor is quiet or the answer comes from the phone's memory.
+/// An amber warning card as the mockup draws warnings: flat, a thin amber line, the round amber dot with a dark picture.
 class OldInfoBanner extends ConsumerWidget {
   const OldInfoBanner({super.key, this.since});
 
@@ -22,21 +21,21 @@ class OldInfoBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(stringsProvider);
     final words = ref.watch(dateWordsProvider);
-    final theme = Theme.of(context).textTheme;
-    return Container(
+    return AppCard(
       key: const ValueKey('field-old'),
-      padding: const EdgeInsets.all(14),
-      decoration: AppDecor.panel(AppColors.amberSoft, AppColors.amberDark),
+      color: AppColors.amberSoft,
+      flat: true,
+      line: AppColors.amberLine,
       child: Row(
         children: [
-          const Icon(Icons.history_rounded, size: 32, color: AppColors.amberDark),
+          const IconDot(AppIcons.clock, background: AppColors.amber, foreground: AppColors.ink, round: true),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(t('field_old_title'), style: theme.titleMedium),
-                if (since != null) Text(words.written(since!), style: theme.bodyMedium),
+                Text(t('field_old_title'), style: AppText.hName),
+                if (since != null) Text(words.written(since!), style: AppText.hMeta),
               ],
             ),
           ),
@@ -46,26 +45,42 @@ class OldInfoBanner extends ConsumerWidget {
   }
 }
 
-/// Nothing is known about this farmer's field yet.
+/// Nothing is known about this farmer's field yet: a neutral card (grey is "waiting"), the picture and the words.
 class NoFieldData extends ConsumerWidget {
   const NoFieldData({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(stringsProvider);
-    return Column(
+    return AppCard(
       key: const ValueKey('field-no-data'),
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(AppIcons.offline, size: Dimens.hero, color: AppColors.inkSoft),
-        const SizedBox(height: 12),
-        Text(t('field_no_data_title'), textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
-      ],
+      color: AppColors.neutralSoft,
+      flat: true,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Center(
+            child: IconDot(
+              AppIcons.offline,
+              background: AppColors.card,
+              foreground: AppColors.inkSoft,
+              size: 72,
+              round: true,
+              iconSize: 38,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(t('field_no_data_title'), textAlign: TextAlign.center, style: AppText.big),
+        ],
+      ),
     );
   }
 }
 
-/// The readings as big tiles: a picture, one word, the number small. Tapping a tile says its title and word.
+/// The readings as tiles, two in a row (the mockup's grid, 10 apart): a blue round picture, the title, one word, the
+/// number small. Tapping a tile says its title and word.
 class ReadingTiles extends ConsumerWidget {
   const ReadingTiles({super.key, required this.tiles, required this.onSpeak});
 
@@ -77,84 +92,50 @@ class ReadingTiles extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(stringsProvider);
-    final theme = Theme.of(context).textTheme;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = (constraints.maxWidth - 12) / 2;
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            for (final tile in tiles)
-              SizedBox(
-                width: width,
-                child: Material(
-                  key: ValueKey('reading-${tile.id}'),
-                  color: AppColors.card,
-                  elevation: 2,
-                  shadowColor: AppColors.shadow,
-                  shape: AppDecor.shape(AppDecor.side(tile.color)),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(Dimens.radius),
-                    onTap: () {
-                      Haptics.tap();
-                      onSpeak('${t(tile.labelKey)}, ${t(tile.wordKey)}');
-                    },
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 132),
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: tile.color.withValues(alpha: 0.12),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(tile.icon, size: 32, color: tile.color),
-                            ),
-                            const SizedBox(height: 6),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                t(tile.wordKey),
-                                key: ValueKey('reading-word-${tile.id}'),
-                                style: theme.titleLarge,
-                              ),
-                            ),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                t(tile.labelKey),
-                                style: theme.bodyMedium?.copyWith(color: AppColors.inkSoft),
-                              ),
-                            ),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                tile.digits,
-                                key: ValueKey('reading-digits-${tile.id}'),
-                                style: theme.bodyMedium?.copyWith(fontSize: 14, color: AppColors.inkSoft),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
+    Widget tileCard(ReadingTile tile) => AppCard(
+      key: ValueKey('reading-${tile.id}'),
+      onTap: () => onSpeak('${t(tile.labelKey)}, ${t(tile.wordKey)}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconDot(tile.icon, background: AppColors.blueSoft, foreground: tile.color, size: 40, round: true),
+          const SizedBox(height: 10),
+          Text(t(tile.labelKey), style: AppText.hMeta),
+          Text(
+            t(tile.wordKey),
+            key: ValueKey('reading-word-${tile.id}'),
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, height: 1.35),
+          ),
+          Text(tile.digits, key: ValueKey('reading-digits-${tile.id}'), style: AppText.hMeta),
+        ],
+      ),
+    );
+
+    // Both cards of a row are as tall as the taller one; a lone last tile keeps half the width.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < tiles.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: 10),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: tileCard(tiles[i])),
+                const SizedBox(width: 10),
+                Expanded(child: i + 1 < tiles.length ? tileCard(tiles[i + 1]) : const SizedBox.shrink()),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
 
-/// A weather risk: colour, picture and words together, with its own speaker button.
+/// A weather risk, drawn like the mockup's danger card: a flat tinted card with a thin line (amber for "be careful", red
+/// for "serious", green for fine), the round dot with the level's picture, the risk's name and its text. The level's
+/// word is in the semantics (the picture and colour carry it on screen); the speaker button says the card aloud.
 class RiskCard extends ConsumerWidget {
   const RiskCard({super.key, required this.risk, required this.onSpeak});
 
@@ -165,38 +146,42 @@ class RiskCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(stringsProvider);
     final lang = ref.watch(languageProvider);
-    final theme = Theme.of(context).textTheme;
     final level = risk.level;
-    final color = AppColors.severity(level);
     final title = risk.title.forLang(lang);
     final text = risk.text.forLang(lang);
-    return Container(
+    return AppCard(
       key: ValueKey('risk-${risk.id}'),
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: AppDecor.panel(AppColors.severitySoft(level), AppColors.severityAccent(level)),
+      color: AppColors.severitySoft(level),
+      flat: true,
+      line: severityLine(level),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            child: Icon(severityIcon(level), size: 32, color: AppColors.onSeverity(level)),
+          Semantics(
+            label: t('severity_${level.wire}'),
+            child: IconDot(
+              severityPicture(level),
+              background: AppColors.severity(level),
+              foreground: AppColors.onSeverity(level),
+              round: true,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (title.isNotEmpty) Text(title, style: theme.titleMedium),
-                const SizedBox(height: 4),
-                SeverityPill(severity: level),
-                if (text.isNotEmpty) ...[const SizedBox(height: 6), Text(text, style: theme.bodyLarge)],
+                // The server's name of the risk; "Weather danger" when it sent none.
+                Text(title.isEmpty ? t('field_risks_title') : title, style: AppText.hName),
+                if (text.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(text, style: AppText.body),
+                  ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           BigIconButton(
             key: ValueKey('risk-speak-${risk.id}'),
             icon: AppIcons.speaker,
@@ -212,65 +197,54 @@ class RiskCard extends ConsumerWidget {
   }
 }
 
-/// Seven days in a row: the day's name, a weather picture, and the temperatures small. Scrolls sideways.
+/// Seven days in one white card, seven equal columns (the mockup's week): the day's name in bold, a blue weather picture
+/// (sun, cloud, rain), the high and the low in grey. The word for the rain is in the day's semantics label.
 class ForecastStrip extends ConsumerWidget {
   const ForecastStrip({super.key, required this.days});
 
   final List<ForecastDayOut> days;
+
+  static const _columns = 7;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(stringsProvider);
     final words = ref.watch(dateWordsProvider);
     final now = ref.watch(clockProvider)();
-    final theme = Theme.of(context).textTheme;
-    return SingleChildScrollView(
+    const small = TextStyle(fontSize: 13, height: 1.35);
+    Widget fit(Widget child) => FittedBox(fit: BoxFit.scaleDown, child: child);
+
+    Widget column(ForecastDayOut day) {
+      final date = DateTime.tryParse(day.day);
+      final name = date == null ? '' : (daysAgo(date, now) == 0 ? words.today : words.shortWeekday(date));
+      final rainWord = t(forecastWordKey(day.rainMm));
+      return Semantics(
+        container: true,
+        label: '$name, $rainWord',
+        excludeSemantics: true,
+        child: Column(
+          key: ValueKey('forecast-${day.day}'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            fit(Text(name, style: small.copyWith(fontWeight: FontWeight.w700))),
+            const SizedBox(height: 6),
+            Icon(forecastIcon(day.rainMm), size: 24, color: forecastColor(day.rainMm)),
+            const SizedBox(height: 6),
+            fit(Text('${day.tmaxC.round()}°', style: small)),
+            fit(Text('${day.tminC.round()}°', style: small.copyWith(color: AppColors.inkSoft))),
+          ],
+        ),
+      );
+    }
+
+    return AppCard(
       key: const ValueKey('forecast-strip'),
-      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final day in days)
-            Builder(
-              builder: (context) {
-                final date = DateTime.tryParse(day.day);
-                final name = date == null ? '' : (daysAgo(date, now) == 0 ? words.today : words.shortWeekday(date));
-                final rainWord = t(forecastWordKey(day.rainMm));
-                return Semantics(
-                  container: true,
-                  label: '$name, $rainWord',
-                  excludeSemantics: true,
-                  child: Container(
-                    key: ValueKey('forecast-${day.day}'),
-                    width: 84,
-                    margin: const EdgeInsets.only(right: 8, bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-                    decoration: AppDecor.card(radius: 16),
-                    child: Column(
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(name, style: theme.labelLarge),
-                        ),
-                        const SizedBox(height: 6),
-                        Icon(forecastIcon(day.rainMm), size: 40, color: forecastColor(day.rainMm)),
-                        const SizedBox(height: 6),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(rainWord, style: theme.bodyMedium?.copyWith(fontSize: 14)),
-                        ),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '${day.tmaxC.round()}° / ${day.tminC.round()}°',
-                            style: theme.bodyMedium?.copyWith(fontSize: 14, color: AppColors.inkSoft),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+          for (var i = 0; i < _columns; i++)
+            Expanded(child: i < days.length ? column(days[i]) : const SizedBox.shrink()),
         ],
       ),
     );

@@ -7,15 +7,14 @@ import '../../core/providers.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/voice/utterance.dart';
-import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../../core/widgets/redirect.dart';
 import '../../core/widgets/voice_scaffold.dart';
-import '../scan/crop_picture.dart';
 import '../diary/diary_providers.dart';
 import '../scan/scan_scope.dart';
 import 'advice_widgets.dart';
 
-/// The result for an `ok` scan: severity band, medicines with dose sentences, timing, warnings and steps.
+/// The result for an `ok` scan: severity card, medicines with dose sentences, timing, warnings and steps.
 /// It says `result_intro`, then the advice's spoken version and "if you have sprayed, tap the green tick". The green
 /// tick opens the spray diary's confirm screen for this advice; once the spray is written the tick is replaced by a
 /// green "sprayed" mark (grey "waiting" while the entry still waits for the internet).
@@ -47,50 +46,32 @@ class AdviceScreen extends StatelessWidget {
 
     return VoiceScaffold(
       script: script,
+      title: t('advice_title'),
       onBack: () => context.go(Routes.home),
-      // The crop the advice is for stays visible next to the back arrow, so a wrong crop is noticed.
-      topRight: [
-        if (cropId.isNotEmpty)
-          Row(
-            key: const ValueKey('advice-crop'),
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CropPicture(cropId: cropId, size: 48),
-              const SizedBox(width: 8),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 150),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(cropName, style: Theme.of(context).textTheme.titleLarge),
-                ),
-              ),
-            ],
-          ),
-      ],
-      body: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: AdviceCards(advice: advice),
-      ),
+      alignTop: true,
+      // The mockup's `.pad`: 16 all round (the scaffold's default is 8 on top).
+      bodyPadding: const EdgeInsets.fromLTRB(Dimens.gutter, Dimens.gutter, Dimens.gutter, 0),
+      // The crop the advice is for stays visible as a tag on the severity card, so a wrong crop is noticed.
+      body: AdviceCards(advice: advice, cropName: cropId.isNotEmpty ? cropName : ''),
       // A house to go home, and the wide green "I sprayed" (or the sprayed mark once it is written).
       wideAction: true,
       bottomRight: Row(
         children: [
-          BigIconButton(
+          AppButton(
             key: const ValueKey('advice-home'),
+            style: AppButtonStyle.outline,
+            square: true,
             icon: AppIcons.house,
             semanticLabel: t('a11y_home'),
-            color: AppColors.card,
-            foreground: AppColors.ink,
-            size: Dimens.minTouch,
             onPressed: () => context.go(Routes.home),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: switch (sprayed) {
-              SprayState.none => TickButton(
+              SprayState.none => AppButton(
                 key: const ValueKey('i-sprayed'),
-                size: 64,
-                showLabel: true,
+                icon: AppIcons.tickBold,
+                label: t('a11y_sprayed'),
                 semanticLabel: t('a11y_sprayed'),
                 onPressed: () => context.push(
                   Routes.diaryFor(
@@ -100,8 +81,8 @@ class AdviceScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              SprayState.waiting => Center(child: SprayStatusChip(waiting: true, label: t('diary_waiting_label'))),
-              SprayState.done => Center(child: SprayStatusChip(waiting: false, label: t('advice_sprayed_done'))),
+              SprayState.waiting => SprayStatusChip(waiting: true, label: t('diary_waiting_label')),
+              SprayState.done => SprayStatusChip(waiting: false, label: t('advice_sprayed_done')),
             },
           ),
         ],

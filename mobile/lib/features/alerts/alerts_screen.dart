@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/models/models.dart';
 import '../../core/providers.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/app_theme.dart';
@@ -11,8 +12,9 @@ import '../../core/widgets/voice_scaffold.dart';
 import 'alert_widgets.dart';
 import 'alerts_providers.dart';
 
-/// Route `/alerts`: newest first, unread ones highlighted. Tapping an alert opens it (and marks it as read).
-/// Reloads when the app comes back and every five minutes (see [AlertsAutoRefresh] in the router).
+/// Route `/alerts`: newest first, unread ones with a blue "New" tag. Tapping an alert opens it (and marks it as read); an
+/// urgent one can also be heard from the list. Reloads when the app comes back and every five minutes (see
+/// [AlertsAutoRefresh] in the router).
 class AlertsScreen extends ConsumerStatefulWidget {
   const AlertsScreen({super.key});
 
@@ -29,6 +31,17 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
     } else {
       context.go(Routes.home);
     }
+  }
+
+  /// The "Listen" button of an urgent alert: says what the opened alert says (its spoken text, else its words). Like the
+  /// speaker in the top bar it turns the voice on again if it was muted: whoever asks to listen wants to hear.
+  Future<void> _listen(AlertOut alert) async {
+    final lang = ref.read(languageProvider);
+    final body = alert.body.forLang(lang);
+    final spoken = alert.spoken.toUtterance(lang) ?? (body.isEmpty ? null : TextUtterance(body, lang: lang));
+    if (spoken == null) return;
+    if (ref.read(settingsProvider).muted) await ref.read(settingsProvider.notifier).setMuted(on: false);
+    await ref.read(voiceServiceProvider).speak([spoken], owner: _owner);
   }
 
   @override
@@ -49,31 +62,25 @@ class _AlertsScreenState extends ConsumerState<AlertsScreen> {
       script: promptList([items.isEmpty ? 'alert_none' : 'alert_open']),
       speakEnabled: !loading,
       onBack: _back,
+      // The cards start at the top (the mockup's 16 dp `.pad`); the spinner and the empty page sit in the middle.
+      alignTop: items.isNotEmpty,
+      bodyPadding: const EdgeInsets.fromLTRB(Dimens.gutter, Dimens.gutter, Dimens.gutter, 0),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : items.isEmpty
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(AppIcons.bell, size: Dimens.hero, color: AppColors.inkSoft),
-                const SizedBox(height: 12),
-                Text(
-                  t('alerts_empty_title'),
-                  key: const ValueKey('alerts-empty'),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-              ],
-            )
+          ? const AlertsEmpty()
           : Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                for (final alert in items)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: AlertCard(alert: alert, onTap: () => context.push(Routes.alertDetailFor(alert.id))),
+                for (var i = 0; i < items.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 12),
+                  AlertCard(
+                    alert: items[i],
+                    onTap: () => context.push(Routes.alertDetailFor(items[i].id)),
+                    onListen: () => _listen(items[i]),
                   ),
+                ],
               ],
             ),
     );

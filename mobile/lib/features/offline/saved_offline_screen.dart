@@ -6,12 +6,13 @@ import '../../core/providers.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/voice/utterance.dart';
-import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../../core/widgets/voice_scaffold.dart';
 import '../scan/scan_flow.dart';
 
 /// Calm confirmation after a photo was saved because there was no internet: "Your photo is saved and will be sent
-/// later." One big house button leads back to the first page.
+/// later." One wide green button leads back to the first page. Drawn like the mockup's centred "Not sure yet" card, but
+/// grey: waiting is grey, and nothing here is an error.
 class SavedOfflineScreen extends ConsumerWidget {
   const SavedOfflineScreen({super.key});
 
@@ -28,43 +29,67 @@ class SavedOfflineScreen extends ConsumerWidget {
       script: promptList(const ['offline_saved']),
       body: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            width: 140,
-            height: 120,
-            child: Stack(
-              alignment: Alignment.center,
+          AppCard(
+            color: AppColors.neutralSoft,
+            flat: true,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(AppIcons.offline, size: 110, color: AppColors.inkSoft),
-                Positioned(
-                  right: 4,
-                  bottom: 0,
-                  child: Container(
-                    key: const ValueKey('saved-tick'),
-                    width: 52,
-                    height: 52,
-                    decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
-                    child: const Icon(AppIcons.tick, size: 36, color: Colors.white),
+                // The grey "no internet" circle with the green "saved" tick on its corner (the mockup's small round badge).
+                SizedBox(
+                  width: 72,
+                  height: 72,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      const IconDot(
+                        AppIcons.offline,
+                        background: AppColors.inkSoft,
+                        foreground: Colors.white,
+                        size: 72,
+                        round: true,
+                        iconSize: 38,
+                      ),
+                      Positioned(
+                        top: -8,
+                        right: -8,
+                        child: Container(
+                          key: const ValueKey('saved-tick'),
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            color: AppColors.green,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.neutralSoft, width: 2),
+                          ),
+                          child: const Icon(AppIcons.tickBold, size: 14, color: Colors.white),
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                const SizedBox(height: 12),
+                Text(t('offline_saved_title'), textAlign: TextAlign.center, style: AppText.big),
+                const SizedBox(height: 6),
+                Text(
+                  t('offline_saved_hint'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16, height: 1.45, color: AppColors.inkSoft),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            t('offline_saved_title'),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(t('offline_saved_hint'), textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge),
         ],
       ),
-      bottomRight: BigIconButton(
+      wideAction: true,
+      bottomRight: AppButton(
         key: const ValueKey('saved-home'),
         icon: AppIcons.house,
+        label: t('a11y_home'),
         semanticLabel: t('a11y_home'),
-        size: 104,
         onPressed: () => _home(context, ref),
       ),
     );

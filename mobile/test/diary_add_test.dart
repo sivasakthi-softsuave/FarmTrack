@@ -7,8 +7,9 @@ import 'package:farmtrack/core/network/mock_api_client.dart';
 import 'package:farmtrack/core/network/mock_data.dart';
 import 'package:farmtrack/core/offline/offline_queue.dart';
 import 'package:farmtrack/core/voice/utterance.dart';
-import 'package:farmtrack/core/widgets/big_buttons.dart';
+import 'package:farmtrack/core/widgets/design.dart';
 import 'package:farmtrack/features/diary/date_words.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'support/feature_fakes.dart';
 import 'support/finders.dart';
@@ -84,6 +85,12 @@ void main() {
       // The demo farmer grows apple and potato: the first row; tomato comes on the next row.
       expect(potato.dy, apple.dy);
       expect(tomato.dy, greaterThan(apple.dy));
+      // Each crop is a white card: the crop's blue picture in a 44 dp square and its name beside it.
+      final card = keyed('crop-apple');
+      expect(find.descendant(of: card, matching: find.byIcon(AppIcons.tree)), findsOneWidget);
+      expect(find.descendant(of: card, matching: find.text('सेब')), findsOneWidget);
+      final dot = tester.getSize(find.descendant(of: card, matching: find.byType(IconDot)));
+      expect(dot, const Size(44, 44));
       expectBigTouchTargets(tester);
     });
 
@@ -95,8 +102,8 @@ void main() {
       // Own crops first, once each (the server lists them again), in the app's own words.
       expect(find.descendant(of: keyed('crop-Apple'), matching: find.text('सेब')), findsOneWidget);
       expect(find.descendant(of: keyed('crop-Potato'), matching: find.text('आलू')), findsOneWidget);
-      expect(find.descendant(of: keyed('crop-Apple'), matching: find.byIcon(Icons.park_rounded)), findsOneWidget);
-      expect(find.descendant(of: keyed('crop-Potato'), matching: find.byIcon(Icons.eco_rounded)), findsOneWidget);
+      expect(find.descendant(of: keyed('crop-Apple'), matching: find.byIcon(AppIcons.tree)), findsOneWidget);
+      expect(find.descendant(of: keyed('crop-Potato'), matching: find.byIcon(AppIcons.leaf)), findsOneWidget);
       expect(find.byKey(const ValueKey('crop-apple')), findsNothing);
 
       await tapKey(tester, 'crop-Potato');
@@ -115,10 +122,10 @@ void main() {
       expect(env.voice.spokenIds, ['diary_pick_crop', 'diary_type_medicine']);
       expect(keyed('diary-name-field'), findsOneWidget);
       // The tick waits for a name.
-      expect(tester.widget<TickButton>(keyed('diary-next')).onPressed, isNull);
+      expect(tester.widget<AppButton>(keyed('diary-next')).onPressed, isNull);
 
       await typeName(tester, 'Mancozeb');
-      expect(tester.widget<TickButton>(keyed('diary-next')).onPressed, isNotNull);
+      expect(tester.widget<AppButton>(keyed('diary-next')).onPressed, isNotNull);
       env.voice.clear();
       await tapKey(tester, 'diary-next');
       expect(env.voice.spokenTexts, ['Mancozeb']);
@@ -139,7 +146,7 @@ void main() {
       // The mock server warns about a medicine that may be banned: card with picture and words, and spoken.
       expect(keyed('warning-proposed_ban'), findsOneWidget);
       expect(
-        find.descendant(of: keyed('warning-proposed_ban'), matching: find.byIcon(Icons.warning_amber_rounded)),
+        find.descendant(of: keyed('warning-proposed_ban'), matching: find.byIcon(AppIcons.warning)),
         findsOneWidget,
       );
       expect(find.descendant(of: keyed('warning-proposed_ban'), matching: find.text('सावधान')), findsOneWidget);
@@ -174,7 +181,7 @@ void main() {
       await tapKey(tester, 'diary-next');
       await tapKey(tester, 'diary-save');
       final card = keyed('warning-off_label');
-      expect(find.descendant(of: card, matching: find.byIcon(Icons.report_rounded)), findsOneWidget);
+      expect(find.descendant(of: card, matching: find.byIcon(AppIcons.danger)), findsOneWidget);
       expect(find.descendant(of: card, matching: find.text('गंभीर')), findsOneWidget);
     });
 
@@ -187,7 +194,22 @@ void main() {
       env.voice.clear();
       await tapKey(tester, 'diary-save');
       expect(env.voice.spokenIds, ['diary_saved']);
-      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+      expect(find.byIcon(AppIcons.warning), findsNothing);
+    });
+
+    testWidgets('the name field is the mockup\'s input: 58 high, radius 16, a 2 px line, with its label', (
+      tester,
+    ) async {
+      final env = await addEnv(language: 'en');
+      await openAdd(tester, env);
+      await tapKey(tester, 'crop-apple');
+      expect(find.text('Name of the medicine'), findsOneWidget, reason: 'the label above the field');
+      final input = find.descendant(of: keyed('diary-name-field'), matching: find.byType(InputDecorator));
+      expect(tester.getSize(input).height, closeTo(58, 1));
+      final border = tester.widget<InputDecorator>(input).decoration.enabledBorder! as OutlineInputBorder;
+      expect(border.borderRadius, BorderRadius.circular(16));
+      expect(border.borderSide.width, 2);
+      expect(border.borderSide.color, AppColors.line);
     });
 
     testWidgets('the name is limited to 200 characters', (tester) async {
@@ -258,17 +280,17 @@ void main() {
       await tapKey(tester, 'diary-next');
       await tapKey(tester, 'day-other');
       expect(keyed('day-option-0'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('diary-save'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('diary-name-field'), findsOneWidget);
       expect(tester.widget<TextField>(keyed('diary-name-field')).controller!.text, 'Score');
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('crop-apple'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('diary-add'), findsOneWidget);
       expect(env.api.sprayLogsIn, isEmpty);
@@ -297,6 +319,14 @@ void main() {
       await tapKey(tester, 'diary-save');
       expect(find.text('Saved'), findsOneWidget);
       expect(find.textContaining('Today, 12 May'), findsOneWidget);
+      // The saved header is the green circle with a bold tick; "Done" is the wide green button.
+      final mark = tester.widget<IconDot>(keyed('saved-ok'));
+      expect(mark.background, AppColors.green);
+      expect(mark.foreground, Colors.white);
+      expect(mark.round, isTrue);
+      expect(mark.icon, AppIcons.tickBold);
+      expect(tester.getSize(keyed('saved-ok')), const Size(72, 72));
+      expect(tester.getSize(keyed('diary-done')).height, 60);
     });
   });
 
@@ -324,7 +354,8 @@ void main() {
       await tapKey(tester, 'diary-done');
       final entry = keyed('diary-entry-${queue.sprayLogs.single.key}');
       expect(entry, findsOneWidget);
-      expect(find.descendant(of: entry, matching: find.text('भेजना बाकी है')), findsOneWidget);
+      expect(find.descendant(of: entry, matching: find.text('इंतज़ार में')), findsOneWidget);
+      expect(find.descendant(of: entry, matching: find.byIcon(AppIcons.clock)), findsOneWidget);
     });
   });
 

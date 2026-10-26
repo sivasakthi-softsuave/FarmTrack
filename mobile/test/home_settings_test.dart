@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:farmtrack/core/providers.dart';
 import 'package:farmtrack/core/router/routes.dart';
 import 'package:farmtrack/core/settings/app_settings.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'support/finders.dart';
 import 'support/harness.dart';
@@ -26,12 +27,12 @@ void main() {
           expect(size.height, greaterThanOrEqualTo(56), reason: key);
         }
         // The camera is the photo card and the middle of the bar.
-        expect(find.byIcon(Icons.photo_camera_rounded), findsNWidgets(2));
-        expect(find.byIcon(Icons.grass_rounded), findsOneWidget);
-        expect(find.byIcon(Icons.edit_note_rounded), findsOneWidget);
-        expect(find.byIcon(Icons.live_help_rounded), findsOneWidget);
-        expect(find.byIcon(Icons.settings_rounded), findsOneWidget);
-        expect(find.byIcon(Icons.notifications_rounded), findsOneWidget);
+        expect(find.byIcon(AppIcons.camera), findsNWidgets(2));
+        expect(find.byIcon(AppIcons.field), findsOneWidget);
+        expect(find.byIcon(AppIcons.notebook), findsOneWidget);
+        expect(find.byIcon(AppIcons.question), findsOneWidget);
+        expect(find.byIcon(AppIcons.gear), findsOneWidget);
+        expect(find.byIcon(AppIcons.bell), findsOneWidget);
         expectBigTouchTargets(tester);
       },
     );
@@ -65,6 +66,36 @@ void main() {
       },
     );
 
+    testWidgets('the gallery row under the photo card opens the gallery and goes on to the review', (tester) async {
+      useSmallPhone(tester);
+      final env = await TestEnv.create(loggedIn: true);
+      await pumpApp(tester, env, location: '/home');
+      expect(tester.getSize(keyed('home-gallery')).height, greaterThanOrEqualTo(56));
+      env.picker.queueGallery(2);
+      await tapKey(tester, 'home-gallery');
+      expect(env.picker.galleryOpened, 1);
+      expect(env.picker.lastGalleryLimit, 4, reason: 'a scan takes four photos');
+      expect(env.picker.opened, 0, reason: 'the camera stays closed');
+      expect(keyed('photo-1'), findsOneWidget, reason: 'both photos are on the review screen');
+      expect(keyed('send-photos'), findsOneWidget);
+    });
+
+    testWidgets('leaving the gallery without choosing stays on Home; a failing gallery says so', (tester) async {
+      useSmallPhone(tester);
+      final env = await TestEnv.create(loggedIn: true);
+      await pumpApp(tester, env, location: '/home');
+      await tapKey(tester, 'home-gallery'); // nothing queued: the farmer backed out
+      expect(env.picker.galleryOpened, 1);
+      expect(keyed('home-scan'), findsOneWidget);
+      expect(find.byKey(const ValueKey('send-photos')), findsNothing);
+
+      env.picker.gallery.add(Exception('no access'));
+      env.voice.clear();
+      await tapKey(tester, 'home-gallery');
+      expect(env.voice.spokenIds, contains('error_try_again'));
+      expect(keyed('home-scan'), findsOneWidget);
+    });
+
     testWidgets('each button opens its screen, which speaks its own introduction', (tester) async {
       useSmallPhone(tester);
       final env = await TestEnv.create(loggedIn: true);
@@ -80,8 +111,7 @@ void main() {
         env.voice.clear();
         await tapKey(tester, entry.key);
         expect(env.voice.spokenIds.first, entry.value, reason: entry.key);
-        await tester.tap(find.byIcon(Icons.arrow_back_rounded));
-        await tester.pumpAndSettle();
+        await goBack(tester);
         expect(keyed('home-scan'), findsOneWidget);
       }
     });
@@ -91,10 +121,10 @@ void main() {
       final env = await TestEnv.create(loggedIn: true);
       await pumpApp(tester, env);
       expect(find.descendant(of: keyed('alert-badge'), matching: find.text('1')), findsOneWidget);
-      expect(find.byIcon(Icons.cloud_off_rounded), findsNothing);
+      expect(find.byIcon(AppIcons.offline), findsNothing);
       env.connectivity.online = false;
       await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.cloud_off_rounded), findsOneWidget);
+      expect(find.byIcon(AppIcons.offline), findsOneWidget);
     });
   });
 
@@ -145,7 +175,7 @@ void main() {
       expect(containerOf(tester).read(languageProvider), 'en');
       expect(env.prefs.getString('language'), 'en');
       expect(env.voice.log.last, 'settings_language_changed@en');
-      expect(find.text('Language'), findsOneWidget);
+      expect(find.text('LANGUAGE'), findsOneWidget);
       expect(env.api.calls, contains('patchMe'));
       expect((await env.api.me()).language, 'en');
     });
@@ -153,11 +183,11 @@ void main() {
     testWidgets('captions can be switched off and on; the choice is saved', (tester) async {
       final env = await openSettings(tester);
       expect(keyed('voice-caption'), findsOneWidget);
-      await tapKey(tester, 'captions-off');
+      await tapKey(tester, 'settings-captions');
       expect(containerOf(tester).read(settingsProvider).captions, isFalse);
       expect(env.prefs.getBool('captions'), isFalse);
       expect(keyed('voice-caption'), findsNothing);
-      await tapKey(tester, 'captions-on');
+      await tapKey(tester, 'settings-captions');
       expect(env.prefs.getBool('captions'), isTrue);
     });
 
@@ -179,7 +209,7 @@ void main() {
       final env = await openSettings(tester);
       await tapKey(tester, 'speed-slow');
       await tapKey(tester, 'volume-medium');
-      await tapKey(tester, 'captions-off');
+      await tapKey(tester, 'settings-captions');
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(env.app(location: Routes.settings));
       await tester.pumpAndSettle();

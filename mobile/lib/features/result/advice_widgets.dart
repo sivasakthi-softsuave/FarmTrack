@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/models.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/haptics.dart';
+import '../../core/widgets/design.dart';
 
 IconData severityIcon(Severity s) => switch (s) {
   Severity.green => AppIcons.tick,
@@ -11,105 +13,200 @@ IconData severityIcon(Severity s) => switch (s) {
   Severity.red => AppIcons.danger,
 };
 
-/// The panel at the top of an advice: colour and picture carry the urgency before any word is read. A soft panel of the
-/// severity colour, the picture in a full-colour circle, the severity word as a small tag and the disease name large.
+/// The amber card of the mockup (`Advice`) writes its text in this warm dark brown (inline style, not a token).
+const adviceAmberText = Color(0xFF3B3320);
+
+/// `.pill` of the result screens: a rounded tag that grows with the text size (the shared [AppPill] has a fixed height,
+/// which a big text setting would overflow).
+class ResultPill extends StatelessWidget {
+  const ResultPill(
+    this.text, {
+    super.key,
+    required this.background,
+    required this.foreground,
+    this.icon,
+    this.height = 30,
+    this.horizontal = 12,
+  });
+
+  final String text;
+  final Color background;
+  final Color foreground;
+  final IconData? icon;
+  final double height;
+  final double horizontal;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    constraints: BoxConstraints(minHeight: height),
+    padding: EdgeInsets.symmetric(horizontal: horizontal, vertical: 2),
+    decoration: BoxDecoration(color: background, borderRadius: BorderRadius.circular(999)),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[Icon(icon, size: 20, color: foreground), const SizedBox(width: 6)],
+        Flexible(
+          child: Text(text, style: AppText.pill.copyWith(color: foreground)),
+        ),
+      ],
+    ),
+  );
+}
+
+/// The card at the top of an advice: colour and picture carry the urgency before any word is read. A flat card of the
+/// severity's soft colour with a thin line, the picture in a full-colour 60 px circle, the severity word as a white
+/// tag above the disease name, and the description under both.
 class SeverityBand extends ConsumerWidget {
-  const SeverityBand({super.key, required this.severity, required this.headline});
+  const SeverityBand({
+    super.key,
+    required this.severity,
+    required this.headline,
+    this.description = '',
+    this.cropName = '',
+  });
 
   final Severity severity;
   final String headline;
 
+  /// The advice's own short explanation (the mockup's 15 px text in the card).
+  final String description;
+
+  /// The crop the advice is for, as a second tag, so a wrong crop is noticed.
+  final String cropName;
+
+  /// The thin line of the card: amber and red have tokens, green is its own colour made light.
+  static Color _line(Severity s) => switch (s) {
+    Severity.green => AppColors.green.withValues(alpha: 0.3),
+    Severity.yellow => AppColors.amberLine,
+    Severity.red => AppColors.redLine,
+  };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(stringsProvider);
-    final theme = Theme.of(context).textTheme;
     final accent = AppColors.severityAccent(severity);
-    return Container(
+    return AppCard(
       key: ValueKey('severity-${severity.wire}'),
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: AppDecor.panel(AppColors.severitySoft(severity), accent),
-      child: Row(
+      color: AppColors.severitySoft(severity),
+      flat: true,
+      line: _line(severity),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(color: AppColors.severity(severity), shape: BoxShape.circle),
-            child: Icon(severityIcon(severity), size: 34, color: AppColors.onSeverity(severity)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                  decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(999)),
-                  child: Text(
-                    t('severity_${severity.wire}'),
-                    style: theme.labelLarge?.copyWith(fontSize: 14, color: accent),
-                  ),
+          Row(
+            children: [
+              IconDot(
+                severityIcon(severity),
+                background: AppColors.severity(severity),
+                foreground: AppColors.onSeverity(severity),
+                size: 60,
+                round: true,
+                iconSize: 30,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        ResultPill(
+                          t('severity_${severity.wire}'),
+                          background: AppColors.card,
+                          foreground: accent,
+                          height: 26,
+                          horizontal: 10,
+                        ),
+                        if (cropName.isNotEmpty)
+                          ResultPill(
+                            cropName,
+                            key: const ValueKey('advice-crop'),
+                            background: AppColors.card,
+                            foreground: AppColors.inkSoft,
+                            height: 26,
+                            horizontal: 10,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(headline, key: const ValueKey('advice-headline'), style: AppText.big),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(headline, key: const ValueKey('advice-headline'), style: theme.headlineMedium),
-              ],
-            ),
+              ),
+            ],
           ),
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              description,
+              key: const ValueKey('advice-summary'),
+              style: AppText.body.copyWith(color: severity == Severity.yellow ? adviceAmberText : AppColors.ink),
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
+/// One warning: amber-dark picture on a white card, or (serious) a red picture on a flat red-soft card. [nested] is for a
+/// warning inside another card (a medicine): a flat tinted card, because a white card with a shadow would sit on white.
 class WarningTile extends StatelessWidget {
-  const WarningTile({super.key, required this.level, required this.text});
+  const WarningTile({super.key, required this.level, required this.text, this.nested = false});
 
   final Severity level;
   final String text;
+  final bool nested;
 
   @override
   Widget build(BuildContext context) {
-    final color = level == Severity.red ? AppColors.red : AppColors.amberDark;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: AppDecor.panel(
-        AppColors.severitySoft(level == Severity.red ? Severity.red : Severity.yellow),
-        color,
-        radius: 16,
-      ),
+    final serious = level == Severity.red;
+    final color = serious ? AppColors.red : AppColors.amberDark;
+    return AppCard(
+      color: serious ? AppColors.redSoft : (nested ? AppColors.amberSoft : AppColors.card),
+      flat: serious || nested,
+      line: nested ? (serious ? AppColors.redLine : AppColors.amberLine) : null,
+      radius: nested ? Dimens.radiusSmall : Dimens.radius,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(level == Severity.red ? AppIcons.danger : AppIcons.warning, size: 30, color: color),
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(serious ? AppIcons.danger : AppIcons.warning, size: 24, color: color),
+          ),
           const SizedBox(width: 12),
-          Expanded(child: Text(text, style: Theme.of(context).textTheme.bodyLarge)),
+          Expanded(child: Text(text, style: AppText.body.copyWith(fontSize: 15.5))),
         ],
       ),
     );
   }
 }
 
+/// A picture, then a sentence that wraps beside it (the dose and the waiting period of a medicine).
 class _IconLine extends StatelessWidget {
-  const _IconLine({required this.icon, required this.text, this.bold = false, this.color = AppColors.inkSoft});
+  const _IconLine({required this.icon, required this.text, required this.color, required this.style, this.top = 0});
 
   final IconData icon;
   final String text;
-  final bool bold;
   final Color color;
+  final TextStyle style;
+
+  /// Nudges the picture down so it sits on the first line of text (the mockup's `margin-top`).
+  final double top;
 
   @override
   Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Icon(icon, size: 28, color: color),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Text(
-          text,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: bold ? FontWeight.w700 : FontWeight.w400),
-        ),
+      Padding(
+        padding: EdgeInsets.only(top: top),
+        child: Icon(icon, size: 24, color: color),
       ),
+      const SizedBox(width: 12),
+      Expanded(child: Text(text, style: style)),
     ],
   );
 }
@@ -130,54 +227,59 @@ class ProductCard extends ConsumerWidget {
     ].where((s) => s.isNotEmpty).join(' · ');
     final dose = product.doseText.forLang(lang);
     final waiting = product.waitingPeriodDays;
-    return Container(
+    return AppCard(
       key: ValueKey('product-${product.productId}'),
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: AppDecor.card(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: const BoxDecoration(color: AppColors.blueSoft, shape: BoxShape.circle),
-                child: const Icon(AppIcons.medicine, size: 30, color: AppColors.blue),
+              const IconDot(
+                AppIcons.medicine,
+                background: AppColors.blueSoft,
+                foreground: AppColors.blue,
+                size: 52,
+                round: true,
+                iconSize: 30,
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(product.activeIngredient.forLang(lang), style: Theme.of(context).textTheme.titleLarge),
-                    if (brand.isNotEmpty)
-                      Text(brand, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.inkSoft)),
+                    Text(
+                      product.activeIngredient.forLang(lang),
+                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, height: 1.3),
+                    ),
+                    if (brand.isNotEmpty) Text(brand, style: AppText.hMeta),
                   ],
                 ),
               ),
             ],
           ),
-          const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
+          Container(height: 1, color: AppColors.line, margin: const EdgeInsets.symmetric(vertical: 14)),
           _IconLine(
-            icon: Icons.water_drop_rounded,
+            icon: AppIcons.drop,
             text: dose.isNotEmpty
                 ? dose
                 : [if (product.doseMin != null) '${product.doseMin}', ?product.doseUnit].join(' '),
-            bold: true,
             color: AppColors.blue,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, height: 1.4),
+            top: 2,
           ),
           if (waiting != null) ...[
             const SizedBox(height: 10),
             _IconLine(
               icon: AppIcons.clock,
               text: t('advice_wait_days', args: {'n': waiting}),
+              color: AppColors.inkSoft,
+              style: const TextStyle(fontSize: 16, height: 1.4),
+              top: 1,
             ),
           ],
           for (final w in product.warnings) ...[
             const SizedBox(height: 10),
-            WarningTile(level: w.level, text: w.text.forLang(lang)),
+            WarningTile(level: w.level, text: w.text.forLang(lang), nested: true),
           ],
         ],
       ),
@@ -185,20 +287,49 @@ class ProductCard extends ConsumerWidget {
   }
 }
 
-IconData timingIcon(TimingAction a) => switch (a) {
-  TimingAction.sprayNow => AppIcons.tick,
-  TimingAction.wait => Icons.hourglass_top_rounded,
-  TimingAction.repeatWithinDays => AppIcons.roundArrow,
-  TimingAction.notNeeded => AppIcons.cross,
-  TimingAction.unknown => AppIcons.clock,
-};
+/// "When": one tinted card whose colour says what to do. Green = spray now, grey = wait, blue = information (spray
+/// again later, no spray needed).
+class TimingCard extends StatelessWidget {
+  const TimingCard({super.key, required this.action, required this.text});
 
-/// Everything of an advice except the actions. First view: severity band, medicines, timing and warnings (what to buy
-/// and do). The explanation, safety notes and steps are behind one "More" button, so the first view stays short.
+  final TimingAction action;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final (fill, dot, icon) = switch (action) {
+      TimingAction.sprayNow => (AppColors.greenSoft, AppColors.green, AppIcons.tickBold),
+      TimingAction.wait => (AppColors.neutralSoft, AppColors.inkSoft, AppIcons.hourglass),
+      TimingAction.repeatWithinDays => (AppColors.blueSoft, AppColors.blue, AppIcons.roundArrow),
+      TimingAction.notNeeded => (AppColors.blueSoft, AppColors.blue, AppIcons.info),
+      TimingAction.unknown => (AppColors.neutralSoft, AppColors.inkSoft, AppIcons.clock),
+    };
+    return AppCard(
+      color: fill,
+      flat: true,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconDot(icon, background: dot, foreground: Colors.white, size: 36, round: true, iconSize: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, height: 1.45)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Everything of an advice except the actions. First view: severity card, medicines, timing and warnings (what to buy
+/// and do). The safety notes and steps are behind one "More" button, so the first view stays short.
 class AdviceCards extends ConsumerStatefulWidget {
-  const AdviceCards({super.key, required this.advice});
+  const AdviceCards({super.key, required this.advice, this.cropName = ''});
 
   final AdviceOut advice;
+
+  /// Shown as a tag on the severity card (empty: no tag).
+  final String cropName;
 
   @override
   ConsumerState<AdviceCards> createState() => _AdviceCardsState();
@@ -213,78 +344,95 @@ class _AdviceCardsState extends ConsumerState<AdviceCards> {
     final lang = ref.watch(languageProvider);
     final t = ref.watch(stringsProvider);
     final timing = advice.timing;
-    final summary = advice.summary.forLang(lang);
-    final hasMore = summary.isNotEmpty || advice.safety.isNotEmpty || advice.steps.isNotEmpty;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SeverityBand(severity: advice.severity, headline: advice.headline.forLang(lang)),
-        if (advice.products.isNotEmpty) _SectionLabel(t('advice_medicine')),
-        for (final p in advice.products) ...[ProductCard(product: p), const SizedBox(height: 10)],
-        if (timing != null && !timing.text.isEmpty) ...[
-          _SectionLabel(t('advice_when')),
-          Container(
-            key: const ValueKey('advice-timing'),
-            padding: const EdgeInsets.all(14),
-            decoration: AppDecor.panel(AppColors.greenSoft, AppColors.green, radius: 16),
-            child: _IconLine(
-              icon: timingIcon(timing.action),
-              text: timing.text.forLang(lang),
-              bold: true,
-              color: AppColors.green,
-            ),
-          ),
-        ],
-        if (advice.warnings.isNotEmpty) _SectionLabel(t('advice_warning')),
-        for (final w in advice.warnings) ...[
-          WarningTile(level: w.level, text: w.text.forLang(lang)),
-          const SizedBox(height: 10),
-        ],
-        if (hasMore) ...[
-          const SizedBox(height: 6),
-          _MoreButton(open: _more, onTap: () => setState(() => _more = !_more)),
-        ],
-        if (_more) ...[
-          if (summary.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Text(summary, key: const ValueKey('advice-summary'), style: Theme.of(context).textTheme.bodyLarge),
-          ],
-          for (final s in advice.safety) ...[
-            const SizedBox(height: 12),
-            WarningTile(level: Severity.yellow, text: s.forLang(lang)),
-          ],
-          if (advice.steps.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Text(t('advice_steps'), style: Theme.of(context).textTheme.titleLarge),
-            for (var i = 0; i < advice.steps.length; i++) ...[
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
-                    child: Text(
-                      '${i + 1}',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(advice.steps[i].forLang(lang), style: Theme.of(context).textTheme.bodyLarge)),
-                ],
-              ),
-            ],
-          ],
-        ],
-        const SizedBox(height: 8),
-      ],
+    final hasMore = advice.safety.isNotEmpty || advice.steps.isNotEmpty;
+
+    // The mockup's `.pad`: 12 between cards; a label sits 6 further from the card above and 2 closer to its own cards.
+    final items = <Widget>[];
+    var afterLabel = false;
+    void add(Widget w) {
+      if (items.isNotEmpty) items.add(SizedBox(height: afterLabel ? 10 : 12));
+      items.add(w);
+      afterLabel = false;
+    }
+
+    void label(String text) {
+      add(SectionLabel(text, hindi: isDevanagari(text)));
+      afterLabel = true;
+    }
+
+    add(
+      SeverityBand(
+        severity: advice.severity,
+        headline: advice.headline.forLang(lang),
+        description: advice.summary.forLang(lang),
+        cropName: widget.cropName,
+      ),
     );
+    if (advice.products.isNotEmpty) label(t('advice_medicine'));
+    for (final p in advice.products) {
+      add(ProductCard(product: p));
+    }
+    if (timing != null && !timing.text.isEmpty) {
+      label(t('advice_when'));
+      add(TimingCard(key: const ValueKey('advice-timing'), action: timing.action, text: timing.text.forLang(lang)));
+    }
+    if (advice.warnings.isNotEmpty) label(t('advice_warning'));
+    for (final w in advice.warnings) {
+      add(WarningTile(level: w.level, text: w.text.forLang(lang)));
+    }
+    if (hasMore) add(_MoreButton(open: _more, onTap: () => setState(() => _more = !_more)));
+    if (_more) {
+      for (final s in advice.safety) {
+        add(WarningTile(level: Severity.yellow, text: s.forLang(lang)));
+      }
+      if (advice.steps.isNotEmpty) {
+        label(t('advice_steps'));
+        for (var i = 0; i < advice.steps.length; i++) {
+          add(_StepCard(number: i + 1, text: advice.steps[i].forLang(lang)));
+        }
+      }
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: items);
   }
 }
 
-/// "More" / "Less": opens and closes the details of an advice. A blue button with an arrow and one word.
+/// One step of "What to do": a green numbered circle and the sentence.
+class _StepCard extends StatelessWidget {
+  const _StepCard({required this.number, required this.text});
+
+  final int number;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
+          child: Text(
+            '$number',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(text, style: AppText.body.copyWith(fontSize: 15.5)),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// "More" / "Less": opens and closes the details of an advice. The mockup's blue outline button (52 high, 16 / 700 word
+/// then an arrow); the tap area is 56 high around it. [AppButton] puts the picture before the word, so it is drawn here.
 class _MoreButton extends ConsumerWidget {
   const _MoreButton({required this.open, required this.onTap});
 
@@ -299,27 +447,44 @@ class _MoreButton extends ConsumerWidget {
       button: true,
       label: label,
       excludeSemantics: true,
-      child: Material(
+      child: SizedBox(
         key: const ValueKey('advice-more'),
-        color: AppColors.card,
-        shape: AppDecor.shape(const BorderSide(color: AppColors.line, width: 2), radius: 18),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: onTap,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: Dimens.minTouch),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(open ? Icons.expand_less_rounded : Icons.expand_more_rounded, size: 36, color: AppColors.blue),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(label, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.blue)),
-                  ),
+        height: Dimens.minTouch,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            customBorder: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            onTap: () {
+              Haptics.tap();
+              onTap();
+            },
+            child: Center(
+              child: Container(
+                height: 52,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.line, width: 2),
                 ),
-              ],
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          style: AppText.button.copyWith(fontSize: 16, color: AppColors.blue),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Icon(open ? AppIcons.up : AppIcons.down, size: 24, color: AppColors.blue),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -328,8 +493,9 @@ class _MoreButton extends ConsumerWidget {
   }
 }
 
-/// The state of "I sprayed" once the farmer has answered: a green pill with a tick (written in the diary) or a grey pill
-/// with a clock (saved on the phone, waiting for the internet). Not a button. Never yellow.
+/// The state of "I sprayed" once the farmer has answered, in the shape of the green button it replaces but flat (it is not
+/// a button): green with a bold tick (written in the diary) or grey with a clock (saved on the phone, waiting for the
+/// internet). Never yellow.
 class SprayStatusChip extends StatelessWidget {
   const SprayStatusChip({super.key, required this.waiting, required this.label});
 
@@ -345,19 +511,19 @@ class SprayStatusChip extends StatelessWidget {
       excludeSemantics: true,
       child: Container(
         key: ValueKey(waiting ? 'sprayed-waiting' : 'sprayed-done'),
-        height: 64,
-        padding: const EdgeInsets.symmetric(horizontal: 18),
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(32)),
-        // It sits beside other buttons: the word shrinks rather than overflow.
+        height: Dimens.actionButton,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(18)),
+        // It sits beside another button: the word shrinks rather than overflow.
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(waiting ? AppIcons.clock : AppIcons.tick, size: 30, color: Colors.white),
-            const SizedBox(width: 8),
+            Icon(waiting ? AppIcons.clock : AppIcons.tickBold, size: 30, color: Colors.white),
+            const SizedBox(width: 10),
             Flexible(
               child: FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text(label, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
+                child: Text(label, maxLines: 1, style: AppText.button.copyWith(color: Colors.white)),
               ),
             ),
           ],
@@ -365,17 +531,4 @@ class SprayStatusChip extends StatelessWidget {
       ),
     );
   }
-}
-
-/// A small grey heading above a group of advice cards ("Medicine", "When", "Careful").
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
-    child: Text(text, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.inkSoft)),
-  );
 }

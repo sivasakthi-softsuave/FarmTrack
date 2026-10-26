@@ -13,6 +13,7 @@ import 'package:farmtrack/features/scan/scan_flow.dart';
 import 'package:farmtrack/core/providers.dart';
 import 'package:farmtrack/core/router/app_router.dart';
 import 'package:farmtrack/features/home/home_screen.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'offline_support.dart';
 import 'support/finders.dart';
@@ -114,7 +115,7 @@ void main() {
     expect(keyed('severity-yellow'), findsOneWidget, reason: 'the existing advice screen shows the queued scan');
     expect(env.voice.spokenIds, contains('result_intro'));
 
-    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.tap(find.byIcon(AppIcons.back));
     await tester.pumpAndSettle();
     expect(keyed('offline-result-card'), findsNothing, reason: 'the card goes away once the result was opened');
   });

@@ -13,6 +13,7 @@ import 'package:farmtrack/core/network/mock_data.dart';
 import 'package:farmtrack/core/router/app_router.dart';
 import 'package:farmtrack/features/ask/ask_flow.dart';
 import 'package:farmtrack/features/ask/ask_suggestions.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'support/finders.dart';
 import 'support/harness.dart';
@@ -135,7 +136,8 @@ void main() {
         expect(size.height, greaterThanOrEqualTo(72), reason: key);
         expect(size.width, greaterThanOrEqualTo(96), reason: key);
       }
-      expect(tester.getSize(keyed('ask-own')).height, greaterThanOrEqualTo(64));
+      // The mockup's `.btn` is 60 high (the old own-built button was 64).
+      expect(tester.getSize(keyed('ask-own')).height, greaterThanOrEqualTo(60));
       expectBigTouchTargets(tester);
     });
 
@@ -215,7 +217,7 @@ void main() {
       expect(env.voice.log.single, contains('@hi'));
       expect(env.voice.spokenTexts.single, contains('मंज़ूर की हुई दवा'));
 
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('ask-own'), findsOneWidget);
       await tapKey(tester, 'ask-card-spray_gap');
@@ -288,7 +290,7 @@ void main() {
       expect(env.voice.spokenIds.where((id) => id.startsWith('ask_q_')), isEmpty);
       expect(env.voice.spokenTexts, hasLength(1), reason: 'only the answer is spoken');
       expect(keyed('ask-answer'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('ask-own'), findsOneWidget, reason: 'back from the answer returns to the cards, not the keyboard');
     });
@@ -320,7 +322,7 @@ void main() {
       await tapKey(tester, 'ask-send');
 
       expect(env.voice.spokenTexts, ['इस सवाल का जवाब हमें नहीं मिला। कृपया खेती के जानकार से पूछिए।']);
-      expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
+      expect(find.byIcon(AppIcons.info), findsOneWidget);
       expect(keyed('ask-expert'), findsOneWidget);
       expect(tester.getSize(keyed('ask-expert')).width, greaterThanOrEqualTo(96));
 

@@ -1,0 +1,208 @@
+{
+  "created": "2026-10-26 22:40",
+  "arch": "convnext_tiny.fb_in22k_ft_in1k",
+  "args": {
+    "photos": "demo\\photos",
+    "out": "output\\apple_leaf_demo",
+    "arch": "convnext_tiny.fb_in22k_ft_in1k",
+    "views": 8,
+    "cap": 450,
+    "epochs": 40,
+    "seed": 7,
+    "folds": 5,
+    "eval_dir": [
+      "external_test"
+    ],
+    "quick": false
+  },
+  "images_per_class": {
+    "Apple___Apple_scab": 408,
+    "Apple___Marssonina_blotch": 382,
+    "Apple___Alternaria_leaf_spot": 450,
+    "Apple___healthy": 450
+  },
+  "dropped": {
+    "exact duplicate": 31
+  },
+  "images_per_source": {
+    "Web-incoming": 27,
+    "AppleLeaf9": 1355,
+    "J&K-Mendeley": 308
+  },
+  "n_groups": 1678,
+  "cross_validation_on_trainval": {
+    "n": 1352,
+    "accuracy": 0.966715976331361,
+    "macro_f1": 0.9672291523411575,
+    "per_class": {
+      "Apple___Apple_scab": {
+        "precision": 0.9457831325301205,
+        "recall": 0.9602446483180428,
+        "f1": 0.952959028831563,
+        "support": 327
+      },
+      "Apple___Marssonina_blotch": {
+        "precision": 0.9869281045751634,
+        "recall": 0.9901639344262295,
+        "f1": 0.9885433715220949,
+        "support": 305
+      },
+      "Apple___Alternaria_leaf_spot": {
+        "precision": 0.9742857142857143,
+        "recall": 0.9472222222222222,
+        "f1": 0.9605633802816902,
+        "support": 360
+      },
+      "Apple___healthy": {
+        "precision": 0.9615384615384616,
+        "recall": 0.9722222222222222,
+        "f1": 0.9668508287292817,
+        "support": 360
+      }
+    },
+    "confusion_matrix": {
+      "rows_true_cols_pred": [
+        "Apple___Apple_scab",
+        "Apple___Marssonina_blotch",
+        "Apple___Alternaria_leaf_spot",
+        "Apple___healthy"
+      ],
+      "matrix": [
+        [
+          314,
+          0,
+          4,
+          9
+        ],
+        [
+          1,
+          302,
+          2,
+          0
+        ],
+        [
+          10,
+          4,
+          341,
+          5
+        ],
+        [
+          7,
+          0,
+          3,
+          350
+        ]
+      ]
+    },
+    "mean_confidence_correct": 0.9712306261062622,
+    "mean_confidence_wrong": 0.7413012385368347,
+    "ece": 0.010186842361674497,
+    "accuracy_by_source": {
+      "AppleLeaf9": {
+        "n": 1087,
+        "accuracy": 0.9742410303587856
+      },
+      "J&K-Mendeley": {
+        "n": 246,
+        "accuracy": 0.9715447154471545
+      },
+      "Web-incoming": {
+        "n": 19,
+        "accuracy": 0.47368421052631576
+      }
+    },
+    "temperature": 0.5000000000000001,
+    "ece_uncalibrated": 0.09604165674402163
+  },
+  "held_out_test": {
+    "n": 338,
+    "accuracy": 0.9763313609467456,
+    "macro_f1": 0.9764764233639204,
+    "per_class": {
+      "Apple___Apple_scab": {
+        "precision": 0.963855421686747,
+        "recall": 0.9876543209876543,
+        "f1": 0.975609756097561,
+        "support": 81
+      },
+      "Apple___Marssonina_blotch": {
+        "precision": 0.9868421052631579,
+        "recall": 0.974025974025974,
+        "f1": 0.9803921568627451,
+        "support": 77
+      },
+      "Apple___Alternaria_leaf_spot": {
+        "precision": 0.967032967032967,
+        "recall": 0.9777777777777777,
+        "f1": 0.9723756906077348,
+        "support": 90
+      },
+      "Apple___healthy": {
+        "precision": 0.9886363636363636,
+        "recall": 0.9666666666666667,
+        "f1": 0.9775280898876404,
+        "support": 90
+      }
+    },
+    "confusion_matrix": {
+      "rows_true_cols_pred": [
+        "Apple___Apple_scab",
+        "Apple___Marssonina_blotch",
+        "Apple___Alternaria_leaf_spot",
+        "Apple___healthy"
+      ],
+      "matrix": [
+        [
+          80,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          75,
+          2,
+          0
+        ],
+        [
+          0,
+          1,
+          88,
+          1
+        ],
+        [
+          3,
+          0,
+          0,
+          87
+        ]
+      ]
+    },
+    "mean_confidence_correct": 0.9749809503555298,
+    "mean_confidence_wrong": 0.6893247365951538,
+    "ece": 0.01615832049465747,
+    "accuracy_by_source": {
+      "AppleLeaf9": {
+        "n": 268,
+        "accuracy": 0.9813432835820896
+      },
+      "J&K-Mendeley": {
+        "n": 62,
+        "accuracy": 0.967741935483871
+      },
+      "Web-incoming": {
+        "n": 8,
+        "accuracy": 0.875
+      }
+    }
+  },
+  "extra_sets": {},
+  "caveats": [
+    "Labels = dataset folder names; no agronomist confirmed them (Marssonina = dataset class 'Brown spot', inferred).",
+    "Each class comes mostly from a different source/imaging setup, so part of the accuracy may be source recognition, not disease recognition.",
+    "Research/web images, not field photos from Himachal farmers: field accuracy will be lower. Never quote these numbers as 90-95%.",
+    "Test split is group-disjoint but drawn from the same datasets as training.",
+    "Marssonina photos come from ONE source (AppleLeaf9 'Brown spot'), so its recall is largely source recognition; check external_test/ (independent real photos).",
+    "The Kashmir (J&K) images are pre-augmented by their authors; the central 70 % is used and siblings of one leaf may survive grouping, so J&K accuracy is optimistic."
+  ]
+}

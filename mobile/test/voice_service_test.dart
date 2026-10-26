@@ -40,7 +40,7 @@ class _Rig {
       cache: cache,
       readingTime: (_) => Duration.zero,
       engineWarmUp: Duration.zero,
-      settings: () => VoiceSettings(language: language, speed: speed, volume: volume),
+      settings: () => VoiceSettings(language: language, speed: speed, volume: volume, muted: muted),
     );
   }
 
@@ -56,6 +56,7 @@ class _Rig {
   String language = 'hi';
   SpeechSpeed speed = SpeechSpeed.normal;
   VolumeLevel volume = VolumeLevel.high;
+  bool muted = false;
 }
 
 String _sha(List<int> bytes) => sha256.convert(bytes).toString();
@@ -384,6 +385,81 @@ void main() {
       rig.tts.locales = {'hi-IN'};
       await rig.service.speak(const [PromptUtterance('welcome')]);
       expect(rig.service.state.value.missingVoices, isEmpty);
+    });
+  });
+
+  group('mute button', () {
+    test('muted, nothing is played or spoken, but the caption still shows the sentence', () async {
+      final rig = _Rig(bundled: {PromptCatalogue.assetPath('hi', 'welcome')})..muted = true;
+      await rig.service.speak(const [PromptUtterance('welcome'), PromptUtterance('scan_send')], owner: 'screen');
+      expect(rig.audio.played, isEmpty);
+      expect(rig.tts.spoken, isEmpty);
+      expect(rig.log.events.where((e) => e.startsWith('start')), isEmpty, reason: 'no sound of any kind');
+      expect(rig.service.state.value.caption, contains('हरा सही का निशान'), reason: 'the last sentence stays readable');
+      expect(rig.service.state.value.owner, 'screen');
+      expect(rig.service.state.value.missingVoices, isEmpty, reason: 'muting is not a missing voice');
+    });
+
+    test('muted, server audio is not even downloaded', () async {
+      final bytes = utf8.encode('mp3 bytes');
+      final rig = _Rig(downloads: {'/audio/w.mp3': bytes})..muted = true;
+      rig.catalogue.applyServer(
+        VoiceCatalogueOut(
+          language: 'hi',
+          prompts: [
+            PromptOut(
+              id: 'welcome',
+              text: 'x',
+              audio: AudioRef(url: '/audio/w.mp3', sha256: _sha(bytes)),
+            ),
+          ],
+        ),
+      );
+      await rig.service.speak(const [PromptUtterance('welcome')]);
+      expect(rig.downloaded, isEmpty);
+    });
+
+    test('the sound is back for the very next sentence once the mute is turned off', () async {
+      final rig = _Rig()..muted = true;
+      await rig.service.speak(const [PromptUtterance('scan_send')]);
+      expect(rig.tts.spoken, isEmpty);
+      rig.muted = false;
+      await rig.service.speak(const [PromptUtterance('scan_send')]);
+      expect(rig.tts.spoken, hasLength(1));
+    });
+
+    test('stop() cuts a sentence that is playing at the moment the mute button is tapped', () async {
+      final rig = _Rig();
+      rig.tts.gate = Completer<void>(); // the sentence "plays" until it is cut
+      final speaking = rig.service.speak(const [PromptUtterance('scan_send'), PromptUtterance('welcome')]);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(rig.log.active, 1, reason: 'one sentence is being spoken');
+      rig.muted = true;
+      await rig.service.stop();
+      await speaking;
+      expect(rig.log.active, 0);
+      expect(rig.tts.spoken, hasLength(1), reason: 'the second sentence was never started');
+    });
+
+    test('while the muted caption is held, stop() ends it at once', () async {
+      final rig = _Rig()..muted = true;
+      final slow = DeviceVoiceService(
+        catalogue: rig.catalogue,
+        resources: loadResources(),
+        tts: rig.tts,
+        audio: rig.audio,
+        cache: rig.cache,
+        readingTime: (_) => const Duration(seconds: 30),
+        engineWarmUp: Duration.zero,
+        settings: () =>
+            const VoiceSettings(language: 'hi', speed: SpeechSpeed.normal, volume: VolumeLevel.high, muted: true),
+      );
+      final speaking = slow.speak(const [PromptUtterance('welcome')]);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(slow.state.value.speaking, isTrue);
+      await slow.stop();
+      await speaking.timeout(const Duration(seconds: 2));
+      expect(slow.state.value.speaking, isFalse);
     });
   });
 

@@ -28,6 +28,35 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Noto Sans (Latin) and Noto Sans Devanagari, subset to what the app shows (SIL Open Font License, see
+  # assets/fonts/OFL.txt), as in the approved UI mockup; FarmTrackIcons is the mockup's line pictures
+  # (built by tool/build_icon_font.py from tool/icons.json).
+  fonts:
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+        - asset: assets/fonts/NotoSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/NotoSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/NotoSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/NotoSans-ExtraBold.ttf
+          weight: 800
+    - family: NotoSansDevanagari
+      fonts:
+        - asset: assets/fonts/NotoSansDevanagari-Regular.ttf
+        - asset: assets/fonts/NotoSansDevanagari-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/NotoSansDevanagari-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/NotoSansDevanagari-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/NotoSansDevanagari-ExtraBold.ttf
+          weight: 800
+    - family: FarmTrackIcons
+      fonts:
+        - asset: assets/fonts/FarmTrackIcons.ttf
   assets:
     - assets/l10n/
     - assets/voice/prompts.json

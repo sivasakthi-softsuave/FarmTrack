@@ -59,6 +59,35 @@ void main() {
       expect(env.prefs.getBool('weather_enabled'), isFalse, reason: 'remembered for the next time offline');
     });
 
+    testWidgets('the soil tile stays in the same blue card language, under its label, with the danger card above', (
+      tester,
+    ) async {
+      final api = _MetaApi(weatherEnabled: false);
+      final env = await _env(api);
+      await _openField(tester, env);
+      expect(find.text('अभी आपके खेत में'), findsOneWidget, reason: 'the label of the tiles');
+      expect(find.text('अगले सात दिन'), findsNothing, reason: 'no week card without weather');
+      expect(keyed('risk-scab_infection'), findsOneWidget);
+      final soil = tester.getRect(keyed('reading-soil'));
+      final card = tester.getRect(keyed('risk-scab_infection'));
+      expect(soil.top, greaterThan(card.bottom));
+      expect(soil.width, closeTo((360 - 32 - 10) / 2, 0.5), reason: 'half the width, like every tile');
+    });
+
+    testWidgets('with no soil reading either, there is no empty "Now in your field" label', (tester) async {
+      final api = _MetaApi(weatherEnabled: false)
+        ..fieldOverride = FieldOut(
+          village: 'Kotgarh',
+          asOf: DateTime.utc(2026, 5, 12, 2, 30),
+          readings: const ReadingsOut(tempC: 20, rhPct: 60),
+        );
+      final env = await _env(api);
+      await _openField(tester, env);
+      expect(keyed('field-village'), findsOneWidget);
+      expect(keyed('reading-temp'), findsNothing);
+      expect(find.text('अभी आपके खेत में'), findsNothing);
+    });
+
     testWidgets('weather on (or a server that does not know the field) shows everything', (tester) async {
       for (final enabled in [true, null]) {
         final env = await _env(_MetaApi(weatherEnabled: enabled));

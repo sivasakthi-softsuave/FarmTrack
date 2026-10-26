@@ -29,9 +29,10 @@ class _OfflineSprayApi extends MockApiClient {
   Future<SprayLogOut> createSprayLog(SprayLogIn log, {String? idempotencyKey}) => throw const ApiException.network();
 }
 
+/// The fill of a card or button: the decoration of the first box inside it (both are drawn on a `DecoratedBox`).
 Color? _fill(WidgetTester tester, String key) {
-  final material = tester.widget<Material>(find.descendant(of: keyed(key), matching: find.byType(Material)).first);
-  return material.color;
+  final box = tester.widget<DecoratedBox>(find.descendant(of: keyed(key), matching: find.byType(DecoratedBox)).first);
+  return (box.decoration as BoxDecoration).color;
 }
 
 void main() {
@@ -44,7 +45,8 @@ void main() {
 
     final button = keyed('i-sprayed');
     expect(button, findsOneWidget);
-    expect(find.descendant(of: button, matching: find.byIcon(AppIcons.tick)), findsOneWidget);
+    // The mockup's green button carries the bold tick.
+    expect(find.descendant(of: button, matching: find.byIcon(AppIcons.tickBold)), findsOneWidget);
     expect(find.descendant(of: button, matching: find.byIcon(AppIcons.notebook)), findsNothing);
     expect(_fill(tester, 'i-sprayed'), AppColors.green);
     expect(find.byIcon(AppIcons.notebook), findsNothing, reason: 'no yellow notebook on the advice any more');
@@ -71,7 +73,7 @@ void main() {
     expect(keyed('i-sprayed'), findsNothing, reason: 'it was sprayed: nothing left to tick');
     final chip = tester.widget<Container>(done);
     expect((chip.decoration! as BoxDecoration).color, AppColors.green);
-    expect(find.descendant(of: done, matching: find.byIcon(AppIcons.tick)), findsOneWidget);
+    expect(find.descendant(of: done, matching: find.byIcon(AppIcons.tickBold)), findsOneWidget);
     expect(find.text('छिड़काव हो गया'), findsOneWidget);
     // Nothing yellow in the action row, and the "next step" sentence is not spoken again.
     expect(env.voice.spokenIds, isNot(contains('diary_tick_sprayed')));
@@ -111,10 +113,7 @@ void main() {
     );
     await tester.pumpWidget(env.wrap(const HomeScreen()));
     await tester.pump();
-    final card = tester.widget<Material>(
-      find.descendant(of: keyed('offline-waiting-card'), matching: find.byType(Material)).first,
-    );
-    expect(card.color, AppColors.neutralSoft);
-    expect(card.color, isNot(AppColors.amberSoft));
+    expect(_fill(tester, 'offline-waiting-card'), AppColors.neutralSoft);
+    expect(_fill(tester, 'offline-waiting-card'), isNot(AppColors.amberSoft));
   });
 }

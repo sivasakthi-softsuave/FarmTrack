@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +18,7 @@ import 'package:farmtrack/core/storage/token_store.dart';
 import 'package:farmtrack/core/utils/haptics.dart';
 import 'package:farmtrack/core/vision/on_device_detector.dart';
 import 'package:farmtrack/core/widgets/status_views.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'support/finders.dart';
 import 'support/harness.dart';
@@ -223,7 +223,7 @@ void main() {
       );
       await tester.pump();
       expect(env.voice.spokenIds, ['error_no_internet']);
-      expect(find.byIcon(Icons.cloud_off_rounded), findsOneWidget);
+      expect(find.byIcon(AppIcons.offline), findsOneWidget);
       expect(tester.getSize(keyed('retry-button')).width, greaterThanOrEqualTo(96));
       await tester.tap(keyed('retry-button'));
       expect(retried, 1);

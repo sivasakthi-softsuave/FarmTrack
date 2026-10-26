@@ -9,6 +9,7 @@ import '../../core/router/routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/voice/utterance.dart';
 import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../../core/widgets/voice_scaffold.dart';
 import 'scan_flow.dart';
 
@@ -19,8 +20,7 @@ const _countPrompts = [
   'scan_photo_count_four',
 ];
 
-/// Thumbnails of the photos taken (up to four) with a red cross on each; a big plus adds one more and the big
-/// green tick sends them.
+/// Thumbnails of the photos taken (up to four) with a red cross on each; the plus adds one more and the green tick sends them.
 class PhotoReviewScreen extends ConsumerStatefulWidget {
   const PhotoReviewScreen({super.key});
 
@@ -65,6 +65,7 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
       script: script,
       restartKey: (flow.photos.length, flow.added),
       onBack: () => context.go(Routes.scan),
+      title: t('review_title'),
       body: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -84,40 +85,47 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
           ),
           const SizedBox(height: 16),
           Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(color: AppColors.greenSoft, borderRadius: BorderRadius.circular(999)),
-              child: Text(
-                t('photo_count', args: {'n': flow.photos.length, 'max': max}),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.green),
-              ),
+            child: AppPill(
+              t('photo_count', args: {'n': flow.photos.length, 'max': max}),
+              background: AppColors.greenSoft,
+              foreground: AppColors.green,
             ),
           ),
         ],
       ),
+      // The mockup's action strip: the white square plus, and the green tick that sends.
+      wideAction: true,
       bottomRight: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          BigIconButton(
+          AppButton(
             key: const ValueKey('add-photo'),
+            style: AppButtonStyle.outline,
+            square: true,
             icon: AppIcons.plus,
             semanticLabel: t('a11y_plus'),
-            color: AppColors.blue,
-            size: 80,
             onPressed: flow.photos.length >= max ? null : () => context.go(Routes.scan),
           ),
-          const SizedBox(width: 8),
-          TickButton(
-            key: const ValueKey('send-photos'),
-            size: 96,
-            semanticLabel: t('a11y_send'),
-            onPressed: flow.photos.isEmpty ? null : () => context.go(Routes.scanUploading),
+          const SizedBox(width: 12),
+          Expanded(
+            child: AppButton(
+              key: const ValueKey('send-photos'),
+              icon: AppIcons.tickBold,
+              label: t('scan_send_word'),
+              semanticLabel: t('a11y_send'),
+              onPressed: flow.photos.isEmpty ? null : () => context.go(Routes.scanUploading),
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+/// A photo tile of the mockup: green, with the pale leaf.
+const _leafTile = ColoredBox(
+  color: Color(0xFF2C6B37),
+  child: Center(child: Icon(AppIcons.leaf, size: 56, color: Color(0xFFBFE5C8))),
+);
 
 class _Thumbnail extends StatelessWidget {
   const _Thumbnail({super.key, required this.path, required this.onRemove, required this.removeLabel});
@@ -139,7 +147,7 @@ class _Thumbnail extends StatelessWidget {
             left: 0,
             bottom: 0,
             child: Container(
-              decoration: AppDecor.card(radius: 18),
+              decoration: AppDecor.card(),
               clipBehavior: Clip.antiAlias,
               child: SizedBox(
                 width: size,
@@ -148,10 +156,9 @@ class _Thumbnail extends StatelessWidget {
                   File(path),
                   fit: BoxFit.cover,
                   cacheWidth: 400,
-                  errorBuilder: (_, _, _) => const ColoredBox(
-                    color: AppColors.line,
-                    child: Icon(AppIcons.leaf, size: 56, color: AppColors.inkSoft),
-                  ),
+                  // The mockup's green leaf tile until the picture is there, and when it cannot be read.
+                  frameBuilder: (_, child, frame, loadedSync) => frame == null && !loadedSync ? _leafTile : child,
+                  errorBuilder: (_, _, _) => _leafTile,
                 ),
               ),
             ),
@@ -159,8 +166,10 @@ class _Thumbnail extends StatelessWidget {
           Positioned(
             right: 0,
             top: 0,
-            child: CrossButton(
+            child: BigIconButton(
               key: const ValueKey('remove-photo'),
+              icon: AppIcons.crossBold,
+              color: AppColors.red,
               size: Dimens.minTouch,
               semanticLabel: removeLabel,
               onPressed: onRemove,

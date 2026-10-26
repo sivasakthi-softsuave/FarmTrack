@@ -4,11 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/big_buttons.dart';
+import '../widgets/design.dart';
 import 'speak_on_enter.dart';
 import 'voice_service.dart';
 
-/// The speaker picture, always the right-most button of the top bar. Plays the screen's speech again; a green ring
-/// shows while this screen is speaking. [onDark] is for the deep-green Home header.
+/// The mockup's `.ibtn.glass`: a white circle at 14 % on the dark green of the Home header and on the camera.
+const glassButtonColor = Color(0x24FFFFFF);
+
+/// The speaker picture, a round button of the top bar ("Listen again"). Plays the screen's speech again; a green ring
+/// shows while this screen is speaking. [onDark] is for the deep-green Home header and the camera.
+///
+/// While the voice is muted a tap turns the voice on again and plays the screen's speech: whoever asks to listen wants to hear.
 class SpeakerButton extends ConsumerWidget {
   const SpeakerButton({super.key, this.onDark = false});
 
@@ -18,26 +24,27 @@ class SpeakerButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = VoiceSession.maybeOf(context);
     final voice = ref.watch(voiceServiceProvider);
+    final muted = ref.watch(settingsProvider.select((s) => s.muted));
     final t = ref.watch(stringsProvider);
     return ValueListenableBuilder<VoiceState>(
       valueListenable: voice.state,
       builder: (context, state, _) {
-        final speaking = state.speaking && session != null && state.owner == session.owner;
-        final ring = onDark ? Colors.white : AppColors.green;
-        return Container(
+        final speaking = state.speaking && !muted && session != null && state.owner == session.owner;
+        return KeyedSubtree(
           key: const ValueKey('speaker-button'),
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: speaking ? ring : Colors.transparent, width: 2),
-          ),
           child: BigIconButton(
             icon: AppIcons.speaker,
             semanticLabel: t('a11y_listen'),
-            color: onDark ? Colors.white : AppColors.greenSoft,
-            foreground: AppColors.green,
+            color: onDark ? glassButtonColor : AppColors.greenSoft,
+            foreground: onDark ? Colors.white : AppColors.green,
             size: Dimens.minTouch,
-            onPressed: session == null ? null : () => session.replay(),
+            ringColor: speaking ? (onDark ? Colors.white : AppColors.green) : null,
+            onPressed: session == null
+                ? null
+                : () async {
+                    if (muted) await ref.read(settingsProvider.notifier).setMuted(on: false);
+                    await session.replay();
+                  },
           ),
         );
       },
@@ -45,10 +52,61 @@ class SpeakerButton extends ConsumerWidget {
   }
 }
 
-/// The sentence being spoken, floating over the content while it is spoken (switch off in settings). One line to start
-/// with; a tap opens all of it and a second tap closes it again. Shown only on the screen that spoke it.
+/// The mute button, next to the speaker in the top bar: the crossed-out speaker. One tap silences the voice at once and
+/// keeps the app quiet on every screen until it is tapped again (the words still show, see [VoiceCaption]); it turns red
+/// while the voice is off. Turning the voice on plays the screen's speech again, so the farmer hears that it is back.
+class MuteButton extends ConsumerWidget {
+  const MuteButton({super.key, this.onDark = false});
+
+  final bool onDark;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = VoiceSession.maybeOf(context);
+    final muted = ref.watch(settingsProvider.select((s) => s.muted));
+    final t = ref.watch(stringsProvider);
+    final Color fill;
+    final Color pict;
+    if (muted) {
+      fill = onDark ? Colors.white : AppColors.redSoft;
+      pict = AppColors.red;
+    } else {
+      fill = onDark ? glassButtonColor : AppColors.neutralSoft;
+      pict = onDark ? Colors.white : AppColors.inkSoft;
+    }
+    return KeyedSubtree(
+      key: const ValueKey('mute-button'),
+      child: BigIconButton(
+        icon: AppIcons.noVoice,
+        semanticLabel: muted ? t('a11y_unmute') : t('a11y_mute'),
+        color: fill,
+        foreground: pict,
+        size: Dimens.minTouch,
+        onPressed: () async {
+          final notifier = ref.read(settingsProvider.notifier);
+          final voice = ref.read(voiceServiceProvider);
+          if (muted) {
+            await notifier.setMuted(on: false);
+            await session?.replay();
+          } else {
+            await notifier.setMuted(on: true);
+            await voice.stop();
+          }
+        },
+      ),
+    );
+  }
+}
+
+/// The sentence being spoken, floating over the content while it is spoken (switch off in settings): the mockup's dark
+/// `.caption` with its breathing wave. Two lines to start with; a tap on the words opens all of it and a second tap
+/// closes it again; the cross hides it until the next sentence. Shown only on the screen that spoke it. While the voice is
+/// muted it still shows each sentence for its reading time.
 class VoiceCaption extends ConsumerStatefulWidget {
-  const VoiceCaption({super.key});
+  const VoiceCaption({super.key, this.topGap = 0});
+
+  /// Space above the bubble while it shows (the caption sits under a floating button on some screens).
+  final double topGap;
 
   @override
   ConsumerState<VoiceCaption> createState() => _VoiceCaptionState();
@@ -57,6 +115,7 @@ class VoiceCaption extends ConsumerStatefulWidget {
 class _VoiceCaptionState extends ConsumerState<VoiceCaption> {
   bool _open = false;
   String? _lastText;
+  String? _dismissedText;
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +123,7 @@ class _VoiceCaptionState extends ConsumerState<VoiceCaption> {
     final enabled = ref.watch(settingsProvider.select((s) => s.captions));
     if (!enabled || session == null) return const SizedBox.shrink();
     final voice = ref.watch(voiceServiceProvider);
+    final t = ref.watch(stringsProvider);
     final maxHeight = MediaQuery.sizeOf(context).height * 0.3;
     return ValueListenableBuilder<VoiceState>(
       valueListenable: voice.state,
@@ -71,42 +131,73 @@ class _VoiceCaptionState extends ConsumerState<VoiceCaption> {
         final text = state.owner == session.owner ? state.caption : null;
         // Only while it is being spoken: afterwards the screen has the whole width and height again.
         if (text == null || text.isEmpty || !state.speaking) return const SizedBox.shrink();
-        // A new sentence starts closed again.
+        // A new sentence starts closed and visible again.
         if (text != _lastText) {
           _lastText = text;
           _open = false;
+          _dismissedText = null;
         }
-        return Semantics(
-          container: true,
-          label: text,
-          excludeSemantics: true,
-          // A dark bubble over the light screen: it reads as "what the phone is saying", apart from the content.
-          child: Material(
-            key: const ValueKey('voice-caption'),
-            color: AppColors.ink,
-            elevation: 6,
-            shadowColor: AppColors.shadow,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            // A plain gesture, not a button: opening the caption is a convenience, the screen never depends on it.
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => setState(() => _open = !_open),
+        if (_dismissedText == text) return const SizedBox.shrink();
+        return Padding(
+          padding: EdgeInsets.only(top: widget.topGap),
+          child: Semantics(
+            container: true,
+            label: text,
+            excludeSemantics: true,
+            // A dark bubble over the light screen: it reads as "what the phone is saying", apart from the content.
+            child: DecoratedBox(
+              key: const ValueKey('voice-caption'),
+              decoration: BoxDecoration(
+                color: AppColors.ink,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [BoxShadow(color: Color(0x38000000), blurRadius: 24, offset: Offset(0, 8))],
+              ),
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: maxHeight),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  child: Row(
-                    crossAxisAlignment: _open ? CrossAxisAlignment.start : CrossAxisAlignment.center,
-                    children: [
-                      const Icon(AppIcons.captions, size: 22, color: _captionAccent),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _open
-                            ? SingleChildScrollView(child: Text(text, style: _captionStyle(context)))
-                            : Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: _captionStyle(context)),
+                constraints: BoxConstraints(minHeight: Dimens.ibtn, maxHeight: maxHeight),
+                child: Row(
+                  children: [
+                    // A plain gesture, not a button: opening the caption is a convenience, the screen never depends on it.
+                    Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => setState(() => _open = !_open),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 11, 0, 11),
+                          child: Row(
+                            crossAxisAlignment: _open ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.only(top: _open ? 2 : 0),
+                                child: const VoiceWave(),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _open
+                                    ? SingleChildScrollView(child: Text(text, style: _captionStyle))
+                                    : Text(text, maxLines: 2, overflow: TextOverflow.ellipsis, style: _captionStyle),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                    Semantics(
+                      button: true,
+                      label: t('a11y_dismiss'),
+                      onTap: () => setState(() => _dismissedText = text),
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        key: const ValueKey('voice-caption-close'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => setState(() => _dismissedText = text),
+                        child: const SizedBox(
+                          width: Dimens.ibtn,
+                          height: Dimens.ibtn,
+                          child: Icon(AppIcons.cross, size: 20, color: Color(0xB3FFFFFF)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -115,13 +206,10 @@ class _VoiceCaptionState extends ConsumerState<VoiceCaption> {
       },
     );
   }
-
-  TextStyle? _captionStyle(BuildContext context) =>
-      Theme.of(context).textTheme.titleMedium?.copyWith(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white);
 }
 
-/// Light green of the caption picture on the dark bubble (8:1 on [AppColors.ink]).
-const _captionAccent = Color(0xFF7CD992);
+/// `.caption`: 15 px on 1.35, white on the ink bubble.
+const _captionStyle = TextStyle(fontSize: 15, height: 1.35, color: Colors.white);
 
 /// Shown when this phone has no voice for the farmer's language: the words stay readable on screen.
 class VoiceMissingBanner extends ConsumerWidget {
@@ -139,11 +227,11 @@ class VoiceMissingBanner extends ConsumerWidget {
         return Container(
           key: const ValueKey('voice-missing'),
           margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.amberSoft, borderRadius: BorderRadius.circular(16)),
+          padding: const EdgeInsets.all(12),
+          decoration: AppDecor.tinted(AppColors.amberSoft, line: AppColors.amberLine, radius: 16),
           child: Row(
             children: [
-              const Icon(AppIcons.noVoice, size: 28),
+              const Icon(AppIcons.noVoice, size: 28, color: AppColors.amberDark),
               const SizedBox(width: 12),
               Expanded(child: Text(t('voice_missing'), style: Theme.of(context).textTheme.bodyMedium)),
             ],

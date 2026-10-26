@@ -6,7 +6,7 @@ import '../../core/providers.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/voice/utterance.dart';
-import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../../core/widgets/voice_scaffold.dart';
 import 'crop_picture.dart';
 import 'scan_flow.dart';
@@ -47,30 +47,35 @@ class _CropChooseScreenState extends ConsumerState<CropChooseScreen> {
     return VoiceScaffold(
       script: promptList(const ['crop_choose_other']),
       scrollable: false,
+      title: t('crop_choose_title'),
       onBack: () => context.go(ref.read(scanFlowProvider).scan == null ? Routes.home : Routes.scanConfirm),
+      // The arrows of the strip: earlier crops (white) and more crops (green).
+      wideAction: true,
       bottomRight: pages <= 1
           ? null
           : Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 if (page > 0)
-                  BigIconButton(
-                    key: const ValueKey('crops-prev'),
-                    icon: AppIcons.back,
-                    semanticLabel: t('a11y_prev_page'),
-                    color: AppColors.card,
-                    foreground: AppColors.ink,
-                    size: 80,
-                    onPressed: () => setState(() => _page = page - 1),
+                  Expanded(
+                    child: AppButton(
+                      key: const ValueKey('crops-prev'),
+                      style: AppButtonStyle.outline,
+                      icon: AppIcons.back,
+                      label: t('a11y_prev_page'),
+                      semanticLabel: t('a11y_prev_page'),
+                      onPressed: () => setState(() => _page = page - 1),
+                    ),
                   ),
-                const SizedBox(width: 12),
+                if (page > 0 && page < pages - 1) const SizedBox(width: 12),
                 if (page < pages - 1)
-                  BigIconButton(
-                    key: const ValueKey('crops-next'),
-                    icon: AppIcons.greenArrow,
-                    semanticLabel: t('a11y_next_page'),
-                    size: 80,
-                    onPressed: () => setState(() => _page = page + 1),
+                  Expanded(
+                    child: AppButton(
+                      key: const ValueKey('crops-next'),
+                      icon: AppIcons.greenArrow,
+                      label: t('a11y_next_page'),
+                      semanticLabel: t('a11y_next_page'),
+                      onPressed: () => setState(() => _page = page + 1),
+                    ),
                   ),
               ],
             ),
@@ -90,13 +95,31 @@ class _CropChooseScreenState extends ConsumerState<CropChooseScreen> {
                         SizedBox(
                           width: (constraints.maxWidth - 12) / 2,
                           height: tileHeight,
-                          child: PictureTile(
+                          child: AppCard(
                             key: ValueKey('crop-$id'),
                             semanticLabel: resources.cropName(id, lang),
-                            label: resources.cropName(id, lang),
-                            minHeight: 110,
-                            onPressed: () => context.go(Routes.analysingFor(id)),
-                            child: CropPicture(cropId: id, size: 84),
+                            padding: const EdgeInsets.all(12),
+                            onTap: () => context.go(Routes.analysingFor(id)),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: CropPicture(cropId: id, size: 84),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    resources.cropName(id, lang),
+                                    textAlign: TextAlign.center,
+                                    style: AppText.hName,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                     ],

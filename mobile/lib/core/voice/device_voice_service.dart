@@ -15,11 +15,14 @@ import 'voice_service.dart';
 
 /// The settings the voice reads at the moment it speaks (so a change applies to the very next sentence).
 class VoiceSettings {
-  const VoiceSettings({required this.language, required this.speed, required this.volume});
+  const VoiceSettings({required this.language, required this.speed, required this.volume, this.muted = false});
 
   final String language;
   final SpeechSpeed speed;
   final VolumeLevel volume;
+
+  /// The mute button is on: nothing is played, the caption still shows what would have been said.
+  final bool muted;
 }
 
 /// How long a caption stays when nothing could be spoken, so the sentence can still be read.
@@ -191,6 +194,12 @@ class DeviceVoiceService implements VoiceService {
 
     final cut = _cut.future;
     _update((s) => s.copyWith(caption: text, captionLang: spokenLang, owner: owner));
+
+    // Muted: no sound at all (not even a download for it), but the words stay on screen for their reading time.
+    if (current.muted) {
+      await _hold(text, cut);
+      return;
+    }
 
     if (asset != null) {
       final path = asset;

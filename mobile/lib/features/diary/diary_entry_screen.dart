@@ -9,10 +9,9 @@ import '../../core/router/routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/haptics.dart';
 import '../../core/voice/utterance.dart';
-import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../../core/widgets/status_views.dart';
 import '../../core/widgets/voice_scaffold.dart';
-import '../scan/crop_picture.dart';
 import '../scan/scan_flow.dart';
 import 'date_words.dart';
 import 'diary_providers.dart';
@@ -45,6 +44,7 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
   /// One speech identity per step: a step that closes must not cut off what the next step says.
   final Map<_Step, Object> _owners = {for (final s in _Step.values) s: Object()};
   final TextEditingController _name = TextEditingController();
+  final FocusNode _nameFocus = FocusNode();
 
   late _Step _step;
   String? _cropId;
@@ -65,6 +65,10 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
   @override
   void initState() {
     super.initState();
+    // The name field draws its green glow while it has focus.
+    _nameFocus.addListener(() {
+      if (mounted) setState(() {});
+    });
     final crop = widget.cropId;
     _cropId = crop == null || crop.isEmpty ? null : crop;
     _productId = widget.productId;
@@ -77,6 +81,7 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
 
   @override
   void dispose() {
+    _nameFocus.dispose();
     _name.dispose();
     super.dispose();
   }
@@ -218,6 +223,9 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
 
   // ---- crop
 
+  /// The gutter of every step: the mockup's 16 dp, and 16 on top (its `.pad`).
+  static const _bodyPadding = EdgeInsets.fromLTRB(Dimens.gutter, Dimens.gutter, Dimens.gutter, 0);
+
   List<String> _cropChoices() {
     final mine = ref.watch(sessionProvider.select((s) => s.farmer?.crops)) ?? const <String>[];
     final supported = ref.watch(supportedCropsProvider).value ?? const <String>[];
@@ -235,35 +243,53 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
     final pages = (ids.length / CropGrid.perPage).ceil().clamp(1, 99);
     final page = _cropPage.clamp(0, pages - 1);
     final shown = ids.skip(page * CropGrid.perPage).take(CropGrid.perPage).toList();
+    final hasPrev = page > 0;
+    final hasNext = page < pages - 1;
     return VoiceScaffold(
       key: const ValueKey('step-crop'),
       owner: _owner(_Step.crop),
       script: promptList(const ['diary_pick_crop']),
-      scrollable: false,
+      title: t('diary_add_label'),
+      alignTop: true,
+      wideAction: true,
+      bodyPadding: _bodyPadding,
       onBack: _leave,
+      // Six crops to a page: the strip holds the arrows (a square outline one back, a wide green one on).
       bottomRight: pages <= 1
           ? null
           : Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                if (page > 0)
-                  BigIconButton(
-                    key: const ValueKey('crops-prev'),
-                    icon: AppIcons.back,
-                    semanticLabel: t('a11y_prev_page'),
-                    color: AppColors.card,
-                    foreground: AppColors.ink,
-                    size: 80,
-                    onPressed: () => setState(() => _cropPage = page - 1),
-                  ),
-                const SizedBox(width: 12),
-                if (page < pages - 1)
-                  BigIconButton(
-                    key: const ValueKey('crops-next'),
-                    icon: AppIcons.greenArrow,
-                    semanticLabel: t('a11y_next_page'),
-                    size: 80,
-                    onPressed: () => setState(() => _cropPage = page + 1),
+                if (hasPrev)
+                  if (hasNext)
+                    AppButton(
+                      key: const ValueKey('crops-prev'),
+                      style: AppButtonStyle.outline,
+                      square: true,
+                      icon: AppIcons.back,
+                      semanticLabel: t('a11y_prev_page'),
+                      onPressed: () => setState(() => _cropPage = page - 1),
+                    )
+                  else
+                    Expanded(
+                      child: AppButton(
+                        key: const ValueKey('crops-prev'),
+                        style: AppButtonStyle.outline,
+                        icon: AppIcons.back,
+                        label: t('a11y_prev_page'),
+                        semanticLabel: t('a11y_prev_page'),
+                        onPressed: () => setState(() => _cropPage = page - 1),
+                      ),
+                    ),
+                if (hasPrev && hasNext) const SizedBox(width: 12),
+                if (hasNext)
+                  Expanded(
+                    child: AppButton(
+                      key: const ValueKey('crops-next'),
+                      icon: AppIcons.greenArrow,
+                      label: t('a11y_next_page'),
+                      semanticLabel: t('a11y_next_page'),
+                      onPressed: () => setState(() => _cropPage = page + 1),
+                    ),
                   ),
               ],
             ),
@@ -308,84 +334,99 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
     _goTo(_Step.summary);
   }
 
+  /// `.input`: 18 / 600 text.
+  static const _inputText = TextStyle(fontSize: 18, fontWeight: FontWeight.w600, height: 1.4, color: AppColors.ink);
+
+  /// `.input`: radius 16, a 2 px border.
+  static OutlineInputBorder _border(Color color) => OutlineInputBorder(
+    borderRadius: BorderRadius.circular(16),
+    borderSide: BorderSide(color: color, width: 2),
+  );
+
   Widget _medicineStep() {
     final t = ref.watch(stringsProvider);
-    final lang = ref.watch(languageProvider);
-    final resources = ref.watch(resourcesProvider);
-    final theme = Theme.of(context).textTheme;
     final recents = _recentNames();
     final cropId = _cropId;
+    final recentTitle = t('diary_recent_title');
     return VoiceScaffold(
       key: const ValueKey('step-medicine'),
       owner: _owner(_Step.medicine),
       script: promptList(const ['diary_type_medicine']),
       replayScript: promptList(['diary_type_medicine', if (recents.isNotEmpty) 'diary_pick_recent']),
+      title: t('diary_add_label'),
+      alignTop: true,
+      wideAction: true,
+      // 12 + 4 instead of 16: the field's focus glow reaches 4 dp outside it and the scroll view would cut it off.
+      bodyPadding: const EdgeInsets.fromLTRB(12, Dimens.gutter, 12, 0),
       onBack: _fromAdvice ? _leave : () => _goTo(_Step.crop),
-      bottomRight: TickButton(
+      bottomRight: AppButton(
         key: const ValueKey('diary-next'),
-        size: 96,
+        icon: AppIcons.tickBold,
+        label: t('diary_next_label'),
         semanticLabel: t('diary_next_label'),
         onPressed: _name.text.trim().isEmpty ? null : _nextFromMedicine,
       ),
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (cropId != null)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CropPicture(cropId: cropId.toLowerCase(), size: 56),
-                const SizedBox(width: 12),
-                Flexible(child: Text(resources.cropName(cropId.toLowerCase(), lang), style: theme.titleLarge)),
-              ],
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (cropId != null) ...[CropCard(cropId: cropId), const SizedBox(height: 12)],
+            _FieldLabel(icon: AppIcons.medicine, text: t('diary_medicine_hint')),
+            DecoratedBox(
+              // `.input.focus`: a green border and a soft green glow around it.
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: _nameFocus.hasFocus
+                    ? [BoxShadow(color: AppColors.green.withValues(alpha: 0.14), spreadRadius: 4)]
+                    : null,
+              ),
+              child: Semantics(
+                label: t('diary_medicine_hint'),
+                child: TextField(
+                  key: const ValueKey('diary-name-field'),
+                  controller: _name,
+                  focusNode: _nameFocus,
+                  maxLength: 200,
+                  maxLines: 2,
+                  minLines: 1,
+                  keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.done,
+                  textCapitalization: TextCapitalization.sentences,
+                  autocorrect: false,
+                  style: _inputText,
+                  buildCounter: (context, {required currentLength, required isFocused, required maxLength}) => null,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: AppColors.card,
+                    // 58 high with one line of 18 / 1.4 text.
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16.4),
+                    border: _border(AppColors.line),
+                    enabledBorder: _border(AppColors.line),
+                    focusedBorder: _border(AppColors.green),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                  onSubmitted: (_) => _nextFromMedicine(),
+                ),
+              ),
             ),
-          const SizedBox(height: 16),
-          TextField(
-            key: const ValueKey('diary-name-field'),
-            controller: _name,
-            maxLength: 200,
-            maxLines: 2,
-            minLines: 1,
-            keyboardType: TextInputType.text,
-            textInputAction: TextInputAction.done,
-            textCapitalization: TextCapitalization.sentences,
-            autocorrect: false,
-            style: theme.titleLarge,
-            buildCounter: (context, {required currentLength, required isFocused, required maxLength}) => null,
-            decoration: InputDecoration(
-              hintText: t('diary_medicine_hint'),
-              prefixIcon: const Icon(AppIcons.medicine, size: 28, color: AppColors.blue),
-              filled: true,
-              fillColor: AppColors.card,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFC9D3C6), width: 2),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Color(0xFFC9D3C6), width: 2),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: AppColors.green, width: 3),
-              ),
-            ),
-            onChanged: (_) => setState(() {}),
-            onSubmitted: (_) => _nextFromMedicine(),
-          ),
-          if (recents.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Text(t('diary_recent_title'), style: theme.titleMedium),
-            const SizedBox(height: 8),
-            for (var i = 0; i < recents.length; i++)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _RecentName(key: ValueKey('recent-$i'), name: recents[i], onTap: () => _chooseName(recents[i])),
-              ),
+            if (recents.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              SectionLabel(recentTitle, hindi: isDevanagari(recentTitle)),
+              const SizedBox(height: 10),
+              for (var i = 0; i < recents.length; i++)
+                Padding(
+                  padding: EdgeInsets.only(bottom: i == recents.length - 1 ? 0 : 12),
+                  child: _RecentName(
+                    key: ValueKey('recent-$i'),
+                    name: recents[i],
+                    onTap: () => _chooseName(recents[i]),
+                  ),
+                ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -395,13 +436,12 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
   Widget _summaryStep() {
     final t = ref.watch(stringsProvider);
     final lang = ref.watch(languageProvider);
-    final resources = ref.watch(resourcesProvider);
-    final theme = Theme.of(context).textTheme;
     final cropId = _cropId ?? '';
     final advice = _advice(ref.watch(scanFlowProvider.select((s) => s.scan?.advice)));
     final products = _name.text.trim().isEmpty ? (advice?.products ?? const <ProductOut>[]) : const <ProductOut>[];
     final selected = _selectedProduct(advice);
     final name = _medicineName(advice, lang);
+    final dayTitle = t('diary_pick_day_title');
 
     // What the screen says: the medicine, the question, what the tick and the cross do.
     final script = <Utterance>[
@@ -419,48 +459,50 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
       owner: _owner(_Step.summary),
       script: script,
       speakEnabled: !_quietSummary,
+      title: t('diary_add_label'),
+      alignTop: true,
+      wideAction: true,
+      bodyPadding: _bodyPadding,
       onBack: _fromAdvice ? _leave : () => _goTo(_Step.medicine),
+      // The strip: a red cross to refuse (only for an advice) and the wide green tick that writes it down.
       bottomRight: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           if (_fromAdvice) ...[
-            CrossButton(key: const ValueKey('diary-cancel'), size: 88, semanticLabel: t('a11y_no'), onPressed: _leave),
+            AppButton(
+              key: const ValueKey('diary-cancel'),
+              style: AppButtonStyle.danger,
+              square: true,
+              icon: AppIcons.cross,
+              semanticLabel: t('a11y_no'),
+              onPressed: _leave,
+            ),
             const SizedBox(width: 12),
           ],
-          _saving
-              ? const SizedBox(width: 88, height: 88, child: Center(child: CircularProgressIndicator()))
-              : TickButton(
-                  key: const ValueKey('diary-save'),
-                  size: 88,
-                  semanticLabel: t('diary_save_label'),
-                  onPressed: cropId.isEmpty ? null : _save,
-                ),
+          Expanded(
+            child: _saving
+                ? const Center(child: SizedBox(width: 36, height: 36, child: CircularProgressIndicator()))
+                : AppButton(
+                    key: const ValueKey('diary-save'),
+                    icon: AppIcons.tickBold,
+                    label: t('diary_save_label'),
+                    semanticLabel: t('diary_save_label'),
+                    onPressed: cropId.isEmpty ? null : _save,
+                  ),
+          ),
         ],
       ),
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (cropId.isNotEmpty)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CropPicture(cropId: cropId.toLowerCase(), size: 88),
-                const SizedBox(width: 14),
-                Flexible(
-                  child: Text(
-                    resources.cropName(cropId.toLowerCase(), lang),
-                    key: const ValueKey('diary-crop-name'),
-                    style: theme.headlineMedium,
-                  ),
-                ),
-              ],
-            ),
-          const SizedBox(height: 16),
+          if (cropId.isNotEmpty) ...[
+            CropCard(cropId: cropId, nameKey: const ValueKey('diary-crop-name')),
+            const SizedBox(height: 12),
+          ],
           if (products.isNotEmpty)
             for (final p in products)
               Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.only(bottom: 12),
                 child: MedicineCard(
                   product: p,
                   selected: products.length > 1 && p.productId == selected?.productId,
@@ -474,12 +516,16 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
                 ),
               )
           else
-            _NameCard(
-              key: const ValueKey('diary-medicine-name'),
-              name: name.isEmpty ? t('diary_no_name') : name,
-              onTap: name.isEmpty ? null : () => _say(_Step.summary, [TextUtterance(name, lang: lang)]),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _NameCard(
+                key: const ValueKey('diary-medicine-name'),
+                name: name.isEmpty ? t('diary_no_name') : name,
+                onTap: name.isEmpty ? null : () => _say(_Step.summary, [TextUtterance(name, lang: lang)]),
+              ),
             ),
-          const SizedBox(height: 8),
+          SectionLabel(dayTitle, hindi: isDevanagari(dayTitle)),
+          const SizedBox(height: 10),
           DateChoiceRow(
             choice: _choice,
             otherDay: _otherDay,
@@ -514,41 +560,33 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
       key: const ValueKey('step-day'),
       owner: _owner(_Step.day),
       script: promptList(const ['diary_pick_date']),
+      // "Which day?" is the name of this screen, in its top bar.
+      title: t('diary_pick_day_title'),
+      alignTop: true,
+      bodyPadding: _bodyPadding,
       onBack: () => _goTo(_Step.summary),
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            t('diary_pick_day_title'),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 12),
-          DayChooser(
-            onPick: (back) {
-              final day = DateTime(today.year, today.month, today.day - back);
-              setState(() {
-                _choice = switch (back) {
-                  0 => DayChoice.today,
-                  1 => DayChoice.yesterday,
-                  _ => DayChoice.other,
-                };
-                _otherDay = day;
-                _step = _Step.summary;
-                _quietSummary = true;
-              });
-              _say(_Step.summary, [
-                if (back == 0)
-                  const PromptUtterance('diary_today')
-                else if (back == 1)
-                  const PromptUtterance('diary_yesterday')
-                else
-                  TextUtterance(words.spoken(day), lang: lang),
-              ]);
-            },
-          ),
-        ],
+      body: DayChooser(
+        onPick: (back) {
+          final day = DateTime(today.year, today.month, today.day - back);
+          setState(() {
+            _choice = switch (back) {
+              0 => DayChoice.today,
+              1 => DayChoice.yesterday,
+              _ => DayChoice.other,
+            };
+            _otherDay = day;
+            _step = _Step.summary;
+            _quietSummary = true;
+          });
+          _say(_Step.summary, [
+            if (back == 0)
+              const PromptUtterance('diary_today')
+            else if (back == 1)
+              const PromptUtterance('diary_yesterday')
+            else
+              TextUtterance(words.spoken(day), lang: lang),
+          ]);
+        },
       ),
     );
   }
@@ -560,7 +598,6 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
     final lang = ref.watch(languageProvider);
     final words = ref.watch(dateWordsProvider);
     final resources = ref.watch(resourcesProvider);
-    final theme = Theme.of(context).textTheme;
     final outcome = _outcome;
     final online = outcome is SavedOnline;
     final entry = online ? outcome.entry : null;
@@ -576,12 +613,18 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
     final cropId = _cropId ?? '';
 
     final title = t(online ? 'diary_saved_title' : 'diary_saved_offline_title');
-    Widget mark(double size) => Container(
+    // With warnings the header shrinks, so the first warning is on screen without scrolling.
+    final big = warnings.isEmpty;
+    final mark = IconDot(
       key: ValueKey(online ? 'saved-ok' : 'saved-offline'),
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: online ? AppColors.green : AppColors.inkSoft, shape: BoxShape.circle),
-      child: Icon(online ? AppIcons.tick : AppIcons.clock, size: size * 0.68, color: Colors.white),
+      online ? AppIcons.tickBold : AppIcons.clock,
+      // Green is "done"; a grey (white on the grey card) clock is "waiting to be sent".
+      background: online ? AppColors.green : AppColors.card,
+      foreground: online ? Colors.white : AppColors.inkSoft,
+      size: big ? 72 : 52,
+      iconSize: big ? 38 : 28,
+      round: true,
+      shadow: online,
     );
 
     final script = online ? savedScript(entry!, lang) : promptList(const ['diary_saved_offline']);
@@ -589,11 +632,15 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
       key: const ValueKey('step-saved'),
       owner: _owner(_Step.saved),
       script: script,
+      title: t('diary_add_label'),
+      alignTop: true,
+      wideAction: true,
+      bodyPadding: _bodyPadding,
       onBack: _finish,
-      bottomRight: BigIconButton(
+      bottomRight: AppButton(
         key: const ValueKey('diary-done'),
-        icon: AppIcons.greenArrow,
-        size: 96,
+        icon: AppIcons.tickBold,
+        label: t('diary_done_label'),
         semanticLabel: t('diary_done_label'),
         onPressed: _finish,
       ),
@@ -601,35 +648,39 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // With warnings the header shrinks, so the first warning is on screen without scrolling.
-          if (warnings.isEmpty)
-            Column(
-              children: [
-                mark(112),
-                const SizedBox(height: 10),
-                Text(title, textAlign: TextAlign.center, style: theme.headlineMedium),
-              ],
-            )
-          else
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                mark(64),
-                const SizedBox(width: 12),
-                Flexible(child: Text(title, style: theme.headlineSmall)),
-              ],
-            ),
-          if (!online) ...[
-            const SizedBox(height: 12),
-            Center(
-              child: StatusPill(
-                icon: AppIcons.clock,
-                label: t('diary_waiting_label'),
-                color: AppColors.inkSoft,
-                background: AppColors.line.withValues(alpha: 0.5),
-              ),
-            ),
-          ],
+          AppCard(
+            color: online ? AppColors.greenSoft : AppColors.neutralSoft,
+            flat: true,
+            padding: big ? const EdgeInsets.symmetric(horizontal: 18, vertical: 24) : const EdgeInsets.all(14),
+            child: big
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      mark,
+                      const SizedBox(height: 12),
+                      Text(title, textAlign: TextAlign.center, style: AppText.big),
+                      if (!online) ...[
+                        const SizedBox(height: 10),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: AppPill(
+                            t('diary_waiting_label'),
+                            background: AppColors.card,
+                            foreground: AppColors.inkSoft,
+                            icon: AppIcons.clock,
+                          ),
+                        ),
+                      ],
+                    ],
+                  )
+                : Row(
+                    children: [
+                      mark,
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(title, style: Theme.of(context).textTheme.headlineSmall)),
+                    ],
+                  ),
+          ),
           for (final w in warnings) ...[
             const SizedBox(height: 12),
             DiaryWarningCard(
@@ -641,25 +692,28 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
             ),
           ],
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (cropId.isNotEmpty) ...[
-                CropPicture(cropId: cropId.toLowerCase(), size: 48),
-                const SizedBox(width: 10),
-              ],
-              Flexible(
-                child: Text(
-                  [
-                    if (cropId.isNotEmpty) resources.cropName(cropId.toLowerCase(), lang),
-                    if (name.isNotEmpty) name,
-                    relative == null ? words.written(day) : '$relative, ${words.written(day)}',
-                  ].join(' · '),
-                  textAlign: TextAlign.center,
-                  style: theme.bodyLarge,
+          AppCard(
+            child: Row(
+              children: [
+                const IconDot(AppIcons.medicine, background: AppColors.blueSoft, foreground: AppColors.blue),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name.isEmpty ? t('diary_no_name') : name, style: AppText.hName),
+                      Text(
+                        [
+                          if (cropId.isNotEmpty) resources.cropName(cropId.toLowerCase(), lang),
+                          relative == null ? words.written(day) : '$relative, ${words.written(day)}',
+                        ].join(' · '),
+                        style: AppText.hMeta,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -676,7 +730,29 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
   }
 }
 
-/// A name used before: one big button.
+/// `.field-l`: a green picture and a word above a field.
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(2, 4, 2, 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.green),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: AppText.hName.copyWith(fontSize: 15))),
+        ],
+      ),
+    ),
+  );
+}
+
+/// A name used before: a card with the flask and the name, one tap.
 class _RecentName extends StatelessWidget {
   const _RecentName({super.key, required this.name, required this.onTap});
 
@@ -684,35 +760,20 @@ class _RecentName extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: AppColors.card,
-    elevation: 2,
-    shadowColor: AppColors.shadow,
-    shape: AppDecor.shape(AppDecor.side(AppColors.blue)),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(Dimens.radius),
-      onTap: () {
-        Haptics.tap();
-        onTap();
-      },
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: Dimens.minTouch),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              const Icon(AppIcons.medicine, size: 30, color: AppColors.blue),
-              const SizedBox(width: 12),
-              Expanded(child: Text(name, style: Theme.of(context).textTheme.titleMedium)),
-            ],
-          ),
-        ),
-      ),
+  Widget build(BuildContext context) => AppCard(
+    onTap: onTap,
+    semanticLabel: name,
+    child: Row(
+      children: [
+        const IconDot(AppIcons.medicine, background: AppColors.blueSoft, foreground: AppColors.blue),
+        const SizedBox(width: 12),
+        Expanded(child: Text(name, style: AppText.hName)),
+      ],
     ),
   );
 }
 
-/// The medicine as one line when there is no advice card to show (typed name, or an advice that is no longer in memory).
+/// The medicine as one card when there is no advice card to show (typed name, or an advice that is no longer in memory).
 class _NameCard extends StatelessWidget {
   const _NameCard({super.key, required this.name, required this.onTap});
 
@@ -720,32 +781,15 @@ class _NameCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-    color: AppColors.card,
-    elevation: 2,
-    shadowColor: AppColors.shadow,
-    shape: AppDecor.shape(AppDecor.side(AppColors.blue)),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(Dimens.radius),
-      onTap: onTap,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 88),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: const BoxDecoration(color: AppColors.blueSoft, shape: BoxShape.circle),
-                child: const Icon(AppIcons.medicine, size: 34, color: AppColors.blue),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Text(name, style: Theme.of(context).textTheme.titleLarge)),
-            ],
-          ),
-        ),
-      ),
+  Widget build(BuildContext context) => AppCard(
+    onTap: onTap,
+    semanticLabel: onTap == null ? null : name,
+    child: Row(
+      children: [
+        const IconDot(AppIcons.medicine, background: AppColors.blueSoft, foreground: AppColors.blue),
+        const SizedBox(width: 12),
+        Expanded(child: Text(name, style: AppText.hName)),
+      ],
     ),
   );
 }

@@ -43,16 +43,16 @@ class AskSuggestion {
 
 /// Picture names used in the data file. A name that is not here shows the question-mark picture.
 const Map<String, IconData> _icons = {
-  'water_drop': Icons.water_drop_rounded,
-  'hourglass': Icons.hourglass_bottom_rounded,
+  'water_drop': AppIcons.drop,
+  'hourglass': AppIcons.hourglass,
   'science': AppIcons.medicine,
-  'safety': Icons.health_and_safety_rounded,
+  'safety': AppIcons.shield,
   'leaf': AppIcons.leaf,
-  'forest': Icons.forest_rounded,
-  'calendar': Icons.date_range_rounded,
-  'repeat': Icons.repeat_rounded,
-  'sun': Icons.wb_sunny_rounded,
-  'spa': Icons.spa_rounded,
+  'forest': AppIcons.tree,
+  'calendar': AppIcons.calendar,
+  'repeat': AppIcons.repeat,
+  'sun': AppIcons.sun,
+  'spa': AppIcons.leaf,
 };
 
 IconData askIcon(String name) => _icons[name] ?? AppIcons.question;

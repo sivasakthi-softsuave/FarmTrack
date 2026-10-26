@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:farmtrack/core/theme/app_theme.dart';
+
 Finder keyed(String key) => find.byKey(ValueKey(key));
 
 /// Taps a widget that may be below the fold of a scroll view.
@@ -10,6 +12,14 @@ Future<void> tapKey(WidgetTester tester, String key) async {
   await tester.ensureVisible(finder);
   await tester.pump();
   await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
+/// Leaves a screen to the one before it: the back arrow where the screen has one, else the Home button of the bottom bar
+/// (the main pages Field, Diary and Ask have no back arrow in the mockup).
+Future<void> goBack(WidgetTester tester) async {
+  final back = find.byIcon(AppIcons.back);
+  await tester.tap(back.evaluate().isNotEmpty ? back : keyed('nav-home'));
   await tester.pumpAndSettle();
 }
 

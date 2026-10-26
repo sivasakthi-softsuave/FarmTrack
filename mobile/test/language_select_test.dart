@@ -52,10 +52,10 @@ void main() {
     expect(find.byKey(const ValueKey('language-badge-hi')), findsOneWidget);
     expect(find.text('अ'), findsOneWidget);
     expect(find.text('A'), findsOneWidget);
-    expect(tester.getSize(keyed('language-hi')).height, greaterThanOrEqualTo(120));
+    expect(tester.getSize(keyed('language-hi')).height, greaterThanOrEqualTo(96));
   });
 
-  testWidgets('three languages in the data: three buttons, stacked, the chosen one carries a tick', (tester) async {
+  testWidgets('three languages in the data: three buttons, stacked, the chosen one is marked', (tester) async {
     useSmallPhone(tester);
     final env = await TestEnv.create(loggedIn: true, resources: resourcesWith(threeLanguages));
     await tester.pumpWidget(
@@ -72,6 +72,8 @@ void main() {
     expect(find.text('ਪੰਜਾਬੀ'), findsOneWidget);
     expect(keyed('language-selected-en'), findsOneWidget);
     expect(keyed('language-selected-hi'), findsNothing);
+    // The segmented size of the mockup's Settings: 56 high.
+    expect(tester.getSize(keyed('language-hi')).height, 56);
     // Stacked (not side by side): every button is as wide as the screen allows.
     expect(tester.getSize(keyed('language-hi')).width, tester.getSize(keyed('language-pa')).width);
     expect(tester.getTopLeft(keyed('language-pa')).dy, greaterThan(tester.getTopLeft(keyed('language-en')).dy));

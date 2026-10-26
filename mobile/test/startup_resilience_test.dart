@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:farmtrack/core/providers.dart';
 import 'package:farmtrack/core/storage/token_store.dart';
 
 import 'support/finders.dart';
@@ -70,7 +71,28 @@ class _BrokenSecureStorage extends FlutterSecureStorage {
   }) async => throw StateError('keystore is broken');
 }
 
+/// A start that fails outright (not only a slow key store).
+class _BrokenSession extends SessionNotifier {
+  @override
+  Future<void> restore() async => throw StateError('keystore is broken');
+
+  @override
+  void assumeLoggedOut() => throw StateError('cannot continue as logged out');
+}
+
 void main() {
+  testWidgets('a start that fails says so on the logo screen and offers "Try again"', (tester) async {
+    final env = await TestEnv.create(extraOverrides: [sessionProvider.overrideWith(_BrokenSession.new)]);
+    await tester.pumpWidget(env.app());
+    await tester.pump();
+    expect(keyed('splash-error'), findsOneWidget);
+    expect(find.textContaining('cannot continue as logged out'), findsOneWidget);
+    expectBigTouchTargets(tester);
+    await tester.tap(keyed('splash-retry'));
+    await tester.pump();
+    expect(keyed('splash-error'), findsOneWidget, reason: 'still failing: the card stays, nothing crashes');
+  });
+
   testWidgets('a key store that never answers does not keep the app on the logo: it goes on as logged out', (
     tester,
   ) async {

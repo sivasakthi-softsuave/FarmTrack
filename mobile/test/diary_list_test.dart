@@ -7,6 +7,8 @@ import 'package:farmtrack/core/network/mock_api_client.dart';
 import 'package:farmtrack/core/offline/offline_queue.dart';
 import 'package:farmtrack/features/diary/date_words.dart';
 import 'package:farmtrack/features/diary/diary_providers.dart';
+import 'package:farmtrack/features/diary/diary_widgets.dart' show splitMedicineName;
+import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'support/feature_fakes.dart';
 import 'support/finders.dart';
@@ -52,14 +54,14 @@ void main() {
       await openList(tester, env);
       expect(keyed('diary-empty'), findsOneWidget);
       // The notebook picture of the empty page, and the Diary picture of the bottom bar.
-      expect(find.byIcon(Icons.edit_note_rounded), findsNWidgets(2));
+      expect(find.byIcon(AppIcons.notebook), findsNWidgets(2));
       expect(keyed('diary-add'), findsOneWidget);
       expect(env.voice.spokenIds, ['diary_intro', 'diary_empty']);
       expect(env.voice.unknownIds, isEmpty);
       expectBigTouchTargets(tester);
     });
 
-    testWidgets('newest first, with the day in words, the medicine, the crop picture and a badge for warnings', (
+    testWidgets('newest first, a heading per day, the medicine, its crop and the warnings inside the entry', (
       tester,
     ) async {
       final env = await listEnv(
@@ -77,46 +79,74 @@ void main() {
       final tops = [for (final id in order) tester.getTopLeft(keyed('diary-entry-$id')).dy];
       expect(tops, [...tops]..sort(), reason: 'newest day first: 12, 9, 7, 3 May');
 
+      // One small heading per day: "Today" for today's, the day itself for the others (always above its entry).
+      final headings = ['आज', '9 मई', '7 मई', '3 मई'];
+      for (final (i, heading) in headings.indexed) {
+        expect(find.text(heading), findsOneWidget, reason: heading);
+        expect(tester.getTopLeft(find.text(heading)).dy, lessThan(tops[i]), reason: 'heading $heading');
+      }
+
+      // The entry: the medicine, and the crop in its words under it.
       final today = keyed('diary-entry-log-2');
       expect(find.descendant(of: today, matching: find.text('Mancozeb')), findsOneWidget);
-      expect(find.descendant(of: today, matching: find.text('आज, 12 मई')), findsOneWidget);
-      expect(find.descendant(of: keyed('diary-entry-log-4'), matching: find.text('9 मई')), findsOneWidget);
-      expect(
-        find.descendant(of: today, matching: find.byIcon(Icons.park_rounded)),
-        findsOneWidget,
-        reason: 'apple picture',
-      );
+      expect(find.descendant(of: today, matching: find.text('सेब')), findsOneWidget);
+      expect(find.descendant(of: today, matching: find.byIcon(AppIcons.medicine)), findsOneWidget);
+      // Saved entries carry the green tick.
+      expect(find.descendant(of: today, matching: find.byIcon(AppIcons.tickBold)), findsOneWidget);
 
-      // Warning badges: a picture and a word, never colour only.
-      expect(find.descendant(of: today, matching: find.byIcon(Icons.warning_amber_rounded)), findsOneWidget);
-      expect(find.descendant(of: today, matching: find.text('सावधान')), findsOneWidget);
+      // Warnings sit inside the entry: a picture and the warning's words, never colour only.
+      expect(find.descendant(of: today, matching: find.byIcon(AppIcons.warning)), findsOneWidget);
+      expect(find.descendant(of: today, matching: find.textContaining('जल्द रोक लग सकती है')), findsOneWidget);
       final red = keyed('diary-entry-log-3');
-      expect(find.descendant(of: red, matching: find.byIcon(Icons.report_rounded)), findsOneWidget);
-      expect(find.descendant(of: red, matching: find.text('गंभीर')), findsOneWidget);
-      // Antracol is not in the mock catalogue: "not recognised" is a warning too. Score is fine: no badge.
-      expect(
-        find.descendant(of: keyed('diary-entry-log-4'), matching: find.byIcon(Icons.warning_amber_rounded)),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: keyed('diary-entry-log-1'), matching: find.byIcon(Icons.warning_amber_rounded)),
-        findsNothing,
-      );
+      expect(find.descendant(of: red, matching: find.byIcon(AppIcons.danger)), findsOneWidget);
+      expect(find.descendant(of: red, matching: find.textContaining('मंज़ूर नहीं है')), findsOneWidget);
+      // Antracol is not in the mock catalogue: "not recognised" is a warning too. Score is fine: no warning row.
+      expect(find.descendant(of: keyed('diary-entry-log-4'), matching: find.byIcon(AppIcons.warning)), findsOneWidget);
+      expect(find.descendant(of: keyed('diary-entry-log-1'), matching: find.byIcon(AppIcons.warning)), findsNothing);
       expectBigTouchTargets(tester);
     });
 
-    testWidgets('an entry whose crop the server wrote with a capital still gets the right picture', (tester) async {
+    testWidgets('entries of one day share one heading', (tester) async {
+      final env = await listEnv(
+        logs: [(name: 'Score', day: 12), (name: 'Mancozeb', day: 12), (name: 'Antracol', day: 9)],
+      );
+      await openList(tester, env);
+      expect(find.text('आज'), findsOneWidget);
+      expect(find.text('9 मई'), findsOneWidget);
+      final today = tester.getTopLeft(find.text('आज')).dy;
+      final older = tester.getTopLeft(find.text('9 मई')).dy;
+      for (final id in ['log-1', 'log-2']) {
+        final top = tester.getTopLeft(keyed('diary-entry-$id')).dy;
+        expect(top, allOf(greaterThan(today), lessThan(older)), reason: '$id sits under "Today", above "9 May"');
+      }
+    });
+
+    testWidgets('an entry from an advice shows the medicine and, under it, brand and crop', (tester) async {
       final api = MockApiClient(latency: Duration.zero);
-      await api.createSprayLog(SprayLogIn(cropId: 'Potato', freeText: 'Score', sprayedAt: may(11)));
-      final env = await listEnv(api: api);
+      await api.createSprayLog(SprayLogIn(cropId: 'apple', adviceId: 'adv-1', sprayedAt: may(11)));
+      final env = await listEnv(api: api, language: 'en');
       await openList(tester, env);
       final entry = keyed('diary-entry-log-1');
-      expect(
-        find.descendant(of: entry, matching: find.byIcon(Icons.eco_rounded)),
-        findsOneWidget,
-        reason: 'vegetable',
-      );
-      expect(find.descendant(of: entry, matching: find.byIcon(Icons.park_rounded)), findsNothing);
+      expect(find.descendant(of: entry, matching: find.text('Difenoconazole')), findsOneWidget);
+      expect(find.descendant(of: entry, matching: find.text('Score · Apple')), findsOneWidget);
+    });
+
+    test('a medicine written "Name (Brand)" is split; anything else stays whole', () {
+      expect(splitMedicineName('Difenoconazole (Score)'), (name: 'Difenoconazole', brand: 'Score'));
+      expect(splitMedicineName('Mancozeb 75 WP'), (name: 'Mancozeb 75 WP', brand: ''));
+      expect(splitMedicineName(' Mancozeb '), (name: 'Mancozeb', brand: ''));
+    });
+
+    testWidgets('the diary is a main page: no back arrow, the floating button above the bottom bar', (tester) async {
+      final env = await listEnv(logs: [(name: 'Score', day: 12)]);
+      await openList(tester, env);
+      expect(find.byIcon(AppIcons.back), findsNothing);
+      expect(keyed('speaker-button'), findsOneWidget);
+      final button = tester.getRect(keyed('diary-add'));
+      expect(button.height, 60, reason: 'the mockup\'s 60 high button');
+      expect(find.descendant(of: keyed('diary-add'), matching: find.byIcon(AppIcons.plus)), findsOneWidget);
+      expect(button.right, 360 - 16, reason: 'bottom right, in the 16 dp gutter');
+      expect(button.bottom, lessThan(640 - 80), reason: 'above the 80 high bottom bar');
     });
 
     testWidgets('tapping an entry says the medicine and the day in words, then its warnings', (tester) async {
@@ -141,7 +171,9 @@ void main() {
     testWidgets('english', (tester) async {
       final env = await listEnv(language: 'en', logs: [(name: 'Score', day: 11)]);
       await openList(tester, env);
-      expect(find.text('Yesterday, 11 May'), findsOneWidget);
+      expect(find.text('YESTERDAY'), findsOneWidget, reason: 'the day heading, in capitals as the mockup has it');
+      expect(find.descendant(of: keyed('diary-entry-log-1'), matching: find.text('Score')), findsOneWidget);
+      expect(find.descendant(of: keyed('diary-entry-log-1'), matching: find.text('Apple')), findsOneWidget);
       env.voice.clear();
       await tapKey(tester, 'diary-entry-log-1');
       expect(env.voice.spokenTexts, ['Score, eleven May']);
@@ -208,7 +240,10 @@ void main() {
 
       final entry = keyed('diary-entry-k1');
       expect(entry, findsOneWidget);
-      expect(find.descendant(of: entry, matching: find.text('भेजना बाकी है')), findsOneWidget);
+      // The grey "Waiting" pill with its clock, instead of the green tick.
+      expect(find.descendant(of: entry, matching: find.text('इंतज़ार में')), findsOneWidget);
+      expect(find.descendant(of: entry, matching: find.byIcon(AppIcons.clock)), findsOneWidget);
+      expect(find.descendant(of: entry, matching: find.byIcon(AppIcons.tickBold)), findsNothing);
       expect(keyed('diary-offline'), findsOneWidget);
       expect(env.voice.spokenIds, ['diary_intro', 'error_no_internet']);
       env.voice.clear();
@@ -237,7 +272,7 @@ void main() {
 
       expect(keyed('diary-entry-k1'), findsNothing);
       expect(keyed('diary-entry-${saved.id}'), findsOneWidget);
-      expect(find.text('भेजना बाकी है'), findsNothing);
+      expect(find.text('इंतज़ार में'), findsNothing);
       expect(env.voice.spokenIds, ['diary_sent']);
     });
 

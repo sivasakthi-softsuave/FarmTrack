@@ -5,8 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/models.dart';
 import '../../core/providers.dart';
 import '../../core/router/routes.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/voice/utterance.dart';
-import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../../core/widgets/redirect.dart';
 import '../../core/widgets/voice_scaffold.dart';
 import 'crop_picture.dart';
@@ -40,37 +41,44 @@ class CropConfirmScreen extends StatelessWidget {
     return VoiceScaffold(
       script: script,
       onBack: () => context.go(Routes.home),
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CropPicture(cropId: cropId, size: 130),
-          const SizedBox(height: 10),
-          Text(
-            name,
-            key: const ValueKey('crop-name'),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.displaySmall,
-          ),
-          const SizedBox(height: 4),
-          Text(t('crop_is_this'), style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+      title: t('crop_is_this'),
+      body: SizedBox(
+        width: double.infinity,
+        child: AppCard(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              CrossButton(
-                key: const ValueKey('crop-no'),
-                size: 112,
-                semanticLabel: t('a11y_no'),
-                onPressed: () => context.go(Routes.scanCrops),
-              ),
-              const SizedBox(width: 28),
-              TickButton(
-                key: const ValueKey('crop-yes'),
-                size: 112,
-                semanticLabel: t('a11y_yes'),
-                onPressed: () => context.go(Routes.analysingFor(cropId)),
-              ),
+              CropPicture(cropId: cropId, size: 130),
+              const SizedBox(height: 12),
+              Text(name, key: const ValueKey('crop-name'), textAlign: TextAlign.center, style: AppText.big),
             ],
+          ),
+        ),
+      ),
+      // The no and the yes side by side in the action strip: the red cross opens the grid, the green tick confirms.
+      wideAction: true,
+      bottomRight: Row(
+        children: [
+          Expanded(
+            child: AppButton(
+              key: const ValueKey('crop-no'),
+              style: AppButtonStyle.danger,
+              icon: AppIcons.crossBold,
+              label: t('a11y_no'),
+              semanticLabel: t('a11y_no'),
+              onPressed: () => context.go(Routes.scanCrops),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: AppButton(
+              key: const ValueKey('crop-yes'),
+              icon: AppIcons.tickBold,
+              label: t('a11y_yes'),
+              semanticLabel: t('a11y_yes'),
+              onPressed: () => context.go(Routes.analysingFor(cropId)),
+            ),
           ),
         ],
       ),

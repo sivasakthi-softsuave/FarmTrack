@@ -43,7 +43,7 @@ def log(*a):
 
 # ----------------------------------------------------------------------------- data
 def source_of(name: str) -> str:
-    return {"al9": "AppleLeaf9", "jk": "J&K-Mendeley", "pd": "PlantDoc"}.get(name.split("_")[0], "other")
+    return {"al9": "AppleLeaf9", "jk": "J&K-Mendeley", "pd": "PlantDoc", "web": "Web-incoming"}.get(name.split("_")[0], "other")
 
 
 def scan(photos: Path, per_class_cap: int | None, seed: int):
@@ -52,6 +52,7 @@ def scan(photos: Path, per_class_cap: int | None, seed: int):
     for ci, cid in enumerate(CLASSES):
         files = sorted(p for p in (photos / cid).glob("*") if p.suffix.lower() in EXTS) if (photos / cid).is_dir() else []
         random.Random(seed + ci).shuffle(files)
+        files.sort(key=lambda p: not p.name.startswith("web_"))     # stable: collected web photos first, so the per-class cap never drops them
         kept = 0
         for p in files:
             if per_class_cap and kept >= per_class_cap:
@@ -248,10 +249,13 @@ def main():
     ap.add_argument("--epochs", type=int, default=40)
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--folds", type=int, default=5)
-    ap.add_argument("--eval-dir", action="append", default=[str(HERE.parent / "images" / "testset_v1" / "leaf"), str(HERE / "external_test")],
-                    help="extra folder-per-class sets to evaluate (never trained on); skipped if missing")
+    ap.add_argument("--eval-dir", action="append", default=None,
+                    help="extra folder-per-class sets to evaluate (never trained on); skipped if missing. Giving it REPLACES the defaults "
+                         "(testset_v1/leaf and external_test): do that when the test photos were added to the training set")
     ap.add_argument("--quick", action="store_true")
     a = ap.parse_args()
+    if a.eval_dir is None:
+        a.eval_dir = [str(HERE.parent / "images" / "testset_v1" / "leaf"), str(HERE / "external_test")]
     if a.quick:
         a.cap, a.views, a.epochs, a.folds = 20, 1, 5, 2
 

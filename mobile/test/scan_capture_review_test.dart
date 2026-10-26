@@ -1,12 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:farmtrack/core/errors/api_exception.dart';
+import 'package:farmtrack/core/models/models.dart';
+import 'package:farmtrack/core/network/api_client.dart';
 import 'package:farmtrack/core/network/mock_api_client.dart';
 import 'package:farmtrack/core/providers.dart';
 import 'package:farmtrack/core/vision/on_device_detector.dart';
 import 'package:farmtrack/features/scan/photo_picker.dart';
 import 'package:farmtrack/features/scan/scan_flow.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'support/finders.dart';
 import 'support/harness.dart';
@@ -14,6 +19,35 @@ import 'support/harness.dart';
 class _GuessingDetector implements OnDeviceDetector {
   @override
   Future<OnDeviceGuess?> detect(String imagePath) async => const OnDeviceGuess(cropId: 'apple', confidence: 0.7);
+}
+
+/// A server that never answers the call it is told to hang on, so the waiting screen stays.
+class _HangApi extends MockApiClient {
+  _HangApi({this.hangConfirm = false, super.scanScript}) : super(latency: Duration.zero);
+
+  final bool hangConfirm;
+
+  @override
+  Future<ScanOut> createScan({
+    required List<String> photoPaths,
+    String? clientCrop,
+    double? clientConfidence,
+    DateTime? takenAt,
+    double? lat,
+    double? lon,
+    String? idempotencyKey,
+    UploadProgressCallback? onProgress,
+    CancelHandle? cancel,
+  }) async {
+    if (!hangConfirm) await Completer<void>().future;
+    return super.createScan(photoPaths: photoPaths, idempotencyKey: idempotencyKey);
+  }
+
+  @override
+  Future<ScanOut> confirmCrop(String scanId, String cropId) async {
+    if (hangConfirm) await Completer<void>().future;
+    return super.confirmCrop(scanId, cropId);
+  }
 }
 
 Future<void> openCapture(WidgetTester tester, TestEnv env) async {
@@ -36,7 +70,8 @@ void main() {
         'scan_daylight',
       ]);
       expect(env.voice.unknownIds, isEmpty);
-      expect(tester.getSize(keyed('camera-button')).width, greaterThanOrEqualTo(96));
+      // The mockup's shutter: an 88 px ring.
+      expect(tester.getSize(keyed('camera-button')).width, greaterThanOrEqualTo(88));
       expectBigTouchTargets(tester);
     });
 
@@ -227,7 +262,7 @@ void main() {
       expect(keyed('camera-button'), findsOneWidget);
       expect(containerOf(tester).read(scanFlowProvider).photos, hasLength(1));
       // Back arrow on the camera screen returns to the review while photos exist.
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('photo-0'), findsOneWidget);
     });
@@ -277,6 +312,9 @@ void main() {
       expect(keyed('cancel-button'), findsOneWidget);
       expect(env.voice.spokenIds, ['scan_uploading', 'scan_wait']);
 
+      // On a short phone the cancel button is under the card: scroll to it first.
+      await tester.ensureVisible(keyed('cancel-button'));
+      await tester.pump();
       await tester.tap(keyed('cancel-button'));
       await tester.pump();
       await tester.pump(const Duration(seconds: 2));
@@ -317,6 +355,105 @@ void main() {
       await tapKey(tester, 'send-photos');
       expect(env.voice.spokenIds.last, 'error_try_again');
     });
+  });
+
+  group('camera strip', () {
+    testWidgets('shows the photos already taken; the red cross removes one, the dashed plus takes another', (
+      tester,
+    ) async {
+      final env = await TestEnv.create(loggedIn: true, language: 'en');
+      env.picker.queuePhotos(3);
+      await openCapture(tester, env);
+      expect(find.text('Photo 1 of 4'), findsOneWidget);
+      expect(keyed('strip-photo-0'), findsNothing);
+      expect(keyed('strip-add'), findsOneWidget);
+
+      await tapKey(tester, 'camera-button'); // photo 1, on the review screen
+      await tapKey(tester, 'add-photo'); // and back to the camera
+      expect(keyed('strip-photo-0'), findsOneWidget);
+      expect(find.text('Photo 2 of 4'), findsOneWidget);
+      expectBigTouchTargets(tester);
+
+      // The red cross sits on the corner of the tile: tap it where it is drawn.
+      await tester.tap(find.descendant(of: keyed('strip-remove-0'), matching: find.byIcon(AppIcons.crossBold)));
+      await tester.pumpAndSettle();
+      expect(keyed('strip-photo-0'), findsNothing);
+      expect(containerOf(tester).read(scanFlowProvider).photos, isEmpty);
+      expect(keyed('camera-button'), findsOneWidget, reason: 'removing the last photo keeps the camera');
+
+      await tapKey(tester, 'strip-add'); // the plus tile is a second shutter
+      expect(env.picker.opened, 2);
+      expect(keyed('photo-0'), findsOneWidget);
+    });
+
+    testWidgets('the green tick sends the photos; it is off until there is a photo', (tester) async {
+      final env = await TestEnv.create(loggedIn: true, scanScript: [MockScanScenario.ok]);
+      env.picker.queuePhotos(1);
+      await openCapture(tester, env);
+      InkWell send() =>
+          tester.widget<InkWell>(find.descendant(of: keyed('send-photos'), matching: find.byType(InkWell)));
+      expect(send().onTap, isNull);
+
+      await tapKey(tester, 'camera-button');
+      await tapKey(tester, 'add-photo');
+      expect(send().onTap, isNotNull);
+      await tapKey(tester, 'send-photos');
+      expect(env.api.uploadedPhotoPaths.single, hasLength(1));
+    });
+  });
+
+  group('waiting screen', () {
+    void noAnimations(WidgetTester tester) {
+      tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(
+        disableAnimations: true,
+      );
+      addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    }
+
+    testWidgets('while the photos go up: four steps, the first one going on, and the spinner turns', (tester) async {
+      final env = await TestEnv.create(loggedIn: true, language: 'en', api: _HangApi());
+      env.picker.queuePhotos(1);
+      await openCapture(tester, env);
+      await tapKey(tester, 'camera-button');
+      await tester.tap(keyed('send-photos'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400)); // let the page transition finish
+      expect(find.text('Looking at your leaf'), findsOneWidget);
+      expect(find.text('Sending photos'), findsOneWidget);
+      expect(find.text('Finding the crop'), findsOneWidget);
+      expect(find.text('Finding the disease'), findsOneWidget);
+      expect(find.text('Choosing the medicine'), findsOneWidget);
+      expect(find.text('Photos sent'), findsNothing);
+      expect(keyed('step-spinner'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(tester.binding.hasScheduledFrame, isTrue, reason: 'by default the spinner turns');
+    });
+
+    testWidgets(
+      'after the crop is confirmed: photos sent, crop found with its name, now the disease; nothing turns when '
+      'the phone asks for no animations',
+      (tester) async {
+        noAnimations(tester);
+        final env = await TestEnv.create(
+          loggedIn: true,
+          language: 'en',
+          api: _HangApi(hangConfirm: true, scanScript: [MockScanScenario.confirmCrop]),
+        );
+        env.picker.queuePhotos(1);
+        await openCapture(tester, env);
+        await tapKey(tester, 'camera-button');
+        await tapKey(tester, 'send-photos'); // the mock answers at once: "is this your crop?"
+        expect(keyed('crop-name'), findsOneWidget);
+        await tapKey(tester, 'crop-yes'); // the server never answers: this settles only because nothing moves
+        expect(find.text('Photos sent'), findsOneWidget);
+        expect(find.text('Crop found'), findsOneWidget);
+        expect(find.text('Apple'), findsOneWidget);
+        expect(find.text('Finding the disease'), findsOneWidget);
+        expect(find.text('Choosing the medicine'), findsOneWidget);
+        expect(keyed('step-spinner'), findsOneWidget);
+        expect(tester.binding.hasScheduledFrame, isFalse, reason: 'the ring and the spinner stand still');
+      },
+    );
   });
 }
 

@@ -6,12 +6,13 @@ import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/haptics.dart';
 import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../result/advice_widgets.dart';
 import '../scan/crop_picture.dart';
 import 'date_words.dart';
 import 'diary_providers.dart';
 
-/// A small label with a picture and words: never colour alone.
+/// A small label with a picture and words: never colour alone. (Still used by the alerts list.)
 class StatusPill extends StatelessWidget {
   const StatusPill({super.key, required this.icon, required this.label, required this.color, required this.background});
 
@@ -56,7 +57,114 @@ class SeverityPill extends ConsumerWidget {
   );
 }
 
-/// One line of the diary list: crop picture, medicine, date in words, and the warning and waiting badges.
+// ----------------------------------------------------------------------------------------------------- list entries
+
+/// A medicine as the server writes it, "Name (Brand)", split into the name and the brand; no brackets, no brand.
+({String name, String brand}) splitMedicineName(String text) {
+  final match = RegExp(r'^(.+?)\s*\(([^()]+)\)$').firstMatch(text.trim());
+  if (match == null) return (name: text.trim(), brand: '');
+  return (name: match.group(1)!.trim(), brand: match.group(2)!.trim());
+}
+
+/// `.dot` with a crop's picture: the crop's own picture when the app has one, else the picture of its group (tree for
+/// fruit, leaf for vegetables, grass for cereals). Always blue (information).
+class CropDot extends ConsumerWidget {
+  const CropDot({super.key, required this.cropId, this.size = 44});
+
+  /// The crop id in lower case (the app's names and pictures are keyed so).
+  final String cropId;
+  final double size;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final group = ref.watch(resourcesProvider).cropGroup(cropId);
+    final assets = ref.watch(cropImageAssetsProvider).value ?? const <String>{};
+    final path = 'assets/crops/${cropId.toLowerCase()}.png';
+    if (assets.contains(path)) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(Dimens.radiusSmall),
+        child: Image.asset(path, width: size, height: size, fit: BoxFit.cover),
+      );
+    }
+    final icon = switch (group) {
+      'vegetable' => AppIcons.leaf,
+      'cereal' => AppIcons.grass,
+      _ => AppIcons.tree,
+    };
+    return IconDot(
+      icon,
+      background: AppColors.blueSoft,
+      foreground: AppColors.blue,
+      size: size,
+      iconSize: (size * 0.55).roundToDouble(),
+    );
+  }
+}
+
+/// A card with the chosen crop: its picture and its name (`.h-name`). [nameKey] marks the name for tests.
+class CropCard extends ConsumerWidget {
+  const CropCard({super.key, required this.cropId, this.nameKey});
+
+  final String cropId;
+  final Key? nameKey;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(languageProvider);
+    final id = cropId.toLowerCase();
+    return AppCard(
+      child: Row(
+        children: [
+          CropDot(cropId: id),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(ref.watch(resourcesProvider).cropName(id, lang), key: nameKey, style: AppText.hName),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The warning of an entry inside its card: a soft amber row (a soft red one when it is serious) with its picture and
+/// its words, 14 / 600 (the mockup's diary).
+class DiaryWarningRow extends ConsumerWidget {
+  const DiaryWarningRow({super.key, required this.warning});
+
+  final WarningOut warning;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final serious = warning.level == Severity.red;
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: serious ? AppColors.redSoft : AppColors.amberSoft,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            serious ? AppIcons.danger : AppIcons.warning,
+            size: 20,
+            color: serious ? AppColors.red : AppColors.amberDark,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              warning.text.forLang(ref.watch(languageProvider)),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, height: 1.35, color: AppColors.ink),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One entry of the diary list: the flask, the medicine and the brand and crop under it, then a grey "Waiting" pill or
+/// the green tick of a saved entry, and the entry's warnings as rows inside the card.
 class DiaryEntryCard extends ConsumerWidget {
   const DiaryEntryCard({super.key, required this.entry, required this.onTap});
 
@@ -66,76 +174,88 @@ class DiaryEntryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(stringsProvider);
+    final lang = ref.watch(languageProvider);
     final words = ref.watch(dateWordsProvider);
     final now = ref.watch(clockProvider)();
-    final theme = Theme.of(context).textTheme;
-    final worst = entry.worst;
+    final medicine = splitMedicineName(entry.name.isEmpty ? t('diary_no_name') : entry.name);
+    final crop = entry.cropId.isEmpty ? '' : ref.watch(resourcesProvider).cropName(entry.cropId.toLowerCase(), lang);
+    final meta = [medicine.brand, crop].where((s) => s.isNotEmpty).join(' · ');
+    final warnings = [
+      for (final w in entry.warnings)
+        if (!w.text.isEmpty) w,
+    ];
     final relative = words.relative(entry.date, now);
     final date = relative == null ? words.written(entry.date) : '$relative, ${words.written(entry.date)}';
-    return Material(
+    // The card is one button: it reads the whole entry (the rows inside it are not buttons of their own), with the
+    // word of each warning's level, as the picture and the colour of the row carry it for the eye.
+    final spoken = [
+      entry.name.isEmpty ? t('diary_no_name') : entry.name,
+      if (crop.isNotEmpty) crop,
+      date,
+      if (entry.pending) t('diary_waiting_label'),
+      for (final w in warnings)
+        '${t(w.level == Severity.red ? 'severity_red' : 'severity_yellow')}: ${w.text.forLang(lang)}',
+    ].join('. ');
+
+    return AppCard(
       key: ValueKey('diary-entry-${entry.id}'),
-      color: AppColors.card,
-      elevation: 2,
-      shadowColor: AppColors.shadow,
-      // A waiting entry keeps a grey outline, so "not sent yet" shows without the pill too.
-      shape: AppDecor.shape(entry.pending ? AppDecor.side(AppColors.inkSoft, strong: true) : BorderSide.none),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(Dimens.radius),
-        onTap: () {
-          Haptics.tap();
-          onTap();
-        },
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 88),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
+      onTap: onTap,
+      semanticLabel: spoken,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) => Row(
               children: [
-                CropPicture(cropId: entry.cropId.toLowerCase(), size: 52),
+                const IconDot(AppIcons.medicine, background: AppColors.blueSoft, foreground: AppColors.blue),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        entry.name.isEmpty ? t('diary_no_name') : entry.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.titleMedium,
-                      ),
-                      Text(date, style: theme.bodyMedium?.copyWith(color: AppColors.inkSoft)),
-                      if (worst != null || entry.pending) ...[
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: [
-                            if (entry.pending)
-                              StatusPill(
-                                icon: AppIcons.clock,
-                                label: t('diary_waiting_label'),
-                                color: AppColors.inkSoft,
-                                background: AppColors.line.withValues(alpha: 0.5),
-                              ),
-                            if (worst != null) SeverityPill(severity: worst),
-                          ],
-                        ),
-                      ],
+                      Text(medicine.name, style: AppText.hName),
+                      if (meta.isNotEmpty) Text(meta, style: AppText.hMeta),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                const Icon(AppIcons.speaker, size: 26, color: AppColors.green),
+                const SizedBox(width: 12),
+                if (entry.pending)
+                  // Never wider than half the card: at the biggest text size the pill shrinks instead of squeezing the name.
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: constraints.maxWidth / 2),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: AppPill(
+                        t('diary_waiting_short'),
+                        background: AppColors.neutralSoft,
+                        foreground: AppColors.inkSoft,
+                        icon: AppIcons.clock,
+                      ),
+                    ),
+                  )
+                else
+                  const IconDot(
+                    AppIcons.tickBold,
+                    background: AppColors.greenSoft,
+                    foreground: AppColors.green,
+                    size: 30,
+                    round: true,
+                    iconSize: 20,
+                  ),
               ],
             ),
           ),
-        ),
+          for (final w in warnings) DiaryWarningRow(warning: w),
+        ],
       ),
     );
   }
 }
 
-/// A warning of a saved entry: colour, picture and words together, with its own speaker button.
+// -------------------------------------------------------------------------------------------------- saved entry
+
+/// A warning of a saved entry: colour, picture and words together, with its own speaker button. A soft panel of its
+/// colour with a thin line, like the advice's warnings.
 class DiaryWarningCard extends ConsumerWidget {
   const DiaryWarningCard({super.key, required this.warning, required this.onSpeak});
 
@@ -146,39 +266,51 @@ class DiaryWarningCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(stringsProvider);
     final lang = ref.watch(languageProvider);
-    final theme = Theme.of(context).textTheme;
     final level = warning.level == Severity.red ? Severity.red : Severity.yellow;
-    final color = AppColors.severity(level);
+    final accent = AppColors.severityAccent(level);
+    final serious = level == Severity.red;
     return Container(
       key: ValueKey('warning-${warning.code}'),
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: AppDecor.panel(AppColors.severitySoft(level), AppColors.severityAccent(level)),
+      padding: const EdgeInsets.fromLTRB(16, 14, 6, 14),
+      decoration: BoxDecoration(
+        color: AppColors.severitySoft(level),
+        borderRadius: BorderRadius.circular(Dimens.radius),
+        border: Border.all(color: serious ? AppColors.redLine : AppColors.amberLine),
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            child: Icon(severityIcon(level), size: 32, color: AppColors.onSeverity(level)),
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(severityIcon(level), size: 24, color: accent),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(t('severity_${level.wire}'), style: theme.titleMedium),
-                Text(warning.text.forLang(lang), style: theme.bodyLarge),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('severity_${level.wire}'),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.3, color: accent),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    warning.text.forLang(lang),
+                    style: const TextStyle(fontSize: 15.5, height: 1.45, color: AppColors.ink),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           BigIconButton(
             key: ValueKey('warning-speak-${warning.code}'),
             icon: AppIcons.speaker,
             semanticLabel: t('diary_listen_warning'),
-            color: AppColors.card,
+            color: AppColors.greenSoft,
             foreground: AppColors.green,
             size: Dimens.minTouch,
             onPressed: onSpeak,
@@ -189,7 +321,8 @@ class DiaryWarningCard extends ConsumerWidget {
   }
 }
 
-/// A medicine of an advice: name, brand and dose, big enough to tap. Tapping says its name and dose.
+/// A medicine of an advice: name, brand and dose, big enough to tap. Tapping says its name and dose. The chosen one is
+/// soft green with a green line and a tick.
 class MedicineCard extends ConsumerWidget {
   const MedicineCard({super.key, required this.product, required this.onTap, this.selected = false});
 
@@ -200,54 +333,42 @@ class MedicineCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lang = ref.watch(languageProvider);
-    final theme = Theme.of(context).textTheme;
     final brand = product.brandExamples.take(2).join(' / ');
     final dose = product.doseText.forLang(lang);
-    return Material(
-      key: ValueKey('diary-product-${product.productId}'),
-      color: selected ? AppColors.greenSoft : AppColors.card,
-      elevation: selected ? 0 : 2,
-      shadowColor: AppColors.shadow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Dimens.radius),
-        side: selected ? const BorderSide(color: AppColors.green, width: 4) : AppDecor.side(AppColors.blue),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(Dimens.radius),
-        onTap: () {
-          Haptics.tap();
-          onTap();
-        },
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 88),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(color: AppColors.blueSoft, shape: BoxShape.circle),
-                  child: const Icon(AppIcons.medicine, size: 34, color: AppColors.blue),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(product.activeIngredient.forLang(lang), style: theme.titleLarge),
-                      if (brand.isNotEmpty) Text(brand, style: theme.bodyMedium?.copyWith(color: AppColors.inkSoft)),
-                      if (dose.isNotEmpty) Text(dose, style: theme.bodyMedium),
-                    ],
-                  ),
-                ),
-                if (selected) ...[
-                  const SizedBox(width: 8),
-                  const Icon(AppIcons.tick, size: 36, color: AppColors.green),
+    return Semantics(
+      selected: selected,
+      child: AppCard(
+        key: ValueKey('diary-product-${product.productId}'),
+        color: selected ? AppColors.greenSoft : AppColors.card,
+        flat: selected,
+        line: selected ? AppColors.green : null,
+        onTap: onTap,
+        child: Row(
+          children: [
+            const IconDot(AppIcons.medicine, background: AppColors.blueSoft, foreground: AppColors.blue),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product.activeIngredient.forLang(lang), style: AppText.hName),
+                  if (brand.isNotEmpty) Text(brand, style: AppText.hMeta),
+                  if (dose.isNotEmpty) Text(dose, style: AppText.hMeta.copyWith(color: AppColors.ink)),
                 ],
-              ],
+              ),
             ),
-          ),
+            if (selected) ...[
+              const SizedBox(width: 12),
+              const IconDot(
+                AppIcons.tickBold,
+                background: AppColors.green,
+                foreground: Colors.white,
+                size: 30,
+                round: true,
+                iconSize: 20,
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -259,6 +380,8 @@ class MedicineCard extends ConsumerWidget {
 /// Which day the farmer sprayed: today (the default), yesterday, or another day of the last two weeks.
 enum DayChoice { today, yesterday, other }
 
+/// The three day buttons as the mockup's segmented choices (`.seg`): 56 high, radius 14, a 2 px line; the chosen one has
+/// a green line, a soft green fill and green words.
 class DateChoiceRow extends ConsumerWidget {
   const DateChoiceRow({
     super.key,
@@ -285,21 +408,21 @@ class DateChoiceRow extends ConsumerWidget {
     final buttons = [
       _DayButton(
         key: const ValueKey('day-today'),
-        icon: Icons.today_rounded,
+        icon: AppIcons.calendar,
         label: t('diary_today'),
         selected: choice == DayChoice.today,
         onTap: onToday,
       ),
       _DayButton(
         key: const ValueKey('day-yesterday'),
-        icon: Icons.history_rounded,
+        icon: AppIcons.clock,
         label: t('diary_yesterday'),
         selected: choice == DayChoice.yesterday,
         onTap: onYesterday,
       ),
       _DayButton(
         key: const ValueKey('day-other'),
-        icon: Icons.calendar_month_rounded,
+        icon: AppIcons.calendar,
         label: other,
         selected: choice == DayChoice.other,
         onTap: onOther,
@@ -310,7 +433,13 @@ class DateChoiceRow extends ConsumerWidget {
     if (stacked) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [for (final b in buttons) Padding(padding: const EdgeInsets.only(bottom: 8), child: b)],
+        children: [
+          for (var i = 0; i < buttons.length; i++)
+            Padding(
+              padding: EdgeInsets.only(top: i == 0 ? 0 : 8),
+              child: buttons[i],
+            ),
+        ],
       );
     }
     return Row(
@@ -331,41 +460,44 @@ class _DayButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = selected ? Colors.white : AppColors.ink;
+    final foreground = selected ? AppColors.green : AppColors.ink;
     return Semantics(
       button: true,
       selected: selected,
       label: label,
       excludeSemantics: true,
       child: Material(
-        color: selected ? AppColors.green : AppColors.card,
-        elevation: selected ? 3 : 1,
-        shadowColor: selected ? AppColors.green.withValues(alpha: 0.5) : AppColors.shadow,
-        shape: AppDecor.shape(AppDecor.side(AppColors.green, strong: selected), radius: 18),
+        color: selected ? AppColors.greenSoft : AppColors.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Dimens.radiusSmall),
+          side: BorderSide(color: selected ? AppColors.green : AppColors.line, width: 2),
+        ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(Dimens.radiusSmall),
           onTap: () {
             Haptics.tap();
             onTap();
           },
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 80),
+            constraints: const BoxConstraints(minHeight: Dimens.minTouch),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(selected ? AppIcons.tick : icon, size: 30, color: foreground),
-                  const SizedBox(height: 4),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(color: foreground),
-                    ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 20, color: foreground),
+                      const SizedBox(width: 8),
+                      Text(
+                        label,
+                        maxLines: 1,
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: foreground),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -387,12 +519,10 @@ class DayChooser extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final words = ref.watch(dateWordsProvider);
     final now = dayOnly(ref.watch(clockProvider)());
-    final theme = Theme.of(context).textTheme;
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = (constraints.maxWidth - 12) / 2;
         return Wrap(
-          alignment: WrapAlignment.center,
           spacing: 12,
           runSpacing: 12,
           children: [
@@ -403,37 +533,26 @@ class DayChooser extends ConsumerWidget {
                   builder: (context) {
                     final day = DateTime(now.year, now.month, now.day - back);
                     final relative = words.relative(day, now) ?? words.weekday(day);
-                    return Material(
+                    return AppCard(
                       key: ValueKey('day-option-$back'),
+                      // Today is the soft green one, as a chosen segment is.
                       color: back == 0 ? AppColors.greenSoft : AppColors.card,
-                      elevation: back == 0 ? 0 : 1,
-                      shadowColor: AppColors.shadow,
-                      shape: AppDecor.shape(AppDecor.side(AppColors.green, strong: back == 0), radius: 18),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(18),
-                        onTap: () {
-                          Haptics.tap();
-                          onPick(back);
-                        },
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(minHeight: 80),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(words.written(day), style: theme.titleLarge),
-                                ),
-                                FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(relative, style: theme.bodyMedium),
-                                ),
-                              ],
-                            ),
+                      flat: back == 0,
+                      line: back == 0 ? AppColors.green : null,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      onTap: () => onPick(back),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(words.written(day), style: AppText.hName),
                           ),
-                        ),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(relative, style: AppText.hMeta),
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -448,7 +567,8 @@ class DayChooser extends ConsumerWidget {
 
 // ------------------------------------------------------------------------------------------------------- crops
 
-/// Crop pictures to tap, as many as fit (the screen pages them with big arrows, six at a time).
+/// Crop cards to tap (the screen pages them with arrows, six at a time): the crop's picture in a `.dot` and its name,
+/// two cards to a row.
 ///
 /// The server writes crop ids with a capital (`Apple`), the app's names and pictures are keyed in lower case: the
 /// lookups here use the lower case id, while [onPick] gives the id as it was listed (the server accepts any case).
@@ -467,29 +587,35 @@ class CropGrid extends ConsumerWidget {
     final resources = ref.watch(resourcesProvider);
     return LayoutBuilder(
       builder: (context, constraints) {
-        final rows = (cropIds.length / 2).ceil().clamp(1, 3);
-        final tileHeight = ((constraints.maxHeight - (rows - 1) * 12) / rows).clamp(110.0, 200.0);
-        return SingleChildScrollView(
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              for (final id in cropIds)
-                SizedBox(
-                  width: (constraints.maxWidth - 12) / 2,
-                  height: tileHeight,
-                  child: PictureTile(
-                    key: ValueKey('crop-$id'),
-                    semanticLabel: resources.cropName(id.toLowerCase(), lang),
-                    label: resources.cropName(id.toLowerCase(), lang),
-                    minHeight: 110,
-                    onPressed: () => onPick(id),
-                    child: CropPicture(cropId: id.toLowerCase(), size: 84),
+        final width = (constraints.maxWidth - 12) / 2;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final id in cropIds)
+              SizedBox(
+                width: width,
+                child: AppCard(
+                  key: ValueKey('crop-$id'),
+                  semanticLabel: resources.cropName(id.toLowerCase(), lang),
+                  padding: const EdgeInsets.all(14),
+                  onTap: () => onPick(id),
+                  child: Row(
+                    children: [
+                      CropDot(cropId: id.toLowerCase()),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: AlignmentDirectional.centerStart,
+                          child: Text(resources.cropName(id.toLowerCase(), lang), maxLines: 1, style: AppText.hName),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         );
       },
     );

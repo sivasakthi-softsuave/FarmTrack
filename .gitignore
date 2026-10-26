@@ -71,6 +71,7 @@ mobile/android/.kotlin/
 # ---- apple leaf training kit (24 Oct 2026): photos carry third-party licences (not redistributed), venv and weights are rebuilt
 data/training/.venv/
 data/training/photos/
+data/training/demo/photos/
 data/training/external_test/*/
 data/training/output/**/*.safetensors
 data/training/output/quick_test/

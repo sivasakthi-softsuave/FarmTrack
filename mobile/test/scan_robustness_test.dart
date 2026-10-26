@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:farmtrack/core/network/api_client.dart';
@@ -6,6 +5,7 @@ import 'package:farmtrack/core/network/mock_api_client.dart';
 import 'package:farmtrack/core/models/models.dart';
 import 'package:farmtrack/core/router/app_router.dart';
 import 'package:farmtrack/features/scan/scan_flow.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'support/finders.dart';
 import 'support/harness.dart';
@@ -61,7 +61,7 @@ void main() {
     expect(keyed('retry-button'), findsOneWidget);
     expect(env.voice.spokenIds.last, 'error_try_again');
     // The way back to the photos is the back arrow of the error screen.
-    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.tap(find.byIcon(AppIcons.back));
     await tester.pumpAndSettle();
     expect(keyed('send-photos'), findsOneWidget);
     expect(containerOf(tester).read(scanFlowProvider).phase, ScanPhase.idle);

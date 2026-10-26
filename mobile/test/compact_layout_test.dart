@@ -107,11 +107,17 @@ void main() {
     expect(tick.height, greaterThanOrEqualTo(56));
     expect(keyed('severity-yellow'), findsOneWidget);
     expect(tester.getRect(keyed('severity-yellow')).top, lessThan(120), reason: 'the band starts right under the bar');
-    expect(keyed('advice-more'), findsOneWidget, reason: 'the details wait behind "More"');
-    expect(keyed('advice-summary'), findsNothing);
+    expect(keyed('advice-more'), findsOneWidget, reason: 'the safety notes and steps wait behind "More"');
+    expect(
+      keyed('advice-summary'),
+      findsOneWidget,
+      reason: 'the explanation sits in the severity card, as in the mockup',
+    );
+    final yellowBefore = tester.getRect(keyed('severity-yellow')).height;
     await tapKey(tester, 'advice-more');
     expect(tester.takeException(), isNull);
     expect(keyed('advice-summary'), findsOneWidget);
+    expect(tester.getRect(keyed('severity-yellow')).height, yellowBefore, reason: 'More adds cards below, not above');
   });
 }
 

@@ -69,6 +69,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
   Future<void> setSpeed(SpeechSpeed speed) => _set(state.copyWith(speed: speed));
   Future<void> setVolume(VolumeLevel volume) => _set(state.copyWith(volume: volume));
   Future<void> setCaptions({required bool on}) => _set(state.copyWith(captions: on));
+  Future<void> setMuted({required bool on}) => _set(state.copyWith(muted: on));
   Future<void> markOnboardingDone() => _set(state.copyWith(onboardingDone: true));
   Future<void> markHomeTourDone() => _set(state.copyWith(homeTourDone: true));
   Future<void> markCameraExplained() => _set(state.copyWith(cameraExplained: true));
@@ -317,7 +318,12 @@ final voiceServiceProvider = Provider<VoiceService>((ref) {
     isOnline: ref.watch(connectivityServiceProvider).isOnline,
     settings: () {
       final s = ref.read(settingsProvider);
-      return VoiceSettings(language: s.language ?? resources.defaultLanguage, speed: s.speed, volume: s.volume);
+      return VoiceSettings(
+        language: s.language ?? resources.defaultLanguage,
+        speed: s.speed,
+        volume: s.volume,
+        muted: s.muted,
+      );
     },
   );
 });

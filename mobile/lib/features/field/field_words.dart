@@ -44,6 +44,21 @@ SoilBand soilBand(double percent) {
   return percent < 40 ? SoilBand.ok : SoilBand.wet;
 }
 
+/// The picture of a warning level (risk cards, alerts): tick, warning triangle, danger sign.
+IconData severityPicture(Severity level) => switch (level) {
+  Severity.green => AppIcons.tick,
+  Severity.yellow => AppIcons.warning,
+  Severity.red => AppIcons.danger,
+};
+
+/// The thin line round a tinted card of a level (danger card, alert): the mockup's amber and red lines, a soft green for
+/// "fine".
+Color severityLine(Severity level) => switch (level) {
+  Severity.green => AppColors.green.withValues(alpha: 0.35),
+  Severity.yellow => AppColors.amberLine,
+  Severity.red => AppColors.redLine,
+};
+
 /// One big tile of "My field": a picture, one word, and the number small.
 class ReadingTile {
   const ReadingTile({
@@ -98,8 +113,8 @@ List<ReadingTile> _allReadingTiles(ReadingsOut? readings) {
     if (temp != null)
       ReadingTile(
         id: 'temp',
-        icon: Icons.thermostat_rounded,
-        color: AppColors.red,
+        icon: AppIcons.sun,
+        color: AppColors.blue,
         labelKey: 'field_label_temp',
         wordKey: 'field_temp_${tempBand(temp).name}',
         digits: '${temp.round()} °C',
@@ -107,7 +122,7 @@ List<ReadingTile> _allReadingTiles(ReadingsOut? readings) {
     if (humidity != null)
       ReadingTile(
         id: 'humidity',
-        icon: Icons.water_drop_rounded,
+        icon: AppIcons.drop,
         color: AppColors.blue,
         labelKey: 'field_label_humidity',
         wordKey: 'field_humid_${humidityBand(humidity).name}',
@@ -116,7 +131,7 @@ List<ReadingTile> _allReadingTiles(ReadingsOut? readings) {
     if (rain != null)
       ReadingTile(
         id: 'rain',
-        icon: Icons.umbrella_rounded,
+        icon: AppIcons.rain,
         color: AppColors.blue,
         labelKey: 'field_label_rain',
         wordKey: 'field_rain_${rainBand(rain).name}',
@@ -126,7 +141,7 @@ List<ReadingTile> _allReadingTiles(ReadingsOut? readings) {
       ReadingTile(
         id: 'leaf',
         icon: AppIcons.leaf,
-        color: AppColors.green,
+        color: AppColors.blue,
         labelKey: 'field_label_leaf',
         wordKey: 'field_leaf_${leafBand(leaf).name}',
         digits: '$leaf min',
@@ -134,8 +149,8 @@ List<ReadingTile> _allReadingTiles(ReadingsOut? readings) {
     if (soil != null)
       ReadingTile(
         id: 'soil',
-        icon: Icons.landscape_rounded,
-        color: const Color(0xFF8A5A2B),
+        icon: AppIcons.soil,
+        color: AppColors.blue,
         labelKey: 'field_label_soil',
         wordKey: 'field_soil_${soilBand(soil).name}',
         digits: '${soil.round()} %',
@@ -143,18 +158,15 @@ List<ReadingTile> _allReadingTiles(ReadingsOut? readings) {
   ];
 }
 
-/// The picture of a forecast day, from its rain: sun, rain drop, storm.
+/// The picture of a forecast day, from its rain: sun, cloud, rain cloud (the mockup's three weather pictures).
 IconData forecastIcon(double rainMm) => switch (rainBand(rainMm)) {
-  RainBand.none => Icons.wb_sunny_rounded,
-  RainBand.light => Icons.water_drop_rounded,
-  RainBand.heavy => Icons.thunderstorm_rounded,
+  RainBand.none => AppIcons.sun,
+  RainBand.light => AppIcons.cloud,
+  RainBand.heavy => AppIcons.rain,
 };
 
-Color forecastColor(double rainMm) => switch (rainBand(rainMm)) {
-  RainBand.none => AppColors.amberDark,
-  RainBand.light => AppColors.blue,
-  RainBand.heavy => const Color(0xFF3B2F8F),
-};
+/// Every picture of the mockup's week card is blue (information); the word for the rain is in the semantics label.
+Color forecastColor(double rainMm) => AppColors.blue;
 
 /// The words of a forecast day's rain (a string key).
 String forecastWordKey(double rainMm) => 'field_rain_${rainBand(rainMm).name}';

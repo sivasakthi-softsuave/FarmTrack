@@ -10,7 +10,7 @@ flutter pub get
 flutter run --dart-define=USE_MOCK_API=true                      # demo without a backend (canned answers, log in with f001 / farm1234)
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000      # real API (10.0.2.2 = host PC seen from the Android emulator;
                                                                  # a real phone needs the PC's LAN address or a deployed server)
-flutter analyze && flutter test                                  # must stay clean (754 tests, about 1 minute)
+flutter analyze && flutter test                                  # must stay clean (793 tests, about 2 minutes)
 flutter build apk --split-per-abi                                # needs the Android SDK, never run on the dev PC
 ```
 Dart defines: `API_BASE_URL` (default `http://10.0.2.2:8000`), `USE_MOCK_API` (default false, always on in tests).
@@ -38,10 +38,27 @@ Real backend check: `tool/run_live_check.ps1` (or `.sh`) starts a local offline 
   strip. Home uses the deep-green header instead (`brandHeader`: greeting, village, bell, gear, speaker). The spoken sentence floats over the
   content as a dark one-line caption while it is spoken (tap to open all of it). Colours: green = done/yes, red = stop/no, grey = waiting,
   yellow = warning only, blue = information.
-- **Look (26 Oct 2026 redesign):** light green-grey ground, white cards with soft shadows, tinted panels with thin borders; thick borders
-  only where they mean "chosen" or "new". Tokens and helpers in `lib/core/theme/app_theme.dart` (`AppColors`, `AppDecor`). Approved mockup:
-  `../docs/design/ui-redesign-mockup.html` (its bottom navigation bar was not built: Home keeps its big picture cards, which the tests and
-  the low-literacy rule require to be at least 96 dp).
+- **Look (27 Oct 2026: the approved mockup, all screens):** `../docs/design/ui-redesign-mockup.html` is the spec and the app follows it
+  screen by screen, in English and Hindi: light green-grey ground, white cards with soft shadows, tinted panels with thin borders, the
+  bottom bar (Home, Field, raised Scan, Diary, Ask) on the four main pages, floating dark caption with a breathing wave, wide action
+  strip. Pictures of the real screens: `../docs/app-screenshots/real-app/`.
+  - Tokens and text styles: `lib/core/theme/app_theme.dart` (`AppColors`, `Dimens`, `AppDecor`, `AppText`, `AppIcons`). Building blocks named
+    after the mockup's CSS (`AppCard` .card, `SectionLabel` .label, `AppPill` .pill, `IconDot` .dot, `AppButton` .btn, `AppSwitch`,
+    `VoiceWave`): `lib/core/widgets/design.dart`. Frame of every screen: `VoiceScaffold`.
+  - **Fonts:** Noto Sans + Noto Sans Devanagari (SIL OFL, `assets/fonts/OFL.txt`), subset to Latin and Devanagari, five weights.
+  - **Icons:** the mockup's line pictures as an icon font (`assets/fonts/FarmTrackIcons.ttf`, `lib/core/theme/farmtrack_icons.dart`),
+    built from `tool/icons.json` by `tool/build_icon_font.py` (`pip install fonttools shapely svgpathtools`). Use `AppIcons.x`, never
+    `Icons.*`. Change or add a picture in `icons.json`, run the script, commit the three files.
+  - Round picture buttons are drawn 48 wide inside a 56 dp tap area (the accessibility rule is 56 dp).
+- **Mute button (27 Oct 2026):** a crossed-out speaker next to the speaker in every top bar (on Home on a second line of the green
+  header). One tap stops the voice at once and keeps the app silent on every screen (saved as `voice_muted`); the caption still shows each
+  sentence for its reading time. Tapping it again, or the speaker, turns the voice on and plays the screen again. Settings has the same
+  choice as "Let the app speak". Code: `MuteButton` / `SpeakerButton` in `lib/core/voice/voice_widgets.dart`, `AppSettings.muted`,
+  `VoiceSettings.muted` in `DeviceVoiceService`.
+- **Seeing the real screens without a phone:** `flutter test test_visual/screens_shots_test.dart --dart-define=SHOT_DIR=<folder>` renders
+  the screens at the mockup's 390 x 844 (2x) with the real fonts, in `en/` and `hi/` (`--dart-define=SMALL=true --dart-define=SCALE=1.5`
+  for a 320 x 568 phone with large text; the other `test_visual/*_shots_test.dart` files cover more states). `flutter test` itself runs
+  `test/` only. Card shadows look like flat grey steps in these pictures: the test renderer does not blur; a phone does.
 - **Languages are data:** `assets/l10n/languages.json`, `strings.json`, the prompt file. A new language needs no code.
 - **Voice package (24 Oct 2026):** at start the app loads the saved server catalogue, fetches a fresh one and, only over Wi-Fi or a cable,
   downloads every prompt audio file not on the phone yet (`VoicePackage` in `lib/core/voice/catalogue_sync.dart`; again when the phone reaches Wi-Fi;

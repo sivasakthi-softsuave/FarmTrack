@@ -11,6 +11,7 @@ import 'package:farmtrack/core/push/push_providers.dart';
 import 'package:farmtrack/core/push/push_service.dart';
 import 'package:farmtrack/core/push/push_token_source.dart';
 import 'package:farmtrack/core/voice/utterance.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'support/feature_fakes.dart';
 import 'support/finders.dart';
@@ -319,7 +320,7 @@ void main() {
       expect(env.voice.spokenTexts, [MockData.alerts().items.last.spoken.text.hi]);
       expect(keyed('severity-yellow'), findsOneWidget);
       // Back goes to where the farmer was: Home.
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('home-scan'), findsOneWidget);
     });

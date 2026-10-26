@@ -28,6 +28,7 @@ class AppSettings {
     this.speed = SpeechSpeed.normal,
     this.volume = VolumeLevel.high,
     this.captions = true,
+    this.muted = false,
     this.onboardingDone = false,
     this.homeTourDone = false,
     this.cameraExplained = false,
@@ -40,6 +41,10 @@ class AppSettings {
 
   /// Show the spoken sentence as a large caption (default on).
   final bool captions;
+
+  /// The mute button: the app makes no sound until it is turned off again. The caption still shows what would have
+  /// been said (default off).
+  final bool muted;
   final bool onboardingDone;
 
   /// The long first-visit speech on Home (intro plus every button) has been played once.
@@ -53,6 +58,7 @@ class AppSettings {
     SpeechSpeed? speed,
     VolumeLevel? volume,
     bool? captions,
+    bool? muted,
     bool? onboardingDone,
     bool? homeTourDone,
     bool? cameraExplained,
@@ -61,6 +67,7 @@ class AppSettings {
     speed: speed ?? this.speed,
     volume: volume ?? this.volume,
     captions: captions ?? this.captions,
+    muted: muted ?? this.muted,
     onboardingDone: onboardingDone ?? this.onboardingDone,
     homeTourDone: homeTourDone ?? this.homeTourDone,
     cameraExplained: cameraExplained ?? this.cameraExplained,
@@ -77,6 +84,7 @@ class SettingsStore {
   static const _speed = 'speech_speed';
   static const _volume = 'volume';
   static const _captions = 'captions';
+  static const _muted = 'voice_muted';
   static const _onboardingDone = 'onboarding_done';
   static const _homeTourDone = 'home_tour_done';
   static const _cameraExplained = 'camera_explained';
@@ -86,6 +94,7 @@ class SettingsStore {
     speed: _enum(SpeechSpeed.values, _prefs.getString(_speed), SpeechSpeed.normal),
     volume: _enum(VolumeLevel.values, _prefs.getString(_volume), VolumeLevel.high),
     captions: _prefs.getBool(_captions) ?? true,
+    muted: _prefs.getBool(_muted) ?? false,
     onboardingDone: _prefs.getBool(_onboardingDone) ?? false,
     homeTourDone: _prefs.getBool(_homeTourDone) ?? false,
     cameraExplained: _prefs.getBool(_cameraExplained) ?? false,
@@ -101,6 +110,7 @@ class SettingsStore {
     await _prefs.setString(_speed, s.speed.name);
     await _prefs.setString(_volume, s.volume.name);
     await _prefs.setBool(_captions, s.captions);
+    await _prefs.setBool(_muted, s.muted);
     await _prefs.setBool(_onboardingDone, s.onboardingDone);
     await _prefs.setBool(_homeTourDone, s.homeTourDone);
     await _prefs.setBool(_cameraExplained, s.cameraExplained);

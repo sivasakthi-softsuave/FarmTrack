@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:farmtrack/core/network/mock_api_client.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'support/finders.dart';
 import 'support/harness.dart';
@@ -52,13 +53,12 @@ void main() {
       await tapKey(tester, 'home-settings');
       targets();
       await tapKey(tester, 'speed-slow');
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       for (final key in ['home-field', 'home-diary', 'home-ask', 'home-alerts']) {
         await tapKey(tester, key);
         targets();
-        await tester.tap(find.byIcon(Icons.arrow_back_rounded));
-        await tester.pumpAndSettle();
+        await goBack(tester); // Field, Diary and Ask are main pages: no back arrow, the bottom bar leads home
       }
 
       // scan: camera, two photos, confirm crop -> grid -> advice
@@ -80,7 +80,7 @@ void main() {
       await tapKey(tester, 'crop-apple');
       expect(keyed('severity-yellow'), findsOneWidget);
       targets();
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
 
       // blurry photo, expert case, no data
@@ -89,7 +89,7 @@ void main() {
       await tapKey(tester, 'send-photos');
       expect(keyed('retake-camera'), findsOneWidget);
       targets();
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
 
       for (final status in ['needs_expert', 'no_approved_data']) {
@@ -101,7 +101,7 @@ void main() {
         targets();
         await tapKey(tester, 'ask-expert');
         targets();
-        await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+        await tester.tap(find.byIcon(AppIcons.back));
         await tester.pumpAndSettle();
       }
       expect(env.voice.unknownIds, isEmpty, reason: 'every spoken prompt id exists');

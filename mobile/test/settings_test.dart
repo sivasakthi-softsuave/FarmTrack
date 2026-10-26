@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +13,8 @@ import 'package:farmtrack/core/router/routes.dart';
 import 'package:farmtrack/core/settings/app_settings.dart';
 import 'package:farmtrack/core/voice/utterance.dart';
 import 'package:farmtrack/features/settings/settings_screen.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
+import 'package:farmtrack/core/widgets/design.dart';
 
 import 'support/fakes.dart';
 import 'support/finders.dart';
@@ -36,7 +37,7 @@ void main() {
       final env = await openSettings(tester);
       expect(keyed('language-hi'), findsOneWidget);
       expect(keyed('language-en'), findsOneWidget);
-      expect(tester.getSize(keyed('language-en')).height, greaterThanOrEqualTo(80));
+      expect(tester.getSize(keyed('language-en')).height, greaterThanOrEqualTo(56));
       expect(find.text('हिन्दी'), findsOneWidget);
       expect(find.text('English'), findsOneWidget);
 
@@ -44,7 +45,7 @@ void main() {
       expect(env.voice.log, ['language_english@en', 'settings_language_changed@en']);
       expect(containerOf(tester).read(languageProvider), 'en');
       expect(env.prefs.getString('language'), 'en');
-      expect(find.text('Language'), findsOneWidget, reason: 'the words of the screen follow at once');
+      expect(find.text('LANGUAGE'), findsOneWidget, reason: 'the words of the screen follow at once');
 
       env.voice.clear();
       await tapKey(tester, 'language-hi');
@@ -141,11 +142,43 @@ void main() {
     testWidgets('the "show written words" switch exists and keeps working', (tester) async {
       final env = await openSettings(tester);
       expect(find.text('लिखे शब्द दिखाएँ'), findsOneWidget);
-      await tapKey(tester, 'captions-off');
+      await tapKey(tester, 'settings-captions');
       expect(containerOf(tester).read(settingsProvider).captions, isFalse);
       expect(env.prefs.getBool('captions'), isFalse);
-      await tapKey(tester, 'captions-on');
+      await tapKey(tester, 'settings-captions');
       expect(containerOf(tester).read(settingsProvider).captions, isTrue);
+    });
+  });
+
+  group('let the app speak (the voice switch)', () {
+    testWidgets('on to start with; off mutes the whole app and cuts the voice at once, on says a sample', (
+      tester,
+    ) async {
+      final env = await openSettings(tester);
+      expect(find.text('ऐप को बोलने दें'), findsOneWidget);
+      expect(tester.widget<AppSwitch>(keyed('settings-voice')).value, isTrue);
+      expect(containerOf(tester).read(settingsProvider).muted, isFalse);
+
+      await tapKey(tester, 'settings-voice');
+      expect(containerOf(tester).read(settingsProvider).muted, isTrue);
+      expect(env.prefs.getBool('voice_muted'), isTrue, reason: 'the choice is saved');
+      expect(env.voice.stopCalls, greaterThan(0), reason: 'what is being said stops at once');
+      expect(tester.widget<AppSwitch>(keyed('settings-voice')).value, isFalse);
+
+      env.voice.clear();
+      await tapKey(tester, 'settings-voice');
+      expect(containerOf(tester).read(settingsProvider).muted, isFalse);
+      expect(env.prefs.getBool('voice_muted'), isFalse);
+      expect(env.voice.spokenIds, ['settings_volume'], reason: 'the farmer hears that the voice is back');
+    });
+
+    testWidgets('the mute button of the top bar and the switch show the same state', (tester) async {
+      await openSettings(tester);
+      await tester.tap(keyed('mute-button'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<AppSwitch>(keyed('settings-voice')).value, isFalse);
+      await tapKey(tester, 'settings-voice');
+      expect(containerOf(tester).read(settingsProvider).muted, isFalse);
     });
   });
 
@@ -169,7 +202,7 @@ void main() {
     testWidgets('the back arrow of the question also means "no"', (tester) async {
       final env = await openSettings(tester);
       await tapKey(tester, 'log-out');
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('log-out'), findsOneWidget);
       expect(await env.tokens.read(), isNotNull);

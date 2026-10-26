@@ -178,6 +178,34 @@ result: `data/training/output/apple_leaf_v1/` (weights not committed, rebuilt by
 - Next step for real accuracy: the client's confirmed field photos (a few hundred per disease) into `data/training/photos/` and retrain.
 
 
+## J. Recognition failure on the phone and retraining check (26 to 27 Oct 2026)
+- **Symptom:** every leaf scanned from the phone ended in "I am not sure what is wrong with your apple crop" (expert queue). Cause: the backend was running the downloaded
+  models (crop detectors + `ixrbhii` apple model B + PlantVillage A), not the trained apple model. The weights of `apple_leaf_v1` were never on this machine (git-ignored,
+  trained elsewhere), `.env` has no `DISEASE_MODEL_DIR`, and `scripts/start_backend_for_phone.ps1` does not set it. Downloaded models on `data/images/testset_v1` (23 leaves):
+  6/23 exact, 11/23 lenient (also calls leaves "Root_rot_collar_rot").
+- **Retrained here with the same recipe and data** (2,000 photos fetched again; training dropped 28 exact duplicates, so the training set equals v1): CV 0.975, held-out test 0.979.
+  On the 23 test leaves: **13/23** (Alternaria 7/8, Marssonina 6/11, **scab 0/4: all four called Alternaria at 0.87 to 1.0**). Same result through the backend path
+  (`DISEASE_MODEL_DIR`). Likely cause (inference): each class comes from a different photo style, so the model learned the style, not the disease.
+  **Not switched on:** the start script was not changed, the backend still uses the downloaded models. Open: keep downloaded models, switch to this model, or neither
+  until confirmed field photos exist (recommended: neither, plus `RULES_AUTO_ADVICE_DISEASES=` empty so only scab gets automatic advice).
+- **Owner decision 26 Oct 2026: the model stays in the backend; no on-device model** (earlier wish for an on-device model is shelved). Offline = photos queue on the phone and are
+  sent later (already built); `OnDeviceDetector` stays a stub; no new APK is needed for model changes. `docs/mvp-plan.md` row 14 and requirements FR-1.4 / NFR-5 still describe the
+  on-device idea and were not edited.
+- **Next step for real accuracy:** confirmed field photos (agronomist labels) through the admin upload / `training_photos`, then retrain.
+- Files changed by the retraining: `data/training/output/apple_leaf_v1/metrics.json` and `model_card.md` regenerated (weights are git-ignored); `data/training/sources.csv` +28 rows
+  (duplicate files the trainer ignored).
+- **Demo model (27 Oct 2026, owner request, for the MVP demo):** `data/training/output/apple_leaf_demo/` = the v1 recipe + the 30 photos of `data/images/incoming` (fruit included),
+  marked `internal-only/unknown licence` in `data/training/demo/sources.csv`. **Demo only, never ship.** Honest numbers on its web photos (never trained on them): 9/19 out-of-fold,
+  7/8 held-out (tiny). On the 30 photos themselves it is 29/30 because it trained on them. `train_apple.py` got three small changes (`web_` photos first under the cap, source name
+  `Web-incoming`, `--eval-dir` replaces the defaults). `scripts/start_backend_for_phone.ps1` now sets `DISEASE_MODEL_DIR` to this model and `RULES_AUTO_ADVICE_DISEASES='*'` (owner decision
+  19 Oct) so Marssonina / Alternaria also show advice instead of "Not sure yet". Delete those two lines to go back.
+- **Pure-LLM test (gpt-4o-mini only, 30 photos x 3 tests x 3 runs, $0.55):** crop: apple 72 % (leaf photos 67 %; cherry / rose / plum / pear mistaken); open disease question: "Apple scab"
+  for ALL 30 photos, Marssonina and Alternaria never even in its "other possibilities"; with a menu of the CV classes: 16/30 (leaf photos 15/21) but scab 1/10; confidence 0.85 right or wrong;
+  no healthy photos in the set, so "healthy" detection was not tested. Verdict: CV classifies, the LLM only explains.
+- **Shortcut probe on the 2,000 public photos:** 8x8 colour thumbnail 0.77, centre-blanked ConvNeXt 0.94, full photo 0.97 (chance 0.27): the classes leak through background / style.
+  `data/training/check_shortcuts.py` repeats it on any photo folder. Guide for the next steps: `docs/model-training-guide.md`.
+
+
 ## G. Mobile session of 24 Oct 2026 (tools, offline, voice package, weather flag)
 - **Tools installed on this PC (D:\tools):** Flutter 3.47.7 / Dart 3.13.5 (the planned version), JDK 17.0.20, Android SDK (platforms 35/36, build-tools
   36.0.0, CMake 3.22.1, NDK r28c via Gradle), emulator + Android 15 x86_64 image, AVD `ft35` (`D:\tools\avd`). Steps: `docs/dev-setup.md` section 4.

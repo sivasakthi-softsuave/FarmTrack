@@ -10,8 +10,11 @@ import 'package:farmtrack/core/network/mock_data.dart';
 import 'package:farmtrack/core/providers.dart';
 import 'package:farmtrack/core/router/app_router.dart';
 import 'package:farmtrack/core/router/routes.dart';
+import 'package:farmtrack/features/alerts/alert_widgets.dart';
 import 'package:farmtrack/features/alerts/alerts_providers.dart';
 import 'package:farmtrack/features/diary/date_words.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
+import 'package:farmtrack/core/widgets/design.dart';
 
 import 'support/feature_fakes.dart';
 import 'support/finders.dart';
@@ -56,45 +59,142 @@ AlertOut alert(
 void main() {
   group('the alert list', () {
     testWidgets(
-      'newest first; unread ones are highlighted with colour, a thick border, bold words and the word "New"',
+      'newest first; each alert is a white card: a round dot (colour and picture show how urgent), the title, the '
+      'message and the time; an unread one has a blue "New" tag, a read one is paler',
       (tester) async {
         final env = await alertsEnv();
         await openAlerts(tester, env);
+        final semantics = tester.ensureSemantics();
 
+        final first = MockData.alerts().items.first;
         final unread = keyed('alert-alert-1');
         final read = keyed('alert-alert-2');
         expect(unread, findsOneWidget);
         expect(tester.getTopLeft(unread).dy, lessThan(tester.getTopLeft(read).dy));
 
-        // Level: colour, picture and word.
-        expect(find.descendant(of: unread, matching: find.byIcon(Icons.report_rounded)), findsOneWidget);
-        expect(find.descendant(of: unread, matching: find.text('गंभीर')), findsOneWidget);
-        expect(find.descendant(of: read, matching: find.byIcon(Icons.warning_amber_rounded)), findsOneWidget);
-        expect(find.descendant(of: read, matching: find.text('सावधान')), findsOneWidget);
-        expect(find.descendant(of: unread, matching: find.byIcon(Icons.notifications_rounded)), findsOneWidget);
+        // Level: colour and picture on a 44 dp round dot (the word is in the semantics, as the mockup shows none).
+        IconDot dotOf(Finder card) => tester.widget<IconDot>(find.descendant(of: card, matching: find.byType(IconDot)));
+        expect(find.descendant(of: unread, matching: find.byIcon(AppIcons.rain)), findsOneWidget);
+        expect(find.descendant(of: unread, matching: find.bySemanticsLabel(RegExp('गंभीर'))), findsOneWidget);
+        expect(dotOf(unread).background, AppColors.red, reason: 'urgent: red with a white picture');
+        expect(dotOf(unread).foreground, Colors.white);
+        expect(find.descendant(of: read, matching: find.byIcon(AppIcons.warning)), findsOneWidget);
+        expect(find.descendant(of: read, matching: find.bySemanticsLabel(RegExp('सावधान'))), findsOneWidget);
+        expect(dotOf(read).background, AppColors.amber, reason: 'be careful: amber with a dark picture');
+        expect(dotOf(read).foreground, AppColors.ink);
+        expect(dotOf(unread).size, 44);
+        expect(dotOf(unread).round, isTrue);
 
-        // Unread: a "New" label, a thick border, bold words, a tinted background.
+        // Unread: a blue "New" tag, 24 high, 12 px white words; read: none.
         expect(keyed('alert-new-alert-1'), findsOneWidget);
         expect(find.descendant(of: unread, matching: find.text('नई')), findsOneWidget);
         expect(keyed('alert-new-alert-2'), findsNothing);
-        final unreadMaterial = tester.widget<Material>(unread);
-        final readMaterial = tester.widget<Material>(read);
-        expect((unreadMaterial.shape! as RoundedRectangleBorder).side.width, 4);
-        expect((readMaterial.shape! as RoundedRectangleBorder).side.width, 2);
-        expect(unreadMaterial.color, isNot(readMaterial.color));
-        final unreadTitle = tester.widget<Text>(
-          find.descendant(of: unread, matching: find.text('बारिश ने छिड़काव धो दिया')),
-        );
-        final readTitle = tester.widget<Text>(find.descendant(of: read, matching: find.text('स्कैब का मौसम')));
-        expect(unreadTitle.style!.fontWeight, FontWeight.w800);
-        expect(readTitle.style!.fontWeight, FontWeight.w500);
+        final tag = tester.widget<AppPill>(keyed('alert-new-alert-1'));
+        expect((tag.background, tag.foreground, tag.height, tag.fontSize), (AppColors.blue, Colors.white, 24, 12));
 
-        expect(find.descendant(of: unread, matching: find.text('आज, 12 मई')), findsOneWidget);
+        // Title (17 / 700), the message (15) and the time in grey (13).
+        final title = tester.widget<Text>(find.descendant(of: unread, matching: find.text('बारिश ने छिड़काव धो दिया')));
+        expect((title.style!.fontSize, title.style!.fontWeight), (17, FontWeight.w700));
+        final message = tester.widget<Text>(find.descendant(of: unread, matching: find.text(first.body.hi)));
+        expect(message.style!.fontSize, 15);
+        final local = first.createdAt!.toLocal();
+        final hhmm = '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+        final time = tester.widget<Text>(find.descendant(of: unread, matching: find.text('आज, $hhmm')));
+        expect((time.style!.fontSize, time.style!.color), (13, AppColors.inkSoft));
+
+        // A read alert is 85 % opaque; an unread one is not faded.
+        int fades(Finder card) => find.ancestor(of: card, matching: find.byType(Opacity)).evaluate().length;
+        expect(fades(read), fades(unread) + 1);
+        expect(tester.widget<Opacity>(find.ancestor(of: read, matching: find.byType(Opacity)).first).opacity, 0.85);
+
         expect(env.voice.spokenIds, ['alert_open']);
         expect(env.voice.unknownIds, isEmpty);
         expectBigTouchTargets(tester);
+        semantics.dispose();
       },
     );
+
+    testWidgets('an urgent unread alert has the outline "Listen" button; it speaks that alert and opens nothing', (
+      tester,
+    ) async {
+      final api = MockApiClient(latency: Duration.zero);
+      final env = await alertsEnv(api: api);
+      await openAlerts(tester, env);
+      expect(keyed('alert-listen-alert-1'), findsOneWidget);
+      expect(keyed('alert-listen-alert-2'), findsNothing, reason: 'not urgent (and already read)');
+      expect(find.descendant(of: keyed('alert-listen-alert-1'), matching: find.text('सुनें')), findsOneWidget);
+      expect(
+        find.descendant(of: keyed('alert-listen-alert-1'), matching: find.byIcon(AppIcons.speaker)),
+        findsOneWidget,
+      );
+      // 50 high white button with a 2 px line inside a 56 dp tap area, as wide as the card's content.
+      expect(tester.getSize(keyed('alert-listen-alert-1')).height, 56);
+      final button = tester.widget<Container>(
+        find.descendant(of: keyed('alert-listen-alert-1'), matching: find.byType(Container)),
+      );
+      expect(button.constraints!.maxHeight, 50);
+      expect((button.decoration! as BoxDecoration).border!.top.width, 2);
+      expectBigTouchTargets(tester);
+
+      env.voice.clear();
+      await tapKey(tester, 'alert-listen-alert-1');
+      expect(env.voice.spokenTexts, [MockData.alerts().items.first.spoken.text.hi]);
+      expect(keyed('alert-alert-1'), findsOneWidget, reason: 'still the list');
+      expect(find.byKey(const ValueKey('alert-body')), findsNothing);
+      expect(api.calls, isNot(contains('markAlertRead')));
+    });
+
+    testWidgets('"Listen" while the voice is muted turns it on again, like the speaker in the bar', (tester) async {
+      final env = await alertsEnv();
+      await openAlerts(tester, env);
+      await containerOf(tester).read(settingsProvider.notifier).setMuted(on: true);
+      await tester.pump();
+      env.voice.clear();
+      await tapKey(tester, 'alert-listen-alert-1');
+      expect(containerOf(tester).read(settingsProvider).muted, isFalse);
+      expect(env.voice.spokenTexts, [MockData.alerts().items.first.spoken.text.hi]);
+    });
+
+    testWidgets('a "result ready" (green) alert has a green-soft dot with a tick and ends in an arrow', (tester) async {
+      final api = MockApiClient(latency: Duration.zero)
+        ..alertItems = [
+          AlertOut(
+            id: 'g',
+            level: Severity.green,
+            title: LocalizedText.pair(en: 'Result ready: tap to see', hi: 'नतीजा आ गया'),
+            body: LocalizedText.pair(en: 'Apple scab', hi: 'सेब का स्कैब'),
+            createdAt: DateTime.utc(2026, 5, 1, 12),
+            readAt: DateTime.utc(2026, 5, 1, 13),
+            scanId: 'x',
+          ),
+          alert('plain', level: Severity.red, at: DateTime.utc(2026, 4, 1)),
+        ];
+      final env = await alertsEnv(api: api);
+      await openAlerts(tester, env);
+      final done = keyed('alert-g');
+      final dot = tester.widget<IconDot>(find.descendant(of: done, matching: find.byType(IconDot)));
+      expect((dot.background, dot.foreground), (AppColors.greenSoft, AppColors.green));
+      expect(find.descendant(of: done, matching: find.byIcon(AppIcons.tick)), findsOneWidget);
+      final arrow = find.descendant(of: done, matching: find.byIcon(AppIcons.chevron));
+      expect(arrow, findsOneWidget);
+      expect(tester.widget<Icon>(arrow).color, AppColors.chevron);
+      expect(find.descendant(of: keyed('alert-plain'), matching: find.byIcon(AppIcons.chevron)), findsNothing);
+      expect(keyed('alert-listen-g'), findsNothing);
+      expect(
+        find.descendant(of: done, matching: find.text('1 मई')),
+        findsOneWidget,
+        reason: 'older: the date',
+      );
+    });
+
+    test('the time: today with the hour, yesterday as a word, older as the date', () {
+      final resources = loadResources();
+      final words = DateWords((key) => resources.t(key, 'en'));
+      final now = fixedNow;
+      expect(alertWhen(words, DateTime(2026, 5, 12, 7, 30), now), 'Today, 07:30');
+      expect(alertWhen(words, DateTime(2026, 5, 11, 20), now), 'Yesterday');
+      expect(alertWhen(words, DateTime(2026, 5, 1, 9), now), '1 May');
+    });
 
     testWidgets('the server order does not matter: they are shown newest first', (tester) async {
       final api = MockApiClient(latency: Duration.zero)
@@ -117,7 +217,25 @@ void main() {
       await openAlerts(tester, env);
       expect(keyed('alerts-empty'), findsOneWidget);
       expect(find.text('कोई सूचना नहीं'), findsOneWidget);
+      expect(find.byIcon(AppIcons.bell), findsOneWidget);
       expect(env.voice.spokenIds, ['alert_none']);
+    });
+
+    testWidgets('the top bar: back arrow, "Alerts", the mute button and the speaker', (tester) async {
+      final env = await alertsEnv(language: 'en');
+      await openAlerts(tester, env);
+      expect(find.text('Alerts'), findsOneWidget);
+      expect(find.byIcon(AppIcons.back), findsOneWidget);
+      expect(keyed('mute-button'), findsOneWidget);
+      expect(keyed('speaker-button'), findsOneWidget);
+      // The cards start 16 dp under the bar, 16 dp from the sides, 12 dp apart.
+      final bar = tester.getBottomLeft(find.byIcon(AppIcons.back)).dy;
+      final card = tester.getRect(keyed('alert-alert-1'));
+      expect(card.left, 16);
+      expect(card.width, 360 - 32);
+      expect(card.top - bar, lessThan(40));
+      final second = tester.getRect(keyed('alert-alert-2'));
+      expect(second.top - card.bottom, closeTo(12, 0.5));
     });
 
     testWidgets('a failed load shows the error screen; the retry shows the list', (tester) async {
@@ -140,7 +258,10 @@ void main() {
       await openAlerts(tester, env);
       expect(find.text('Rain washed your spray'), findsOneWidget);
       expect(find.text('New'), findsOneWidget);
-      expect(find.text('Serious'), findsOneWidget);
+      expect(find.text('Listen'), findsOneWidget);
+      final semantics = tester.ensureSemantics();
+      expect(find.bySemanticsLabel(RegExp('Serious')), findsOneWidget);
+      semantics.dispose();
     });
   });
 
@@ -156,19 +277,29 @@ void main() {
       await tapKey(tester, 'alert-alert-1');
 
       expect(env.voice.spokenTexts, [MockData.alerts().items.first.spoken.text.hi]);
+      // The card is tinted with the level's colour: red-soft with a thin red line, the round dot with the rain cloud, the
+      // word in a white tag, the title big (26 / 800), then the whole text.
       expect(keyed('severity-red'), findsOneWidget);
-      expect(find.byIcon(Icons.report_rounded), findsWidgets);
+      final card = tester.widget<DecoratedBox>(
+        find.descendant(of: keyed('severity-red'), matching: find.byType(DecoratedBox)).first,
+      );
+      expect((card.decoration as BoxDecoration).color, AppColors.redSoft);
+      expect((card.decoration as BoxDecoration).border!.top.color, AppColors.redLine);
+      expect(find.descendant(of: keyed('severity-red'), matching: find.byIcon(AppIcons.rain)), findsOneWidget);
       expect(find.text('गंभीर'), findsOneWidget);
       expect(find.text('बारिश ने छिड़काव धो दिया'), findsOneWidget);
+      final title = tester.widget<Text>(find.text('बारिश ने छिड़काव धो दिया'));
+      expect((title.style!.fontSize, title.style!.fontWeight), (26, FontWeight.w800));
+      expect(find.text('सूचनाएँ'), findsOneWidget, reason: 'the bar names the screen');
       expect(keyed('alert-body'), findsOneWidget);
       expect(api.calls, contains('markAlertRead'));
       expectBigTouchTargets(tester);
 
       // Back to the list: no longer highlighted. Back to Home: no badge.
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('alert-new-alert-1'), findsNothing);
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('alert-badge'), findsNothing);
     });
@@ -189,7 +320,7 @@ void main() {
       env.voice.clear();
       await tapKey(tester, 'alert-alert-1');
       expect(env.voice.spokenTexts, hasLength(1));
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('alert-new-alert-1'), findsOneWidget);
     });
@@ -207,7 +338,7 @@ void main() {
         ];
       final env = await alertsEnv(api: api);
       await openAlerts(tester, env);
-      expect(find.descendant(of: keyed('alert-g'), matching: find.byIcon(Icons.check_rounded)), findsOneWidget);
+      expect(find.descendant(of: keyed('alert-g'), matching: find.byIcon(AppIcons.tick)), findsOneWidget);
       env.voice.clear();
       await tapKey(tester, 'alert-g');
       expect(env.voice.spokenTexts, ['कुछ करना नहीं।']);
@@ -258,6 +389,10 @@ void main() {
       expect(env.voice.spokenIds, ['alert_see_scan']);
       expect(env.voice.spokenTexts, hasLength(1), reason: 'the alert text comes first, then the hint');
       expect(env.voice.log.last, 'alert_see_scan@hi');
+      // The green action of the bar under the content: the green arrow and the words, 60 high, full width.
+      expect(find.descendant(of: keyed('alert-open-scan'), matching: find.byIcon(AppIcons.greenArrow)), findsOneWidget);
+      expect(find.descendant(of: keyed('alert-open-scan'), matching: find.text('फोटो का नतीजा')), findsOneWidget);
+      expect(tester.getSize(keyed('alert-open-scan')), const Size(360 - 32, 60));
       expectBigTouchTargets(tester);
 
       env.voice.clear();
@@ -285,7 +420,7 @@ void main() {
       await openAlerts(tester, env);
       await tapKey(tester, 'alert-a');
       await tapKey(tester, 'alert-open-scan');
-      expect(find.byIcon(Icons.support_agent_rounded), findsWidgets);
+      expect(find.byIcon(AppIcons.expert), findsWidgets);
       expect(env.voice.spokenIds, contains('result_expert'));
     });
 
@@ -346,7 +481,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(api.calls.where((c) => c == 'listAlerts').length, greaterThan(before));
       expect(keyed('alert-fresh'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(find.descendant(of: keyed('alert-badge'), matching: find.text('2')), findsOneWidget);
     });
@@ -412,7 +547,11 @@ void main() {
         await openAlerts(tester, env, textScale: scale, size: size);
         expect(tester.takeException(), isNull);
         expectBigTouchTargets(tester);
-        await tapKey(tester, 'alert-long');
+        // The card (with its Listen button) can be taller than the screen: tap its top, clear of the floating caption.
+        await tester.ensureVisible(keyed('alert-long'));
+        await tester.pump();
+        await tester.tapAt(tester.getTopLeft(keyed('alert-long')) + const Offset(24, 8));
+        await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
         expectBigTouchTargets(tester);
         final arrow = tester.getRect(keyed('alert-open-scan'));

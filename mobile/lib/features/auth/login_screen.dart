@@ -10,8 +10,10 @@ import '../../core/utils/haptics.dart';
 import '../../core/voice/utterance.dart';
 import '../../core/voice/voice_service.dart';
 import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../../core/widgets/status_views.dart';
 import '../../core/widgets/voice_scaffold.dart';
+import 'auth_widgets.dart';
 import 'server_dialog.dart';
 
 /// The one login screen (route `/login`): a user name and a password typed with the phone's own keyboard, then the big
@@ -102,89 +104,90 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(stringsProvider);
-    final theme = Theme.of(context).textTheme;
     // The picture gives way to the fields while the keyboard is up.
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     return VoiceScaffold(
       owner: _owner,
       script: promptList(const ['login_intro', 'login_ask_username', 'login_ask_password', 'login_tap_tick']),
+      // The mockup's login has no back arrow (logo, then the voice buttons); the phone's own back button still goes back.
       onBack: () => context.go(Routes.welcome),
+      showBack: false,
       flatTopBar: true,
-      titleWidget: _Logo(name: t('app_name')),
+      titleWidget: AuthLogo(name: t('app_name')),
       alignTop: true,
       wideAction: true,
+      // The mockup's login has a 20 gutter (the other screens 16).
+      bodyPadding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!keyboardOpen) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(Dimens.radius),
-              child: const SizedBox(height: 140, child: CustomPaint(painter: _HillsPainter())),
-            ),
-            const SizedBox(height: 18),
-          ],
-          Text(t('a11y_login'), style: theme.headlineMedium),
-          const SizedBox(height: 2),
-          Text(t('login_welcome'), style: theme.bodyLarge?.copyWith(color: AppColors.inkSoft)),
-          const SizedBox(height: 18),
+          if (!keyboardOpen) ...[const HillsPicture(), const SizedBox(height: 14)],
+          AuthHeading(title: t('a11y_login'), subtitle: t('login_welcome')),
+          const SizedBox(height: 14),
           _FieldLabel(icon: AppIcons.person, text: t('login_username_label')),
-          const SizedBox(height: 8),
           Semantics(
             label: t('login_username_label'),
-            child: TextField(
-              key: const ValueKey('login-username'),
-              controller: _username,
+            child: FieldGlow(
               focusNode: _usernameFocus,
-              autofocus: _username.text.isEmpty,
-              enabled: !_busy,
-              keyboardType: TextInputType.text,
-              textInputAction: TextInputAction.next,
-              textCapitalization: TextCapitalization.none,
-              autocorrect: false,
-              enableSuggestions: false,
-              maxLength: 40,
-              style: Theme.of(context).textTheme.titleMedium,
-              decoration: _decoration(),
-              onSubmitted: (_) => _passwordFocus.requestFocus(),
+              child: TextField(
+                key: const ValueKey('login-username'),
+                controller: _username,
+                focusNode: _usernameFocus,
+                autofocus: _username.text.isEmpty,
+                enabled: !_busy,
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.next,
+                textCapitalization: TextCapitalization.none,
+                autocorrect: false,
+                enableSuggestions: false,
+                maxLength: 40,
+                style: authInputStyle,
+                decoration: authInputDecoration(),
+                onSubmitted: (_) => _passwordFocus.requestFocus(),
+              ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           _FieldLabel(icon: AppIcons.lock, text: t('login_password_label')),
-          const SizedBox(height: 8),
           Semantics(
             label: t('login_password_label'),
-            child: TextField(
-              key: const ValueKey('login-password'),
-              controller: _password,
+            child: FieldGlow(
               focusNode: _passwordFocus,
-              autofocus: _username.text.isNotEmpty,
-              enabled: !_busy,
-              obscureText: _hidden,
-              // Plain letters and numbers, no suggestions or learned words.
-              keyboardType: TextInputType.visiblePassword,
-              textInputAction: TextInputAction.done,
-              autocorrect: false,
-              enableSuggestions: false,
-              maxLength: 128,
-              style: Theme.of(context).textTheme.titleMedium,
-              // The eye sits inside the box, at its right end.
-              decoration: _decoration().copyWith(
-                suffixIcon: Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: BigIconButton(
-                    key: const ValueKey('login-eye'),
-                    icon: _hidden ? AppIcons.eye : AppIcons.eyeOff,
-                    semanticLabel: t(_hidden ? 'login_show_password' : 'login_hide_password'),
-                    color: AppColors.neutralSoft,
-                    foreground: AppColors.ink,
-                    size: Dimens.minTouch,
-                    onPressed: _toggleHidden,
+              child: TextField(
+                key: const ValueKey('login-password'),
+                controller: _password,
+                focusNode: _passwordFocus,
+                autofocus: _username.text.isNotEmpty,
+                enabled: !_busy,
+                obscureText: _hidden,
+                // Plain letters and numbers, no suggestions or learned words.
+                keyboardType: TextInputType.visiblePassword,
+                textInputAction: TextInputAction.done,
+                autocorrect: false,
+                enableSuggestions: false,
+                maxLength: 128,
+                // The dots are spaced out (`letter-spacing: 4px`); the shown password is plain text.
+                style: authInputStyle.copyWith(letterSpacing: _hidden ? 4 : null),
+                // The eye sits inside the box, at its right end.
+                decoration: authInputDecoration(
+                  // Flutter adds half of the letter spacing before each dot (CSS only after it): 2 less keeps the mockup's start.
+                  start: _hidden ? 12 : 14,
+                  suffixIcon: Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: BigIconButton(
+                      key: const ValueKey('login-eye'),
+                      icon: _hidden ? AppIcons.eye : AppIcons.eyeOff,
+                      semanticLabel: t(_hidden ? 'login_show_password' : 'login_hide_password'),
+                      color: AppColors.neutralSoft,
+                      foreground: AppColors.ink,
+                      size: Dimens.minTouch,
+                      onPressed: _toggleHidden,
+                    ),
                   ),
                 ),
-                suffixIconConstraints: const BoxConstraints(minWidth: 60, minHeight: Dimens.minTouch),
+                onSubmitted: (_) => _submit(),
               ),
-              onSubmitted: (_) => _submit(),
             ),
           ),
           if (_busy) const Padding(padding: EdgeInsets.only(top: 16), child: LinearProgressIndicator()),
@@ -192,41 +195,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           if (!ref.watch(appConfigProvider).useMockApi) _ServerLink(enabled: !_busy),
         ],
       ),
-      bottomRight: TickButton(
+      bottomRight: AppButton(
         key: const ValueKey('login-submit'),
-        size: 64,
-        showLabel: true,
+        icon: AppIcons.tickBold,
+        label: t('a11y_login'),
         semanticLabel: t('a11y_login'),
         onPressed: _busy ? null : _submit,
       ),
     );
   }
-
-  InputDecoration _decoration() => InputDecoration(
-    counterText: '',
-    filled: true,
-    fillColor: AppColors.card,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: AppColors.line, width: 2),
-    ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: Color(0xFFC9D3C6), width: 2),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: AppColors.green, width: 3),
-    ),
-    disabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(16),
-      borderSide: const BorderSide(color: AppColors.line, width: 2),
-    ),
-  );
 }
 
-/// A picture and a word above a field.
+/// A picture and a word above a field (`.field-l`: a 20 green picture, 15 / 700, 4 above and 8 below).
 class _FieldLabel extends StatelessWidget {
   const _FieldLabel({required this.icon, required this.text});
 
@@ -235,17 +215,26 @@ class _FieldLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ExcludeSemantics(
-    child: Row(
-      children: [
-        Icon(icon, size: 26, color: AppColors.green),
-        const SizedBox(width: 8),
-        Expanded(child: Text(text, style: Theme.of(context).textTheme.titleMedium)),
-      ],
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(2, 4, 2, 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.green),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.36, color: AppColors.ink),
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }
 
-/// A small link under the login fields: opens a dialog to type the server address (`http://<PC address>:8000`).
+/// The line under the login fields: opens a dialog to type the server address (`http://<PC address>:8000`). The picture,
+/// the address and a blue "Change" (13 px); the tap area is the full 56 dp high.
 class _ServerLink extends ConsumerWidget {
   const _ServerLink({required this.enabled});
 
@@ -255,98 +244,40 @@ class _ServerLink extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(stringsProvider);
     final url = ref.watch(apiBaseUrlProvider);
-    final small = Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14);
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: TextButton(
-        key: const ValueKey('server-link'),
-        style: TextButton.styleFrom(
-          minimumSize: const Size(64, 56),
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          foregroundColor: AppColors.inkSoft,
-        ),
-        onPressed: enabled ? () => showServerDialog(context, ref) : null,
-        child: Row(
-          children: [
-            const Icon(Icons.dns_rounded, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text('${t('login_server')}: $url', overflow: TextOverflow.ellipsis, maxLines: 1, style: small),
+    const small = TextStyle(fontSize: 13, height: 1.36, color: AppColors.inkSoft);
+    final change = t('login_server_change');
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: '${t('login_server')}: $url. $change',
+      excludeSemantics: true,
+      child: SizedBox(
+        height: Dimens.minTouch,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            key: const ValueKey('server-link'),
+            borderRadius: BorderRadius.circular(12),
+            onTap: enabled ? () => showServerDialog(context, ref) : null,
+            child: Row(
+              children: [
+                const SizedBox(width: 2),
+                const Icon(AppIcons.server, size: 20, color: AppColors.inkSoft),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('${t('login_server')}: $url', overflow: TextOverflow.ellipsis, maxLines: 1, style: small),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  change,
+                  style: small.copyWith(color: AppColors.blue, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(width: 2),
+              ],
             ),
-            const SizedBox(width: 8),
-            Text(
-              t('login_server_change'),
-              style: small?.copyWith(color: AppColors.blue, fontWeight: FontWeight.w700),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
-}
-
-/// The FarmTrack mark in the top bar: a leaf on a deep-green tile and the name.
-class _Logo extends StatelessWidget {
-  const _Logo({required this.name});
-
-  final String name;
-
-  @override
-  Widget build(BuildContext context) => ExcludeSemantics(
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(color: AppColors.brand, borderRadius: BorderRadius.circular(14)),
-          child: const Icon(AppIcons.leaf, size: 26, color: Colors.white),
-        ),
-        const SizedBox(width: 10),
-        Text(name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-      ],
-    ),
-  );
-}
-
-/// Green hills with a few apple trees and a sun: the login picture (drawn, so it costs no download).
-class _HillsPainter extends CustomPainter {
-  const _HillsPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    canvas.drawRect(Offset.zero & size, Paint()..color = AppColors.greenSoft);
-    canvas.drawCircle(Offset(w * 0.77, h * 0.32), h * 0.15, Paint()..color = const Color(0xFFF2C94C));
-    final far = Path()
-      ..moveTo(0, h * 0.73)
-      ..cubicTo(w * 0.17, h * 0.47, w * 0.31, h * 0.47, w * 0.49, h * 0.67)
-      ..cubicTo(w * 0.66, h * 0.82, w * 0.83, h * 0.55, w, h * 0.63)
-      ..lineTo(w, h)
-      ..lineTo(0, h)
-      ..close();
-    canvas.drawPath(far, Paint()..color = const Color(0xFF9CCFA8));
-    final near = Path()
-      ..moveTo(0, h * 0.87)
-      ..cubicTo(w * 0.2, h * 0.67, w * 0.4, h * 0.73, w * 0.57, h * 0.83)
-      ..cubicTo(w * 0.74, h * 0.92, w * 0.86, h * 0.75, w, h * 0.8)
-      ..lineTo(w, h)
-      ..lineTo(0, h)
-      ..close();
-    canvas.drawPath(near, Paint()..color = const Color(0xFF4E9F62));
-    final trunk = Paint()..color = const Color(0xFF6B4E2E);
-    final crown = Paint()..color = AppColors.green;
-    final apple = Paint()..color = AppColors.red;
-    for (final (x, y, r) in const [(0.2, 0.64, 0.08), (0.3, 0.61, 0.067), (0.69, 0.65, 0.08)]) {
-      final c = Offset(w * x, h * y);
-      canvas.drawRect(Rect.fromLTWH(c.dx - 2, c.dy + h * r * 0.6, 4, h * r * 1.1), trunk);
-      canvas.drawCircle(c, h * r, crown);
-      canvas.drawCircle(c + Offset(-h * r * 0.35, -h * r * 0.2), h * 0.014, apple);
-      canvas.drawCircle(c + Offset(h * r * 0.4, h * r * 0.25), h * 0.014, apple);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_HillsPainter oldDelegate) => false;
 }

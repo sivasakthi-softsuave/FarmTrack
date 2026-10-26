@@ -4,6 +4,9 @@ import '../theme/app_theme.dart';
 import '../utils/haptics.dart';
 
 /// A round picture button. Primary actions use [Dimens.primary] (96 dp) or more; nothing is below 56 dp.
+///
+/// The mockup's `.ibtn`: at the smallest size ([Dimens.minTouch]) the circle is drawn [Dimens.ibtn] (48) wide, flat, in
+/// the middle of its 56 dp tap area; bigger buttons fill their size and carry the green glow when they are coloured.
 class BigIconButton extends StatelessWidget {
   const BigIconButton({
     super.key,
@@ -14,7 +17,9 @@ class BigIconButton extends StatelessWidget {
     this.foreground = Colors.white,
     this.size = Dimens.primary,
     this.label,
-  }) : assert(size >= Dimens.minTouch, 'touch targets must be at least 56 dp');
+    this.ringColor,
+  }) : assert(size >= Dimens.minTouch, 'touch targets must be at least 56 dp'),
+       assert(ringColor == null || size == Dimens.minTouch, 'only the small button has a ring');
 
   final IconData icon;
   final VoidCallback? onPressed;
@@ -26,18 +31,29 @@ class BigIconButton extends StatelessWidget {
   /// Optional word under the picture (kept very short).
   final String? label;
 
+  /// A 2 px ring around the circle (the speaker while it is speaking), drawn inside the 56 dp tap area.
+  final Color? ringColor;
+
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
-    // Coloured buttons float a little; white and soft ones sit flat with a hairline, like the cards.
-    final filled = color.computeLuminance() < 0.5;
-    final button = Material(
-      color: enabled ? color : AppColors.line,
-      shape: CircleBorder(
-        side: filled || !enabled ? BorderSide.none : const BorderSide(color: AppColors.line, width: 1.5),
+    final visual = size <= Dimens.minTouch ? Dimens.ibtn : size;
+    // Only the big coloured buttons glow (the mockup's camera circle); the small ones sit flat.
+    final glow = enabled && size > Dimens.minTouch && color.a == 1 && color.computeLuminance() < 0.5;
+    final circle = Container(
+      width: visual,
+      height: visual,
+      decoration: BoxDecoration(
+        color: enabled ? color : AppColors.line,
+        shape: BoxShape.circle,
+        boxShadow: glow
+            ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))]
+            : null,
       ),
-      elevation: enabled && filled ? 3 : 0,
-      shadowColor: color.withValues(alpha: 0.5),
+      child: Icon(icon, size: visual * 0.5, color: enabled ? foreground : AppColors.inkSoft),
+    );
+    final button = Material(
+      type: MaterialType.transparency,
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: enabled
@@ -49,7 +65,18 @@ class BigIconButton extends StatelessWidget {
         child: SizedBox(
           width: size,
           height: size,
-          child: Icon(icon, size: size * 0.58, color: enabled ? foreground : AppColors.inkSoft),
+          child: Center(
+            child: ringColor == null
+                ? circle
+                : Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: ringColor!, width: 2),
+                    ),
+                    child: circle,
+                  ),
+          ),
         ),
       ),
     );

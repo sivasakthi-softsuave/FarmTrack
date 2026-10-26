@@ -8,6 +8,8 @@ import 'package:farmtrack/core/network/mock_api_client.dart';
 import 'package:farmtrack/core/network/mock_data.dart';
 import 'package:farmtrack/core/voice/utterance.dart';
 import 'package:farmtrack/features/diary/diary_screen.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
+import 'package:farmtrack/core/widgets/design.dart';
 
 import 'support/finders.dart';
 import 'support/harness.dart';
@@ -69,13 +71,16 @@ void main() {
         expect(find.textContaining('आज छिड़काव कीजिए'), findsOneWidget);
         expect(find.textContaining('कोई और दवा, खाद या हार्मोन मत मिलाइए'), findsOneWidget);
         expect(find.textContaining('सात दिन के अंदर दोबारा'), findsOneWidget);
-        // The explanation, safety notes and steps wait behind "More".
+        // The explanation sits in the severity card; the safety notes and steps wait behind "More".
+        expect(find.text('सलाह'), findsOneWidget, reason: 'the name of the screen in the top bar');
+        expect(keyed('advice-summary'), findsOneWidget);
+        expect(find.textContaining('पत्तियों पर भूरे, मखमली धब्बे'), findsOneWidget);
         expect(find.textContaining('मुँह पर कपड़ा'), findsNothing);
-        expect(keyed('advice-summary'), findsNothing);
+        expect(find.textContaining('पूरे पेड़ पर'), findsNothing);
         await tapKey(tester, 'advice-more');
         expect(find.textContaining('मुँह पर कपड़ा'), findsOneWidget);
-        expect(find.byIcon(Icons.warning_amber_rounded), findsWidgets);
-        expect(find.byIcon(Icons.report_rounded), findsWidgets, reason: 'the red warning has its own picture');
+        expect(find.byIcon(AppIcons.warning), findsWidgets);
+        expect(find.byIcon(AppIcons.danger), findsWidgets, reason: 'the red warning has its own picture');
         expect(find.textContaining('पूरे पेड़ पर'), findsOneWidget);
 
         final advice = MockData.scabAdvice('x');
@@ -88,6 +93,9 @@ void main() {
       final env = await envFor(MockScanScenario.ok, language: 'en');
       await runScan(tester, env);
       expect(find.text('Apple scab'), findsWidgets);
+      expect(find.text('Advice'), findsOneWidget);
+      expect(find.text('Be careful'), findsOneWidget, reason: 'the severity word on the card');
+      expect(find.descendant(of: keyed('advice-crop'), matching: find.text('Apple')), findsOneWidget);
       expect(find.text('Thirty millilitres in two hundred litres of water.'), findsOneWidget);
       expect(find.text('Wait 14 days before harvest'), findsOneWidget);
       expect(env.voice.log.first, 'result_intro@en');
@@ -185,6 +193,69 @@ void main() {
       expect(keyed('product-P006'), findsOneWidget);
       expect(find.text('रोक लग सकती है'), findsOneWidget);
       expect(keyed('advice-timing'), findsNothing);
+    });
+
+    testWidgets('the "When" card says what to do by its colour: green spray, grey wait, blue information', (
+      tester,
+    ) async {
+      final base = MockData.scabAdvice('scan-1');
+      final cases = {
+        TimingAction.sprayNow: (AppColors.greenSoft, AppIcons.tickBold),
+        TimingAction.wait: (AppColors.neutralSoft, AppIcons.hourglass),
+        TimingAction.repeatWithinDays: (AppColors.blueSoft, AppIcons.roundArrow),
+        TimingAction.notNeeded: (AppColors.blueSoft, AppIcons.info),
+        TimingAction.unknown: (AppColors.neutralSoft, AppIcons.clock),
+      };
+      for (final entry in cases.entries) {
+        final scan = ScanOut.fromJson({
+          ...MockData.okScan('scan-1').toJson(),
+          'advice': {
+            ...base.toJson(),
+            'timing': TimingOut(
+              action: entry.key,
+              text: LocalizedText.pair(en: 'Timing', hi: 'समय'),
+            ).toJson(),
+          },
+        });
+        final env = await TestEnv.create(loggedIn: true, api: _ScriptedApi((_) => scan));
+        await runScan(tester, env);
+        final card = tester.widget<DecoratedBox>(
+          find.descendant(of: keyed('advice-timing'), matching: find.byType(DecoratedBox)).first,
+        );
+        expect((card.decoration as BoxDecoration).color, entry.value.$1, reason: entry.key.wire);
+        expect(find.descendant(of: keyed('advice-timing'), matching: find.byIcon(entry.value.$2)), findsOneWidget);
+        await tester.pumpWidget(const SizedBox());
+      }
+    });
+
+    testWidgets('the severity card is amber, red or green with its own picture', (tester) async {
+      final base = MockData.scabAdvice('scan-1');
+      const cases = {
+        'yellow': (AppColors.amberSoft, AppColors.amber, AppIcons.warning),
+        'red': (AppColors.redSoft, AppColors.red, AppIcons.danger),
+        'green': (AppColors.greenSoft, AppColors.green, AppIcons.tick),
+      };
+      for (final entry in cases.entries) {
+        final scan = ScanOut.fromJson({
+          ...MockData.okScan('scan-1').toJson(),
+          'advice': {...base.toJson(), 'severity': entry.key},
+        });
+        final env = await TestEnv.create(loggedIn: true, api: _ScriptedApi((_) => scan));
+        await runScan(tester, env);
+        final severity = keyed('severity-${entry.key}');
+        final card = tester.widget<DecoratedBox>(
+          find.descendant(of: severity, matching: find.byType(DecoratedBox)).first,
+        );
+        expect((card.decoration as BoxDecoration).color, entry.value.$1, reason: entry.key);
+        final dot = tester.widget<IconDot>(find.descendant(of: severity, matching: find.byType(IconDot)).first);
+        expect(dot.background, entry.value.$2, reason: entry.key);
+        expect(
+          find.descendant(of: severity, matching: find.byIcon(entry.value.$3)),
+          findsOneWidget,
+          reason: entry.key,
+        );
+        await tester.pumpWidget(const SizedBox());
+      }
     });
   });
 
@@ -326,14 +397,52 @@ void main() {
       expect(env.voice.log, ['result_expert@hi', '${scan.spoken.text.hi}@hi']);
       expect(keyed('expert-icon-needs_expert'), findsOneWidget);
       expect(find.text('अभी पक्का नहीं'), findsOneWidget);
+      expect(find.text('नतीजा'), findsOneWidget, reason: 'the name of the screen in the top bar');
+      // Before it is saved: no "Saved" tag, and the strip holds a new photo, home and the wide "save this case".
+      expect(keyed('expert-sent'), findsNothing);
+      expect(keyed('expert-camera'), findsOneWidget);
+      expect(keyed('expert-home'), findsOneWidget);
       expectBigTouchTargets(tester);
 
       env.voice.clear();
       await tapKey(tester, 'ask-expert');
       expect(env.api.expertRequests.single.scanId, 'scan-1');
       expect(keyed('expert-sent'), findsOneWidget);
+      expect(find.text('सुरक्षित रख लिया'), findsOneWidget);
       expect(keyed('ask-expert'), findsNothing);
+      // Saved: the strip is the mockup's wide "take the photo again" and the green house.
+      expect(find.descendant(of: keyed('expert-camera'), matching: find.text('फोटो फिर से खींचिए')), findsOneWidget);
+      expect(find.descendant(of: keyed('expert-home'), matching: find.byIcon(AppIcons.house)), findsOneWidget);
+      expectBigTouchTargets(tester);
       expect(env.voice.spokenIds, ['expert_photos_saved']);
+    });
+
+    testWidgets('the expert screen tells who will call: the farmer\'s own number and what to do', (tester) async {
+      final env = await envFor(MockScanScenario.needsExpert, language: 'en');
+      await runScan(tester, env);
+      expect(find.text('An expert will look at your photos and call you on your phone.'), findsOneWidget);
+      expect(find.text('1 photo'), findsOneWidget);
+      expect(find.text('We will call you on'), findsOneWidget);
+      expect(find.text('+91 ••••• •0001'), findsOneWidget);
+      expect(find.text('Keep your phone with you'), findsOneWidget);
+      expect(find.text('The expert calls from the FarmTrack office'), findsOneWidget);
+    });
+
+    testWidgets('each variant has its own colour: blue (expert), amber (no data), grey (no disease)', (tester) async {
+      const cases = {
+        MockScanScenario.needsExpert: ('needs_expert', AppColors.blue, AppIcons.expert),
+        MockScanScenario.noApprovedData: ('no_approved_data', AppColors.amber, AppIcons.info),
+        MockScanScenario.notADisease: ('not_a_disease', AppColors.inkSoft, AppIcons.noDisease),
+      };
+      for (final entry in cases.entries) {
+        final env = await envFor(entry.key);
+        await runScan(tester, env);
+        final dot = tester.widget<IconDot>(keyed('expert-icon-${entry.value.$1}'));
+        expect(dot.background, entry.value.$2, reason: entry.value.$1);
+        expect(dot.icon, entry.value.$3, reason: entry.value.$1);
+        expect(dot.size, 72);
+        await tester.pumpWidget(const SizedBox());
+      }
     });
 
     testWidgets('no_approved_data: speaks result_no_data and shows no medicine', (tester) async {
@@ -342,7 +451,7 @@ void main() {
       expect(env.voice.spokenIds, ['result_no_data']);
       expect(env.voice.spokenTexts.single, contains('मंज़ूर की हुई सलाह'));
       expect(keyed('expert-icon-no_approved_data'), findsOneWidget);
-      expect(find.byIcon(Icons.science_rounded), findsNothing);
+      expect(find.byIcon(AppIcons.medicine), findsNothing);
       expect(keyed('ask-expert'), findsOneWidget);
     });
 
@@ -411,7 +520,7 @@ void main() {
         await tapKey(tester, 'crop-yes');
         expect(keyed('severity-yellow'), findsOneWidget);
       }
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('home-scan'), findsOneWidget, reason: 'back arrow returns to the home screen');
     }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,13 +12,14 @@ import '../voice/voice_widgets.dart';
 import 'big_buttons.dart';
 import 'demo_clock_banner.dart';
 
-/// The frame of every screen, kept as thin as possible so the content is the main thing: one slim bar on top (back
-/// arrow, an optional title, the screen's small buttons, the speaker), the content, and at the bottom only the screen's
-/// one main action on a white strip. The spoken sentence floats over the content as a dark caption (tap for all of it)
-/// instead of taking a footer. It speaks [script] when the screen appears.
+/// The frame of every screen, as in the approved mockup: one slim white bar on top (back arrow, the screen's name, its
+/// own buttons, mute and speaker), the content, and at the bottom only the screen's one main action on a white strip
+/// (or the navigation bar of the four main pages). The spoken sentence floats over the content as a dark caption (tap
+/// for all of it) instead of taking a footer. It speaks [script] when the screen appears.
 ///
-/// With [brandHeader] the top bar is the deep-green Home header: [title] and [subtitle] in white, no back arrow. With
-/// [bottomNav] (the four main pages) the navigation bar sits at the bottom and [bottomRight] floats above it.
+/// With [brandHeader] the top bar is the deep-green Home header: [title] and [subtitle] in white, no back arrow, the
+/// voice buttons on a second line. With [bottomNav] (the four main pages) the navigation bar sits at the bottom and
+/// [bottomRight] floats above it.
 class VoiceScaffold extends ConsumerWidget {
   const VoiceScaffold({
     super.key,
@@ -41,6 +44,7 @@ class VoiceScaffold extends ConsumerWidget {
     this.wideAction = false,
     this.bottomNav,
     this.alignTop = false,
+    this.bodyPadding,
   });
 
   /// What to say when the screen opens (and when the speaker button is tapped).
@@ -57,10 +61,10 @@ class VoiceScaffold extends ConsumerWidget {
   final Object? restartKey;
   final bool speakEnabled;
 
-  /// The screen's one main action, bottom-right. Its strip is the only thing under the content.
+  /// The screen's one main action (or, with [wideAction], a row of them). Its strip is the only thing under the content.
   final Widget? bottomRight;
 
-  /// Small buttons at the top, next to the speaker (settings, alerts).
+  /// Small buttons at the top, next to mute and the speaker (settings, alerts).
   final List<Widget> topRight;
   final bool showBack;
   final VoidCallback? onBack;
@@ -87,7 +91,7 @@ class VoiceScaffold extends ConsumerWidget {
   /// The top bar without its white strip: it sits on the screen's own background.
   final bool flatTopBar;
 
-  /// The main action takes the whole width of its strip (a wide green button with a word).
+  /// The main action takes the whole width of its strip (wide green button with a word, or a row of buttons).
   final bool wideAction;
 
   /// The navigation bar of the four main pages (see `AppBottomNav`).
@@ -96,8 +100,14 @@ class VoiceScaffold extends ConsumerWidget {
   /// Start the content at the top instead of centring it in the free space.
   final bool alignTop;
 
-  /// Tallest the main action gets; a bigger button, or one with a word under it, shrinks to fit.
-  static const actionHeight = 76.0;
+  /// Padding around the body (default: the mockup's 16 dp gutter at the sides and 8 dp on top).
+  final EdgeInsets? bodyPadding;
+
+  /// Tallest the main action gets (the mockup's 60 px button); a bigger button, or one with a word under it, shrinks to fit.
+  static const actionHeight = Dimens.actionButton;
+
+  /// Space between the bottom edge of the content and the floating caption (the mockup's 12 px above the bars).
+  static const captionGap = 12.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -108,7 +118,8 @@ class VoiceScaffold extends ConsumerWidget {
     final nav = keyboardOpen ? null : bottomNav;
     // With the navigation bar the main action floats over the content instead of taking a strip.
     final floating = bottomNav != null;
-    final maxAction = keyboardOpen ? actionHeight - 12 : actionHeight;
+    // A little smaller while the keyboard is up (the fields need the room), never below the 56 dp tap size.
+    final maxAction = keyboardOpen ? Dimens.minTouch : actionHeight;
     return PopScope(
       // With an explicit [onBack] the phone's own back button does the same as the arrow on screen.
       canPop: onBack == null,
@@ -122,98 +133,123 @@ class VoiceScaffold extends ConsumerWidget {
           owner: owner,
           restartKey: restartKey,
           enabled: speakEnabled,
-          child: Column(
+          child: Stack(
             children: [
-              if (brandHeader)
-                _BrandHeader(title: title, subtitle: subtitle, avatar: avatar, actions: topRight)
-              else
-                _TopBar(
-                  title: title,
-                  titleWidget: titleWidget,
-                  flat: flatTopBar,
-                  actions: topRight,
-                  back: canGoBack
-                      ? BigIconButton(
-                          icon: AppIcons.back,
-                          semanticLabel: t('a11y_back'),
-                          color: AppColors.neutralSoft,
-                          foreground: AppColors.ink,
-                          size: Dimens.minTouch,
-                          onPressed: onBack ?? () => Navigator.of(context).maybePop(),
-                        )
-                      : null,
-                ),
-              Expanded(
-                child: SafeArea(
-                  top: false,
-                  bottom: action == null && nav == null,
-                  child: Stack(
-                    children: [
-                      // The green header reaches a little under the first card (Home).
-                      if (brandHeader)
-                        const Positioned(
-                          left: 0,
-                          right: 0,
-                          top: 0,
-                          height: 44,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: AppColors.brand,
-                              borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+              Column(
+                children: [
+                  if (brandHeader)
+                    _BrandHeader(title: title, subtitle: subtitle, avatar: avatar, actions: topRight)
+                  else
+                    _TopBar(
+                      title: title,
+                      titleWidget: titleWidget,
+                      flat: flatTopBar,
+                      actions: topRight,
+                      back: canGoBack
+                          ? BigIconButton(
+                              icon: AppIcons.back,
+                              semanticLabel: t('a11y_back'),
+                              color: AppColors.neutralSoft,
+                              foreground: AppColors.ink,
+                              size: Dimens.minTouch,
+                              onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+                            )
+                          : null,
+                    ),
+                  Expanded(
+                    child: SafeArea(
+                      top: false,
+                      bottom: action == null && nav == null,
+                      child: Stack(
+                        children: [
+                          // The green header reaches a little under the first card (Home).
+                          if (brandHeader)
+                            const Positioned(
+                              left: 0,
+                              right: 0,
+                              top: 0,
+                              height: _bandOverlap,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: AppColors.brand,
+                                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+                                ),
+                              ),
+                            ),
+                          Padding(
+                            padding:
+                                bodyPadding ??
+                                EdgeInsets.fromLTRB(Dimens.gutter, brandHeader ? 0 : 8, Dimens.gutter, 0),
+                            child: Column(
+                              children: [
+                                if (!keyboardOpen) const VoiceMissingBanner(),
+                                Expanded(
+                                  child: scrollable
+                                      ? _ScrollingBody(
+                                          captionRoom: !keyboardOpen,
+                                          extraRoom: floating && action != null ? actionHeight : 0,
+                                          alignTop: alignTop || brandHeader,
+                                          child: body,
+                                        )
+                                      : body,
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(Dimens.gutter, brandHeader ? 0 : 8, Dimens.gutter, 0),
-                        child: Column(
-                          children: [
-                            if (!keyboardOpen) const VoiceMissingBanner(),
-                            Expanded(
-                              child: scrollable
-                                  ? _ScrollingBody(
-                                      captionRoom: !keyboardOpen,
-                                      extraRoom: floating && action != null ? actionHeight : 0,
-                                      alignTop: alignTop || brandHeader,
-                                      child: body,
-                                    )
-                                  : body,
+                          // At the bottom of the content: the spoken sentence, with the screen's floating action just above
+                          // it (the mockup's order). Both make room for the fields while the keyboard is up.
+                          if (!keyboardOpen)
+                            Positioned(
+                              left: Dimens.gutter,
+                              right: Dimens.gutter,
+                              bottom: captionGap,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (floating && action != null)
+                                    Align(
+                                      alignment: AlignmentDirectional.centerEnd,
+                                      child: ConstrainedBox(
+                                        constraints: BoxConstraints(maxHeight: maxAction),
+                                        child: FittedBox(fit: BoxFit.scaleDown, child: action),
+                                      ),
+                                    ),
+                                  if (showCaption) VoiceCaption(topGap: floating && action != null ? 8 : 0),
+                                ],
+                              ),
+                            )
+                          else if (floating && action != null)
+                            Positioned(
+                              right: Dimens.gutter,
+                              bottom: 10,
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(maxHeight: maxAction),
+                                child: FittedBox(fit: BoxFit.scaleDown, child: action),
+                              ),
                             ),
-                          ],
-                        ),
+                        ],
                       ),
-                      if (floating && action != null)
-                        Positioned(
-                          right: Dimens.gutter,
-                          bottom: 10,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(maxHeight: maxAction),
-                            child: FittedBox(fit: BoxFit.scaleDown, child: action),
-                          ),
-                        ),
-                      // Floats over the lowest part of the content, just above the action; it makes room for the
-                      // fields while the keyboard is up.
-                      if (showCaption && !keyboardOpen)
-                        Positioned(
-                          left: Dimens.gutter,
-                          right: Dimens.gutter,
-                          bottom: floating && action != null ? actionHeight + 18 : 10,
-                          child: const VoiceCaption(),
-                        ),
-                    ],
+                    ),
                   ),
-                ),
+                  if (action != null && !floating) _ActionStrip(wide: wideAction, maxHeight: maxAction, child: action),
+                  // Room for the navigation bar, which is drawn over it (its camera circle rises above the bar).
+                  if (nav != null) SizedBox(height: Dimens.nav + MediaQuery.paddingOf(context).bottom),
+                ],
               ),
-              if (action != null && !floating) _ActionStrip(wide: wideAction, maxHeight: maxAction, child: action),
-              ?nav,
+              if (nav != null) Positioned(left: 0, right: 0, bottom: 0, child: nav),
             ],
           ),
         ),
       ),
     );
   }
+
+  /// How far the green of the Home header reaches under the first card (the mockup's -60 px margin).
+  static const _bandOverlap = 60.0;
 }
 
-/// The white strip at the bottom that holds the screen's one main action.
+/// The white strip at the bottom that holds the screen's main action: padding 12 / 16 / 22, a hairline above it.
 class _ActionStrip extends StatelessWidget {
   const _ActionStrip({required this.wide, required this.maxHeight, required this.child});
 
@@ -225,7 +261,7 @@ class _ActionStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final Widget inner;
     if (wide) {
-      inner = SizedBox(width: double.infinity, height: maxHeight.clamp(Dimens.minTouch, 64), child: child);
+      inner = SizedBox(width: double.infinity, height: Dimens.actionButton, child: child);
     } else {
       // A little smaller while the keyboard is up: the fields need the room.
       inner = Align(
@@ -236,11 +272,12 @@ class _ActionStrip extends StatelessWidget {
         ),
       );
     }
+    final inset = MediaQuery.paddingOf(context).bottom;
     return DecoratedBox(
       decoration: _stripDecoration,
-      child: SafeArea(
-        top: false,
-        child: Padding(padding: const EdgeInsets.fromLTRB(Dimens.gutter, 8, Dimens.gutter, 10), child: inner),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(Dimens.gutter, 12, Dimens.gutter, math.max(22, inset + 10)),
+        child: inner,
       ),
     );
   }
@@ -256,8 +293,8 @@ const _barDecoration = BoxDecoration(
 );
 const _flatDecoration = BoxDecoration(color: AppColors.paper);
 
-/// The bar on top of an ordinary screen: back arrow, title, the screen's own buttons, the speaker. White with a
-/// hairline below it, or [flat] on the screen's own background.
+/// The bar on top of an ordinary screen (`.topbar`): back arrow, the name in 20 / 700, the screen's own buttons, mute
+/// and the speaker. White with a hairline below it, or [flat] on the screen's own background.
 class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.title,
@@ -284,11 +321,11 @@ class _TopBar extends StatelessWidget {
           children: [
             // Thin strip while the server runs on a demo clock. Never spoken.
             const DemoClockBanner(),
-            // As tall as the speaker with its "speaking" ring (56 + 8), so no button is squeezed.
+            // The buttons are 48 wide inside 56 wide tap areas, so the row starts 4 dp inside the 16 dp gutter.
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: SizedBox(
-                height: Dimens.minTouch + 8,
+                height: Dimens.topBar,
                 child: Row(children: _items(context)),
               ),
             ),
@@ -307,12 +344,7 @@ class _TopBar extends StatelessWidget {
       alignment: Alignment.centerRight,
       child: FittedBox(
         fit: BoxFit.scaleDown,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (final w in actions) ...[w, const SizedBox(width: 8)],
-          ],
-        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: actions),
       ),
     );
     return [
@@ -320,22 +352,25 @@ class _TopBar extends StatelessWidget {
       if (hasTitle)
         Expanded(
           child: Padding(
-            padding: EdgeInsets.only(left: back == null ? 4 : 12, right: 8),
+            padding: EdgeInsets.only(left: 8, right: back == null && custom == null ? 8 : 4),
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: AlignmentDirectional.centerStart,
-              child: custom ?? Text(name, maxLines: 1, style: Theme.of(context).textTheme.titleLarge),
+              child: custom ?? Text(name, maxLines: 1, style: AppText.title.copyWith(color: AppColors.ink)),
             ),
           ),
         ),
       if (actions.isEmpty && !hasTitle) const Spacer(),
       if (actions.isNotEmpty) hasTitle ? Flexible(child: buttons) : Expanded(child: buttons),
+      const MuteButton(),
       const SpeakerButton(),
     ];
   }
 }
 
-/// The deep-green Home header: initials, a greeting and the village in white, the screen's buttons and the speaker.
+/// The deep-green Home header (`.home` header of the mockup): the initials in a glass circle, the greeting (20 / 700)
+/// and the village (14, a little transparent), the bell and the gear as glass buttons. The voice buttons (mute, speaker)
+/// have a line of their own under them, because four round buttons next to the greeting would squeeze it out.
 class _BrandHeader extends StatelessWidget {
   const _BrandHeader({required this.title, required this.subtitle, required this.avatar, required this.actions});
 
@@ -346,7 +381,6 @@ class _BrandHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context).textTheme;
     final name = title ?? '';
     final place = subtitle ?? '';
     final initials = avatar ?? '';
@@ -360,34 +394,38 @@ class _BrandHeader extends StatelessWidget {
             children: [
               const DemoClockBanner(),
               Padding(
-                padding: const EdgeInsets.fromLTRB(Dimens.gutter, 8, 12, 8),
+                padding: const EdgeInsets.fromLTRB(Dimens.gutter, 10, 12, 0),
                 child: Row(
                   children: [
                     if (initials.isNotEmpty) ...[
                       ExcludeSemantics(
                         child: Container(
-                          width: 48,
-                          height: 48,
+                          width: Dimens.ibtn,
+                          height: Dimens.ibtn,
                           alignment: Alignment.center,
                           decoration: const BoxDecoration(color: Color(0x29FFFFFF), shape: BoxShape.circle),
-                          child: Text(initials, style: theme.titleMedium?.copyWith(color: Colors.white)),
+                          child: Text(
+                            initials,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                     ],
-                    Expanded(child: _names(theme, name, place)),
+                    Expanded(child: _names(name, place)),
                     if (actions.isNotEmpty)
                       FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            for (final w in actions) ...[w, const SizedBox(width: 8)],
-                          ],
-                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: actions),
                       ),
-                    const SpeakerButton(onDark: true),
                   ],
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(right: 12, bottom: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [MuteButton(onDark: true), SpeakerButton(onDark: true)],
                 ),
               ),
             ],
@@ -397,7 +435,7 @@ class _BrandHeader extends StatelessWidget {
     );
   }
 
-  Widget _names(TextTheme theme, String name, String place) => Column(
+  Widget _names(String name, String place) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     mainAxisSize: MainAxisSize.min,
     children: [
@@ -409,7 +447,7 @@ class _BrandHeader extends StatelessWidget {
             name,
             key: const ValueKey('home-greeting'),
             maxLines: 1,
-            style: theme.titleLarge?.copyWith(color: Colors.white),
+            style: AppText.title.copyWith(color: Colors.white, height: 1.3),
           ),
         ),
       if (place.isNotEmpty)
@@ -417,7 +455,7 @@ class _BrandHeader extends StatelessWidget {
           place,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: theme.bodyMedium?.copyWith(fontSize: 14, color: const Color(0xFFD7E8DC)),
+          style: const TextStyle(fontSize: 14, color: Color(0xD9FFFFFF), height: 1.35),
         ),
     ],
   );
@@ -435,10 +473,17 @@ class _ScrollingBody extends StatelessWidget {
   final double extraRoom;
   final bool alignTop;
 
+  /// What the caption bubble takes at the bottom: two lines of 15 / 1.35 at the farmer's text size, its padding and the
+  /// gap under it.
+  static double captionHeight(BuildContext context) {
+    final lines = 2 * 15 * 1.35 * MediaQuery.textScalerOf(context).scale(1);
+    return math.max(Dimens.ibtn, lines + 22) + VoiceScaffold.captionGap;
+  }
+
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final room = (captionRoom ? 64.0 : 8.0) + extraRoom;
+      final room = (captionRoom ? captionHeight(context) : 8.0) + extraRoom;
       return SingleChildScrollView(
         padding: EdgeInsets.only(bottom: room),
         child: ConstrainedBox(

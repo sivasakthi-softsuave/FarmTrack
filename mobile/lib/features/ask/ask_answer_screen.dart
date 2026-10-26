@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,7 +12,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/haptics.dart';
 import '../../core/voice/utterance.dart';
 import '../../core/voice/voice_service.dart';
-import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../../core/widgets/redirect.dart';
 import '../../core/widgets/status_views.dart';
 import '../../core/widgets/voice_scaffold.dart';
@@ -143,15 +144,37 @@ class _AskAnswerScreenState extends ConsumerState<AskAnswerScreen> {
           script: const [],
           replayScript: promptList(const ['ask_wait']),
           onBack: _back,
-          body: _Waiting(label: t('ask_loading')),
+          title: t('home_ask_label'),
+          alignTop: true,
+          bodyPadding: _padding,
+          body: _Waiting(label: t('ask_loading'), question: flow.question),
         );
       case AskPhase.answered:
         final answer = flow.answer!;
-        return answer.refused ? _refused(context, flow, answer, t) : _answered(context, answer, t);
+        return answer.refused ? _refused(context, flow, answer, t) : _answered(context, flow, answer, t);
     }
   }
 
-  Widget _answered(BuildContext context, AskOut answer, String Function(String, {Map<String, Object> args}) t) {
+  /// The mockup's `.pad`: 16 all round (the scaffold's default is 8 on top).
+  static const _padding = EdgeInsets.fromLTRB(Dimens.gutter, Dimens.gutter, Dimens.gutter, 0);
+
+  /// The strip's way back to the first page: a wide green button, or (next to another button) the outlined square.
+  Widget _homeButton(String Function(String, {Map<String, Object> args}) t, {bool square = false}) => AppButton(
+    key: const ValueKey('ask-home'),
+    style: square ? AppButtonStyle.outline : AppButtonStyle.primary,
+    icon: AppIcons.house,
+    label: square ? null : t('a11y_home'),
+    square: square,
+    semanticLabel: t('a11y_home'),
+    onPressed: () => context.go(Routes.home),
+  );
+
+  Widget _answered(
+    BuildContext context,
+    AskState flow,
+    AskOut answer,
+    String Function(String, {Map<String, Object> args}) t,
+  ) {
     final sources = {
       for (final c in answer.citations)
         if (c.source.trim().isNotEmpty) c.source.trim(),
@@ -163,31 +186,45 @@ class _AskAnswerScreenState extends ConsumerState<AskAnswerScreen> {
       script: const [],
       replayScript: _answerScript(answer),
       onBack: _back,
-      body: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Icon(AppIcons.question, size: 64, color: AppColors.blue),
-          const SizedBox(height: 12),
-          _AnswerCard(key: const ValueKey('ask-answer'), text: _answerText(answer)),
-          if (sources.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 10, left: 4, right: 4),
-              child: Text(
-                '${t('ask_sources')}: ${sources.join(', ')}',
-                key: const ValueKey('ask-sources'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 15, color: AppColors.inkSoft),
-              ),
+      title: t('home_ask_label'),
+      alignTop: true,
+      wideAction: true,
+      bodyPadding: _padding,
+      // One white card: the question as a small label, the answer, the sources as small grey lines.
+      body: AppCard(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (flow.question.trim().isNotEmpty) ...[_QuestionLabel(flow.question), const _Divider()],
+            SizedBox(
+              key: const ValueKey('ask-answer'),
+              child: Text(_answerText(answer), style: _answerStyle),
             ),
-        ],
+            if (sources.isNotEmpty) ...[
+              const _Divider(),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 1),
+                    child: Icon(AppIcons.info, size: 20, color: AppColors.inkSoft),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${t('ask_sources')}: ${sources.join(', ')}',
+                      key: const ValueKey('ask-sources'),
+                      style: AppText.hMeta,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
-      bottomRight: BigIconButton(
-        key: const ValueKey('ask-home'),
-        icon: AppIcons.house,
-        semanticLabel: t('a11y_home'),
-        size: 96,
-        onPressed: () => context.go(Routes.home),
-      ),
+      bottomRight: _homeButton(t),
     );
   }
 
@@ -205,102 +242,252 @@ class _AskAnswerScreenState extends ConsumerState<AskAnswerScreen> {
       script: const [],
       replayScript: _answerScript(answer),
       onBack: _back,
+      title: t('home_ask_label'),
+      alignTop: true,
+      wideAction: true,
+      bodyPadding: _padding,
+      // Blue = information (the mockup's "Not sure yet" card), then the question that was asked.
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12,
         children: [
-          const Icon(AppIcons.info, size: 72, color: AppColors.blue),
-          const SizedBox(height: 8),
-          Text(t('ask_refused_title'), textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
-          if (text.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _AnswerCard(key: const ValueKey('ask-refusal'), text: text),
-          ],
-          const SizedBox(height: 16),
-          Center(
-            child: BigIconButton(
-              key: const ValueKey('ask-home'),
-              icon: AppIcons.house,
-              color: AppColors.card,
-              foreground: AppColors.ink,
-              semanticLabel: t('a11y_home'),
-              size: Dimens.minTouch + 8,
-              onPressed: () => context.go(Routes.home),
+          AppCard(
+            flat: true,
+            color: AppColors.blueSoft,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const IconDot(
+                  AppIcons.info,
+                  background: AppColors.blue,
+                  foreground: Colors.white,
+                  size: 72,
+                  round: true,
+                  iconSize: 38,
+                ),
+                const SizedBox(height: 12),
+                Text(t('ask_refused_title'), textAlign: TextAlign.center, style: AppText.big),
+                if (text.isNotEmpty)
+                  Padding(
+                    key: const ValueKey('ask-refusal'),
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 16, height: 1.45, color: _onBlueSoft),
+                    ),
+                  ),
+              ],
             ),
+          ),
+          if (flow.question.trim().isNotEmpty) AppCard(child: _QuestionLabel(flow.question)),
+        ],
+      ),
+      bottomRight: Row(
+        spacing: 12,
+        children: [
+          _homeButton(t, square: true),
+          Expanded(
+            child: _sent
+                ? _ExpertSent(key: const ValueKey('ask-expert-sent'), label: t('expert_sent'))
+                : AppButton(
+                    key: const ValueKey('ask-expert'),
+                    icon: AppIcons.expert,
+                    label: t('a11y_expert'),
+                    semanticLabel: t('a11y_expert'),
+                    onPressed: _sending ? null : () => unawaited(_askExpert(flow)),
+                  ),
           ),
         ],
       ),
-      bottomRight: _sent
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  key: const ValueKey('ask-expert-sent'),
-                  width: 96,
-                  height: 96,
-                  decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
-                  child: const Icon(AppIcons.tick, size: 56, color: Colors.white),
-                ),
-                SizedBox(
-                  width: 128,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(t('expert_sent'), style: Theme.of(context).textTheme.labelLarge),
-                  ),
-                ),
-              ],
-            )
-          : BigIconButton(
-              key: const ValueKey('ask-expert'),
-              icon: AppIcons.expert,
-              color: AppColors.blue,
-              size: 104,
-              semanticLabel: t('a11y_expert'),
-              onPressed: _sending ? null : () => unawaited(_askExpert(flow)),
-            ),
     );
   }
 }
 
-/// The answer as large text on a white card.
-class _AnswerCard extends StatelessWidget {
-  const _AnswerCard({super.key, required this.text});
+/// The answer text: 16 / 1.45 on the white card.
+const _answerStyle = TextStyle(fontSize: 16, height: 1.45, fontWeight: FontWeight.w500, color: AppColors.ink);
 
-  final String text;
+/// The text colour of the mockup's blue card (`#22364F`): dark blue-grey, well above 4.5 to 1 on [AppColors.blueSoft].
+const _onBlueSoft = Color(0xFF22364F);
+
+/// The question that was asked, as a small grey label with the question picture.
+class _QuestionLabel extends StatelessWidget {
+  const _QuestionLabel(this.question);
+
+  final String question;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(18),
-    decoration: AppDecor.card(),
-    child: Text(
-      text,
-      style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600, height: 1.35),
-    ),
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Padding(
+        padding: EdgeInsets.only(top: 1),
+        child: Icon(AppIcons.question, size: 20, color: AppColors.blue),
+      ),
+      const SizedBox(width: 8),
+      // Letter spacing breaks Devanagari, so the Hindi label is the plain, slightly bigger one.
+      Expanded(child: Text(question, style: isDevanagari(question) ? AppText.labelHindi : AppText.label)),
+    ],
   );
 }
 
-/// Picture, words and a bar while the server looks for the answer. The bar stands still when the phone asks for
-/// no animations.
-class _Waiting extends StatelessWidget {
-  const _Waiting({required this.label});
+/// A hairline between the parts of a card (the mockup's `height:1px; background:var(--line); margin:14px 0`).
+class _Divider extends StatelessWidget {
+  const _Divider();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.symmetric(vertical: 14),
+    child: SizedBox(height: 1, child: ColoredBox(color: AppColors.line)),
+  );
+}
+
+/// What replaces the expert button once the question is saved: a calm green box, not a button.
+class _ExpertSent extends StatelessWidget {
+  const _ExpertSent({super.key, required this.label});
 
   final String label;
 
   @override
-  Widget build(BuildContext context) => Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      const Icon(AppIcons.question, size: 96, color: AppColors.blue),
-      const SizedBox(height: 12),
-      Text(label, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
-      const SizedBox(height: 16),
-      ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: MediaQuery.disableAnimationsOf(context)
-            ? Container(key: const ValueKey('ask-waiting-bar'), height: 14, color: AppColors.blue)
-            : const LinearProgressIndicator(key: ValueKey('ask-waiting-bar'), minHeight: 14),
-      ),
-    ],
+  Widget build(BuildContext context) => Container(
+    height: Dimens.actionButton,
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(color: AppColors.greenSoft, borderRadius: BorderRadius.circular(18)),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(AppIcons.tick, size: 24, color: AppColors.green),
+        const SizedBox(width: 10),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(label, maxLines: 1, style: AppText.button.copyWith(color: AppColors.green)),
+          ),
+        ),
+      ],
+    ),
   );
+}
+
+/// How much of the ring and of the bar is drawn while they stand still: the mockup's ring (`stroke-dashoffset` 230 of 502).
+const _stillShare = 0.54;
+
+/// A progress ring with the question picture, the word, and a white card with the question and a bar, while the server
+/// looks for the answer (the mockup's waiting screen). The ring and the bar stand still when the phone asks for no
+/// animations.
+class _Waiting extends StatelessWidget {
+  const _Waiting({required this.label, required this.question});
+
+  final String label;
+  final String question;
+
+  @override
+  Widget build(BuildContext context) {
+    final still = MediaQuery.disableAnimationsOf(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 10),
+        Center(child: _Ring(still: still)),
+        const SizedBox(height: 18),
+        Text(label, textAlign: TextAlign.center, style: AppText.big),
+        const SizedBox(height: 18),
+        AppCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (question.trim().isNotEmpty) ...[_QuestionLabel(question), const SizedBox(height: 14)],
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: still
+                    ? const _StillBar(key: ValueKey('ask-waiting-bar'))
+                    : const LinearProgressIndicator(key: ValueKey('ask-waiting-bar'), minHeight: 12),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The bar of a phone that asks for no animations: the grey track with a green part, not moving.
+class _StillBar extends StatelessWidget {
+  const _StillBar({super.key});
+
+  @override
+  Widget build(BuildContext context) => const SizedBox(
+    height: 12,
+    child: ColoredBox(
+      color: AppColors.track,
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: FractionallySizedBox(
+          widthFactor: _stillShare,
+          child: SizedBox.expand(child: ColoredBox(color: AppColors.green)),
+        ),
+      ),
+    ),
+  );
+}
+
+/// A 180 dp ring (12 wide, green on its grey track) round a white circle with the question picture. Turning, or still
+/// with part of it drawn.
+class _Ring extends StatelessWidget {
+  const _Ring({required this.still});
+
+  final bool still;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: SizedBox(
+      width: 180,
+      height: 180,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox.expand(
+            child: still
+                ? const CustomPaint(painter: _StillRingPainter())
+                : const CircularProgressIndicator(
+                    strokeWidth: 12,
+                    strokeCap: StrokeCap.round,
+                    backgroundColor: AppColors.track,
+                    color: AppColors.green,
+                  ),
+          ),
+          Container(
+            width: 128,
+            height: 128,
+            decoration: const BoxDecoration(color: AppColors.card, shape: BoxShape.circle, boxShadow: AppDecor.shadows),
+            child: const Icon(AppIcons.question, size: 60, color: AppColors.blue),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _StillRingPainter extends CustomPainter {
+  const _StillRingPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 12.0;
+    const full = 2 * math.pi;
+    final rect = (Offset.zero & size).deflate(stroke / 2);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(rect, 0, full, false, paint..color = AppColors.track);
+    canvas.drawArc(rect, -math.pi / 2, full * _stillShare, false, paint..color = AppColors.green);
+  }
+
+  @override
+  bool shouldRepaint(_StillRingPainter oldDelegate) => false;
 }

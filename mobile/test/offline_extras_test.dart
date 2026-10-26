@@ -11,6 +11,7 @@ import 'package:farmtrack/core/offline/offline_queue.dart';
 import 'package:farmtrack/features/diary/date_words.dart';
 import 'package:farmtrack/features/diary/diary_providers.dart';
 import 'package:farmtrack/features/offline/last_result.dart';
+import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'support/feature_fakes.dart';
 import 'support/finders.dart';
@@ -85,7 +86,7 @@ void main() {
       expect(keyed('last-result-card'), findsNothing, reason: 'nothing yet');
       await scanOnePhoto(tester, env);
       expect(keyed('severity-yellow'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('last-result-card'), findsOneWidget);
 
@@ -110,7 +111,7 @@ void main() {
       final env = await makeEnv(clock: () => now);
       await pumpApp(tester, env, location: '/home');
       await scanOnePhoto(tester, env);
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('last-result-card'), findsOneWidget);
 
@@ -145,8 +146,7 @@ void main() {
       await tapKey(tester, 'home-diary');
       expect(find.textContaining('Score'), findsWidgets);
       expect(keyed('diary-offline'), findsNothing);
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
-      await tester.pumpAndSettle();
+      await goBack(tester);
 
       api.failWith(const ApiException.network(), ops: {'listSprayLogs'});
       env.connectivity.online = false;

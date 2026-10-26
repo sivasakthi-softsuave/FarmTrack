@@ -6,7 +6,7 @@ import '../../core/providers.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/voice/utterance.dart';
-import '../../core/widgets/big_buttons.dart';
+import '../../core/widgets/design.dart';
 import '../../core/widgets/status_views.dart';
 import '../../core/widgets/voice_scaffold.dart';
 import '../home/app_bottom_nav.dart';
@@ -15,8 +15,9 @@ import 'diary_providers.dart';
 import 'diary_widgets.dart';
 import 'saved_speech.dart';
 
-/// "My spray diary": newest first, each line with the crop picture, the medicine, the day in words and a badge for
-/// warnings or for "waiting to send". Tapping a line says it aloud. The plus button writes a spray that was not advised.
+/// "My spray diary": newest first, grouped by day under a small day heading; each entry is a card with the medicine,
+/// its brand and crop, a grey "Waiting" pill or a green tick, and its warnings inside it. Tapping an entry says it aloud.
+/// The floating green button writes a spray that was not advised.
 class DiaryListScreen extends ConsumerStatefulWidget {
   const DiaryListScreen({super.key});
 
@@ -49,10 +50,32 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
     return ref.read(voiceServiceProvider).speak(items, owner: _owner);
   }
 
+  /// The entries with a small heading above each day ("Today", "2 May"): 12 between cards, a little more above a heading.
+  List<Widget> _days(List<DiaryEntry> entries, DateWords words, DateTime now) {
+    final children = <Widget>[];
+    DateTime? day;
+    for (final entry in entries) {
+      final entryDay = dayOnly(entry.date);
+      if (entryDay != day) {
+        day = entryDay;
+        final label = words.relative(entryDay, now) ?? words.written(entryDay);
+        if (children.isNotEmpty) children.add(const SizedBox(height: 12));
+        children
+          ..add(SectionLabel(label, hindi: isDevanagari(label)))
+          ..add(const SizedBox(height: 10));
+      } else {
+        children.add(const SizedBox(height: 12));
+      }
+      children.add(DiaryEntryCard(entry: entry, onTap: () => _speakEntry(entry)));
+    }
+    return children;
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(stringsProvider);
     final now = ref.watch(clockProvider)();
+    final words = ref.watch(dateWordsProvider);
     final logs = ref.watch(sprayLogsProvider);
     final pending = ref.watch(pendingSpraysProvider).items;
 
@@ -81,31 +104,46 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
       title: t('home_diary_label'),
       script: script,
       speakEnabled: !loading,
+      // A main page: no back arrow (the bottom bar goes elsewhere); the phone's own back still leaves it.
+      showBack: false,
       onBack: _back,
       alignTop: true,
+      bodyPadding: const EdgeInsets.fromLTRB(Dimens.gutter, Dimens.gutter, Dimens.gutter, 0),
       bottomNav: const AppBottomNav(current: AppTab.diary),
-      // Floats over the list, above the bottom bar: a green "+ Write a spray".
-      bottomRight: PillButton(
+      // Floats over the list, above the caption: a green "+ Write a spray".
+      bottomRight: AppButton(
         key: const ValueKey('diary-add'),
         icon: AppIcons.plus,
         label: t('diary_add_label'),
+        semanticLabel: t('diary_add_label'),
+        horizontalPadding: 22,
         onPressed: () => context.push(Routes.diaryAdd),
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : entries.isEmpty
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(AppIcons.notebook, size: Dimens.hero, color: AppColors.amberDark),
-                const SizedBox(height: 12),
-                Text(
-                  t('diary_empty_title'),
-                  key: const ValueKey('diary-empty'),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-              ],
+          ? AppCard(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const IconDot(
+                    AppIcons.notebook,
+                    background: AppColors.blueSoft,
+                    foreground: AppColors.blue,
+                    size: 72,
+                    round: true,
+                    iconSize: 38,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    t('diary_empty_title'),
+                    key: const ValueKey('diary-empty'),
+                    textAlign: TextAlign.center,
+                    style: AppText.big,
+                  ),
+                ],
+              ),
             )
           : Column(
               mainAxisSize: MainAxisSize.min,
@@ -113,22 +151,22 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
               children: [
                 if (failed)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: AppCard(
                       key: const ValueKey('diary-offline'),
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(AppIcons.offline, size: 36, color: AppColors.inkSoft),
-                        const SizedBox(width: 8),
-                        Flexible(child: Text(t('a11y_offline'), style: Theme.of(context).textTheme.titleMedium)),
-                      ],
+                      color: AppColors.neutralSoft,
+                      flat: true,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          const Icon(AppIcons.offline, size: 24, color: AppColors.inkSoft),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(t('a11y_offline'), style: AppText.hName.copyWith(fontSize: 16))),
+                        ],
+                      ),
                     ),
                   ),
-                for (final entry in entries)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: DiaryEntryCard(entry: entry, onTap: () => _speakEntry(entry)),
-                  ),
+                ..._days(entries, words, now),
               ],
             ),
     );
