@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,10 +12,14 @@ import '../../core/utils/haptics.dart';
 import '../../core/voice/utterance.dart';
 import '../../core/widgets/big_buttons.dart';
 import '../../core/widgets/voice_scaffold.dart';
+import '../field/field_providers.dart';
+import '../field/field_words.dart';
 import '../offline/offline_cards.dart';
 import '../scan/scan_flow.dart';
+import 'app_bottom_nav.dart';
 
-/// The four big picture buttons. Speaks `home_intro`; on the very first visit it also says what each button does.
+/// The first page: the green header, the big photo card, the last advice and the field, and the bottom bar. Speaks
+/// `home_intro`; on the very first visit it also says what each button does.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key, this.fresh = false});
 
@@ -52,29 +58,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final unread = ref.watch(unreadAlertsProvider).value ?? 0;
     final resultReady = ref.watch(offlineStatusProvider.select((s) => s.ready.isNotEmpty));
     final height = MediaQuery.sizeOf(context).height;
-    final heroHeight = (height * 0.22).clamp(124.0, 190.0);
-    final smallHeight = (height * 0.19).clamp(104.0, 160.0);
+    final heroHeight = (height * 0.2).clamp(124.0, 170.0);
     final farmer = ref.watch(sessionProvider).farmer;
     final firstName = (farmer?.name ?? '').trim().split(' ').first;
     final place = [farmer?.village, farmer?.district].whereType<String>().where((s) => s.isNotEmpty).join(', ');
 
-    Widget tile(String key, Widget picture, String label, VoidCallback onTap, double h) => SizedBox(
-      height: h,
-      child: PictureTile(
-        key: ValueKey(key),
-        semanticLabel: label,
-        label: label,
-        borderColor: AppColors.line,
-        onPressed: onTap,
-        child: _Bubble(child: picture),
-      ),
-    );
-
     return VoiceScaffold(
       showBack: false,
       brandHeader: true,
+      avatar: _initials(farmer?.name ?? ''),
       title: firstName.isEmpty ? t('app_name') : t('home_greeting', args: {'name': firstName}),
       subtitle: place,
+      bottomNav: const AppBottomNav(current: AppTab.home),
       script: promptList([
         if (widget.fresh) 'login_ok',
         ..._firstVisit ? _tour : const ['home_intro'],
@@ -101,12 +96,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           onPressed: () => context.push(Routes.settings),
         ),
       ],
-      // One big card for the photo and three smaller ones; the bell and the gear are in the green header.
+      // The big photo card first (it reaches into the green header), then what happened lately and the field.
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const OfflineCards(),
           SizedBox(
             height: heroHeight,
             child: _ScanCard(
@@ -117,44 +111,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onPressed: _openScan,
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: tile(
-                  'home-field',
-                  const _FieldPicture(size: 44),
-                  t('home_field_label'),
-                  () => context.push(Routes.field),
-                  smallHeight,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: tile(
-                  'home-diary',
-                  const Icon(AppIcons.notebook, size: 40, color: AppColors.blue),
-                  t('home_diary_label'),
-                  () => context.push(Routes.diary),
-                  smallHeight,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: tile(
-                  'home-ask',
-                  const Icon(AppIcons.question, size: 40, color: AppColors.blue),
-                  t('home_ask_label'),
-                  () => context.push(Routes.ask),
-                  smallHeight,
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(height: 14),
+          const OfflineCards(),
+          const _FieldSummary(),
         ],
       ),
     );
   }
+
+  /// "DS" for "Dinesh Sharma": the first letter of up to two words.
+  static String _initials(String name) =>
+      name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).take(2).map((w) => w[0].toUpperCase()).join();
 }
 
 /// The big photo card: a green camera circle, the word and a short hint, and an arrow. The whole card is the button.
@@ -253,50 +220,6 @@ class _ScanCard extends StatelessWidget {
   }
 }
 
-/// The soft blue circle behind the picture of a small Home card.
-class _Bubble extends StatelessWidget {
-  const _Bubble({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 64,
-    height: 64,
-    alignment: Alignment.center,
-    decoration: const BoxDecoration(color: AppColors.blueSoft, shape: BoxShape.circle),
-    child: child,
-  );
-}
-
-/// The "My field" picture: a cloud over a patch of grass, so both "the field picture" and "the cloud picture"
-/// of the voice prompts match what is on screen.
-class _FieldPicture extends StatelessWidget {
-  const _FieldPicture({required this.size});
-
-  final double size;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: size,
-    height: size,
-    child: Stack(
-      children: [
-        Positioned(
-          left: 0,
-          bottom: 0,
-          child: Icon(AppIcons.field, size: size * 0.7, color: AppColors.green),
-        ),
-        Positioned(
-          right: 0,
-          top: 0,
-          child: Icon(AppIcons.cloud, size: size * 0.75, color: AppColors.blue),
-        ),
-      ],
-    ),
-  );
-}
-
 class _TopIcon extends StatelessWidget {
   const _TopIcon({super.key, required this.icon, required this.semanticLabel, required this.onPressed, this.badge = 0});
 
@@ -345,6 +268,81 @@ class _TopIcon extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Whether Home asks the server for the field (`GET /v1/field`) to show "Now in your field". Off under `flutter test`,
+/// so the extra request cannot take a failure that a test queued for another call; the field tests cover the data.
+final homeFieldSummaryProvider = Provider<bool>((ref) => !Platform.environment.containsKey('FLUTTER_TEST'));
+
+/// "Now in your field": up to three readings of the field page (picture, title, word) in one card that opens it. Shown
+/// only when the field answer is there; while it loads, or without internet and without a kept answer, nothing shows.
+class _FieldSummary extends ConsumerWidget {
+  const _FieldSummary();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(homeFieldSummaryProvider)) return const SizedBox.shrink();
+    final view = ref.watch(fieldProvider).value;
+    if (view == null || view.hasNoData) return const SizedBox.shrink();
+    final tiles = readingTiles(view.field.readings, weather: ref.watch(weatherOnProvider)).take(3).toList();
+    if (tiles.isEmpty) return const SizedBox.shrink();
+    final t = ref.watch(stringsProvider);
+    final theme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+            child: Text(t('field_readings_title'), style: theme.titleMedium?.copyWith(color: AppColors.inkSoft)),
+          ),
+          Semantics(
+            button: true,
+            label: t('home_field_label'),
+            child: Material(
+              key: const ValueKey('home-field-card'),
+              color: AppColors.card,
+              elevation: 2,
+              shadowColor: AppColors.shadow,
+              shape: AppDecor.shape(BorderSide.none),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(Dimens.radius),
+                onTap: () {
+                  Haptics.tap();
+                  context.push(Routes.field);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+                  child: Row(
+                    children: [
+                      for (final tile in tiles)
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Icon(tile.icon, size: 26, color: tile.color),
+                              const SizedBox(height: 4),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  t(tile.labelKey),
+                                  style: theme.bodyMedium?.copyWith(color: AppColors.inkSoft),
+                                ),
+                              ),
+                              FittedBox(fit: BoxFit.scaleDown, child: Text(t(tile.wordKey), style: theme.titleMedium)),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

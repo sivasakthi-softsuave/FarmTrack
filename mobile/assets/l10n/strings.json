@@ -7,6 +7,8 @@
     "home_ask_label": {"en": "Ask", "hi": "सवाल"},
     "home_greeting": {"en": "Namaste, {name}", "hi": "नमस्ते, {name}"},
     "home_scan_hint": {"en": "Take a photo of one leaf", "hi": "एक पत्ती की फोटो लीजिए"},
+    "home_last_advice": {"en": "Last advice", "hi": "पिछली सलाह"},
+    "nav_home": {"en": "Home", "hi": "होम"},
     "a11y_yes": {"en": "Yes", "hi": "हाँ"},
     "a11y_no": {"en": "No", "hi": "नहीं"},
     "a11y_camera": {"en": "Camera", "hi": "कैमरा"},

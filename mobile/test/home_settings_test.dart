@@ -11,18 +11,23 @@ import 'support/harness.dart';
 void main() {
   group('home', () {
     testWidgets(
-      'four big picture buttons, a gear and a bell; every target is at least 56 dp, the picture buttons much larger',
+      'a big photo card, the bottom bar, a gear and a bell; every target is at least 56 dp, the photo card much larger',
       (tester) async {
         useSmallPhone(tester);
         final env = await TestEnv.create(loggedIn: true);
         await pumpApp(tester, env);
-        for (final key in ['home-scan', 'home-field', 'home-diary', 'home-ask']) {
+        final scan = tester.getSize(keyed('home-scan'));
+        expect(scan.width, greaterThanOrEqualTo(96));
+        expect(scan.height, greaterThanOrEqualTo(96));
+        // Field, Diary and Ask are in the bottom bar.
+        for (final key in ['home-field', 'home-diary', 'home-ask', 'nav-scan']) {
           final size = tester.getSize(keyed(key));
-          expect(size.width, greaterThanOrEqualTo(96), reason: key);
-          expect(size.height, greaterThanOrEqualTo(96), reason: key);
+          expect(size.width, greaterThanOrEqualTo(56), reason: key);
+          expect(size.height, greaterThanOrEqualTo(56), reason: key);
         }
-        expect(find.byIcon(Icons.photo_camera_rounded), findsOneWidget);
-        expect(find.byIcon(Icons.cloud_rounded), findsOneWidget);
+        // The camera is the photo card and the middle of the bar.
+        expect(find.byIcon(Icons.photo_camera_rounded), findsNWidgets(2));
+        expect(find.byIcon(Icons.grass_rounded), findsOneWidget);
         expect(find.byIcon(Icons.edit_note_rounded), findsOneWidget);
         expect(find.byIcon(Icons.live_help_rounded), findsOneWidget);
         expect(find.byIcon(Icons.settings_rounded), findsOneWidget);

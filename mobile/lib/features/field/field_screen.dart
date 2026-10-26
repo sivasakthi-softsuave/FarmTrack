@@ -12,6 +12,7 @@ import '../../core/widgets/big_buttons.dart';
 import '../../core/widgets/status_views.dart';
 import '../../core/widgets/voice_scaffold.dart';
 import '../diary/date_words.dart';
+import '../home/app_bottom_nav.dart';
 import 'field_providers.dart';
 import 'field_widgets.dart';
 import 'field_words.dart';
@@ -121,13 +122,19 @@ class _FieldScreenState extends ConsumerState<FieldScreen> {
       script: view == null ? const [] : _script(view),
       speakEnabled: view != null,
       onBack: _back,
-      bottomRight: BigIconButton(
-        key: const ValueKey('field-reload'),
-        icon: AppIcons.roundArrow,
-        size: 96,
-        semanticLabel: t('field_reload_label'),
-        onPressed: _reloading || view == null ? null : _reload,
-      ),
+      alignTop: true,
+      bottomNav: const AppBottomNav(current: AppTab.field),
+      topRight: [
+        BigIconButton(
+          key: const ValueKey('field-reload'),
+          icon: AppIcons.roundArrow,
+          size: Dimens.minTouch,
+          color: AppColors.neutralSoft,
+          foreground: AppColors.ink,
+          semanticLabel: t('field_reload_label'),
+          onPressed: _reloading || view == null ? null : _reload,
+        ),
+      ],
       body: view == null
           ? const Center(child: CircularProgressIndicator())
           : Column(

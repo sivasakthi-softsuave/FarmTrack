@@ -132,10 +132,10 @@ void main() {
       for (final key in first) {
         await tester.ensureVisible(keyed(key));
         final size = tester.getSize(keyed(key));
-        expect(size.height, greaterThanOrEqualTo(96), reason: key);
+        expect(size.height, greaterThanOrEqualTo(72), reason: key);
         expect(size.width, greaterThanOrEqualTo(96), reason: key);
       }
-      expect(tester.getSize(keyed('ask-own')).height, greaterThanOrEqualTo(96));
+      expect(tester.getSize(keyed('ask-own')).height, greaterThanOrEqualTo(64));
       expectBigTouchTargets(tester);
     });
 

@@ -9,9 +9,13 @@ class AppConfig {
     this.mockLatency = const Duration(milliseconds: 500),
   });
 
+  /// Default server: the shared dev backend behind a VS Code dev tunnel (works only while that PC runs the backend
+  /// and VS Code). Emulator against a local backend: `--dart-define=API_BASE_URL=http://10.0.2.2:8000`.
+  static const defaultApiBaseUrl = 'https://9hq7vhpv-8001.inc1.devtunnels.ms';
+
   /// Reads the `--dart-define` values. The mock API is the default in tests (`flutter test` sets FLUTTER_TEST).
   factory AppConfig.fromEnvironment() {
-    const baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:8000');
+    const baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: defaultApiBaseUrl);
     const mock = bool.fromEnvironment('USE_MOCK_API', defaultValue: false);
     final underTest = Platform.environment.containsKey('FLUTTER_TEST');
     return AppConfig(apiBaseUrl: baseUrl, useMockApi: mock || underTest);
