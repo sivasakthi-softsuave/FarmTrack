@@ -188,9 +188,13 @@ class _TopBar extends StatelessWidget {
           children: [
             // Thin strip while the server runs on a demo clock. Never spoken.
             const DemoClockBanner(),
+            // As tall as the speaker with its "speaking" ring (56 + 8), so no button is squeezed.
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-              child: SizedBox(height: Dimens.minTouch, child: Row(children: _items(context))),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: SizedBox(
+                height: Dimens.minTouch + 8,
+                child: Row(children: _items(context)),
+              ),
             ),
           ],
         ),

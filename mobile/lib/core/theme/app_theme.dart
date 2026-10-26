@@ -81,11 +81,8 @@ class AppDecor {
   ];
 
   /// A white card with a soft shadow.
-  static BoxDecoration card({Color color = AppColors.card, double radius = Dimens.radius}) => BoxDecoration(
-    color: color,
-    borderRadius: BorderRadius.circular(radius),
-    boxShadow: shadows,
-  );
+  static BoxDecoration card({Color color = AppColors.card, double radius = Dimens.radius}) =>
+      BoxDecoration(color: color, borderRadius: BorderRadius.circular(radius), boxShadow: shadows);
 
   /// A tinted panel (warning, timing, risk): the soft colour with a thin border of its accent.
   static BoxDecoration panel(Color fill, Color accent, {double radius = Dimens.radius}) => BoxDecoration(
