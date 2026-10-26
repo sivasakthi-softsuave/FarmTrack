@@ -82,10 +82,16 @@ class _PhotoReviewScreenState extends ConsumerState<PhotoReviewScreen> {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            t('photo_count', args: {'n': flow.photos.length, 'max': max}),
-            style: Theme.of(context).textTheme.titleLarge,
+          const SizedBox(height: 16),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(color: AppColors.greenSoft, borderRadius: BorderRadius.circular(999)),
+              child: Text(
+                t('photo_count', args: {'n': flow.photos.length, 'max': max}),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.green),
+              ),
+            ),
           ),
         ],
       ),
@@ -132,8 +138,9 @@ class _Thumbnail extends StatelessWidget {
           Positioned(
             left: 0,
             bottom: 0,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
+            child: Container(
+              decoration: AppDecor.card(radius: 18),
+              clipBehavior: Clip.antiAlias,
               child: SizedBox(
                 width: size,
                 height: size,

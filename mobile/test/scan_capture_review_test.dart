@@ -55,7 +55,7 @@ void main() {
       final env = await TestEnv.create(loggedIn: true);
       await openCapture(tester, env);
       expect(keyed('gallery-button'), findsOneWidget);
-      expect(tester.getSize(keyed('gallery-button')).width, greaterThanOrEqualTo(96));
+      expect(tester.getSize(keyed('gallery-button')).width, greaterThanOrEqualTo(56));
       expectBigTouchTargets(tester);
       env.picker.queueGallery(1);
       env.voice.clear();

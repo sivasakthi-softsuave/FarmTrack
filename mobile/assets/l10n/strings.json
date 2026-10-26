@@ -162,6 +162,7 @@
     "analysing": {"en": "Looking at your leaf", "hi": "पत्ती देख रहे हैं"},
     "retake_title": {"en": "Take the photo again", "hi": "फोटो फिर से खींचिए"},
     "coming_soon": {"en": "Coming soon", "hi": "जल्द आएगा"},
+    "scan_tip": {"en": "One leaf, close, in daylight", "hi": "एक पत्ती, पास से, दिन की रोशनी में"},
     "photo_count": {"en": "{n} of {max}", "hi": "{n} / {max}"}
   },
   "crops": {

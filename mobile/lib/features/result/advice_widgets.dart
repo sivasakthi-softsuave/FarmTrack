@@ -219,27 +219,29 @@ class _AdviceCardsState extends ConsumerState<AdviceCards> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SeverityBand(severity: advice.severity, headline: advice.headline.forLang(lang)),
-        for (final p in advice.products) ...[const SizedBox(height: 12), ProductCard(product: p)],
+        if (advice.products.isNotEmpty) _SectionLabel(t('advice_medicine')),
+        for (final p in advice.products) ...[ProductCard(product: p), const SizedBox(height: 10)],
         if (timing != null && !timing.text.isEmpty) ...[
-          const SizedBox(height: 12),
+          _SectionLabel(t('advice_when')),
           Container(
             key: const ValueKey('advice-timing'),
             padding: const EdgeInsets.all(14),
             decoration: AppDecor.panel(AppColors.greenSoft, AppColors.green, radius: 16),
             child: _IconLine(
               icon: timingIcon(timing.action),
-              text: '${t('advice_when')}: ${timing.text.forLang(lang)}',
+              text: timing.text.forLang(lang),
               bold: true,
               color: AppColors.green,
             ),
           ),
         ],
+        if (advice.warnings.isNotEmpty) _SectionLabel(t('advice_warning')),
         for (final w in advice.warnings) ...[
-          const SizedBox(height: 12),
           WarningTile(level: w.level, text: w.text.forLang(lang)),
+          const SizedBox(height: 10),
         ],
         if (hasMore) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           _MoreButton(open: _more, onTap: () => setState(() => _more = !_more)),
         ],
         if (_more) ...[
@@ -357,4 +359,17 @@ class SprayStatusChip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A small grey heading above a group of advice cards ("Medicine", "When", "Careful").
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+    child: Text(text, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.inkSoft)),
+  );
 }

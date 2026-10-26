@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/models/models.dart';
 import '../../core/providers.dart';
 import '../../core/router/routes.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/voice/utterance.dart';
 import '../../core/widgets/big_buttons.dart';
 import '../../core/widgets/redirect.dart';
@@ -70,23 +71,41 @@ class AdviceScreen extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 8),
         child: AdviceCards(advice: advice),
       ),
-      bottomRight: switch (sprayed) {
-        SprayState.none => TickButton(
-          key: const ValueKey('i-sprayed'),
-          size: 72,
-          showLabel: true,
-          semanticLabel: t('a11y_sprayed'),
-          onPressed: () => context.push(
-            Routes.diaryFor(
-              adviceId: advice.id,
-              cropId: cropId.isEmpty ? null : cropId,
-              productId: advice.products.isEmpty ? null : advice.products.first.productId,
-            ),
+      // A house to go home, and the wide green "I sprayed" (or the sprayed mark once it is written).
+      wideAction: true,
+      bottomRight: Row(
+        children: [
+          BigIconButton(
+            key: const ValueKey('advice-home'),
+            icon: AppIcons.house,
+            semanticLabel: t('a11y_home'),
+            color: AppColors.card,
+            foreground: AppColors.ink,
+            size: Dimens.minTouch,
+            onPressed: () => context.go(Routes.home),
           ),
-        ),
-        SprayState.waiting => SprayStatusChip(waiting: true, label: t('diary_waiting_label')),
-        SprayState.done => SprayStatusChip(waiting: false, label: t('advice_sprayed_done')),
-      },
+          const SizedBox(width: 12),
+          Expanded(
+            child: switch (sprayed) {
+              SprayState.none => TickButton(
+                key: const ValueKey('i-sprayed'),
+                size: 64,
+                showLabel: true,
+                semanticLabel: t('a11y_sprayed'),
+                onPressed: () => context.push(
+                  Routes.diaryFor(
+                    adviceId: advice.id,
+                    cropId: cropId.isEmpty ? null : cropId,
+                    productId: advice.products.isEmpty ? null : advice.products.first.productId,
+                  ),
+                ),
+              ),
+              SprayState.waiting => Center(child: SprayStatusChip(waiting: true, label: t('diary_waiting_label'))),
+              SprayState.done => Center(child: SprayStatusChip(waiting: false, label: t('advice_sprayed_done'))),
+            },
+          ),
+        ],
+      ),
     );
   }
 }

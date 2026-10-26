@@ -76,11 +76,24 @@ class ProcessingBody extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 148,
-          height: 148,
-          decoration: const BoxDecoration(color: AppColors.card, shape: BoxShape.circle, boxShadow: AppDecor.shadows),
-          child: Icon(icon, size: 72, color: AppColors.green),
+        // The picture in a white circle inside a turning green ring.
+        SizedBox(
+          width: 168,
+          height: 168,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const SizedBox.expand(
+                child: CircularProgressIndicator(strokeWidth: 10, backgroundColor: Color(0xFFDCE7DD)),
+              ),
+              Container(
+                width: 132,
+                height: 132,
+                decoration: _ringCentre,
+                child: Icon(icon, size: 64, color: AppColors.green),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 20),
         Text(label, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
@@ -97,3 +110,5 @@ class ProcessingBody extends StatelessWidget {
     );
   }
 }
+
+const _ringCentre = BoxDecoration(color: AppColors.card, shape: BoxShape.circle, boxShadow: AppDecor.shadows);
