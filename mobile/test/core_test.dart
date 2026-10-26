@@ -92,7 +92,7 @@ void main() {
 
     test('the mock API is the default under flutter test', () {
       expect(AppConfig.fromEnvironment().useMockApi, isTrue);
-      expect(AppConfig.fromEnvironment().apiBaseUrl, AppConfig.defaultApiBaseUrl);
+      expect(AppConfig.fromEnvironment().apiBaseUrl, 'http://10.0.2.2:8000');
     });
   });
 
