@@ -73,7 +73,8 @@ class AdviceScreen extends StatelessWidget {
       bottomRight: switch (sprayed) {
         SprayState.none => TickButton(
           key: const ValueKey('i-sprayed'),
-          size: 88,
+          size: 72,
+          showLabel: true,
           semanticLabel: t('a11y_sprayed'),
           onPressed: () => context.push(
             Routes.diaryFor(

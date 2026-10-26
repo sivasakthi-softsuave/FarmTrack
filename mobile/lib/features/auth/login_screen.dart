@@ -110,6 +110,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          ExcludeSemantics(
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(color: AppColors.brand, borderRadius: BorderRadius.circular(14)),
+                  child: const Icon(AppIcons.leaf, size: 28, color: Colors.white),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(t('app_name'), style: Theme.of(context).textTheme.headlineMedium)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
           _FieldLabel(icon: AppIcons.person, text: t('login_username_label')),
           const SizedBox(height: 8),
           Semantics(
@@ -178,6 +193,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
       bottomRight: TickButton(
         key: const ValueKey('login-submit'),
+        size: 72,
+        showLabel: true,
         semanticLabel: t('a11y_login'),
         onPressed: _busy ? null : _submit,
       ),
@@ -190,15 +207,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     fillColor: AppColors.card,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(20),
-      borderSide: const BorderSide(color: AppColors.ink, width: 2),
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: AppColors.line, width: 2),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: Color(0xFFC9D3C6), width: 2),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(20),
-      borderSide: const BorderSide(color: AppColors.blue, width: 3),
+      borderRadius: BorderRadius.circular(16),
+      borderSide: const BorderSide(color: AppColors.green, width: 3),
     ),
     disabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       borderSide: const BorderSide(color: AppColors.line, width: 2),
     ),
   );
@@ -215,9 +236,9 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) => ExcludeSemantics(
     child: Row(
       children: [
-        Icon(icon, size: 32, color: AppColors.green),
+        Icon(icon, size: 26, color: AppColors.green),
         const SizedBox(width: 8),
-        Expanded(child: Text(text, style: Theme.of(context).textTheme.titleLarge)),
+        Expanded(child: Text(text, style: Theme.of(context).textTheme.titleMedium)),
       ],
     ),
   );

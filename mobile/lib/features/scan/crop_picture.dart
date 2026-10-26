@@ -42,7 +42,7 @@ class CropPicture extends ConsumerWidget {
       decoration: BoxDecoration(
         color: soft,
         shape: BoxShape.circle,
-        border: Border.all(color: color, width: 3),
+        border: Border.all(color: color.withValues(alpha: 0.35), width: 2),
       ),
       clipBehavior: Clip.antiAlias,
       child: assets.contains(path) ? Image.asset(path, fit: BoxFit.cover) : Icon(icon, size: size * 0.55, color: color),

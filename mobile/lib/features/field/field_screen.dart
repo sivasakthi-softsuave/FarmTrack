@@ -117,6 +117,7 @@ class _FieldScreenState extends ConsumerState<FieldScreen> {
 
     return VoiceScaffold(
       owner: _owner,
+      title: t('home_field_label'),
       script: view == null ? const [] : _script(view),
       speakEnabled: view != null,
       onBack: _back,

@@ -44,6 +44,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return VoiceScaffold(
       owner: _owner,
+      title: t('a11y_settings'),
       script: promptList(const ['settings_speed', 'settings_volume']),
       body: Column(
         mainAxisSize: MainAxisSize.min,
@@ -107,6 +108,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               padding: const EdgeInsets.only(top: 8),
               child: OutlinedButton.icon(
                 key: const ValueKey('log-out'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.red,
+                  side: const BorderSide(color: Color(0xFFF2C2BE), width: 2),
+                ),
                 icon: const Icon(AppIcons.logout),
                 label: Text(t('log_out')),
                 onPressed: () => context.push(Routes.settingsLogout),
@@ -160,13 +165,15 @@ class _Section extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+    decoration: AppDecor.card(),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 10),
         child,
       ],
     ),
@@ -193,27 +200,38 @@ class _Choices<T> extends StatelessWidget {
   final List<String> labels;
   final Future<void> Function(T value) onChosen;
 
+  /// Room for the three pictures and their rings; on a narrower card the row shrinks as a whole.
+  static const _rowWidth = 300.0;
+
   @override
-  Widget build(BuildContext context) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: [
-      for (var i = 0; i < values.length; i++)
-        Container(
-          padding: const EdgeInsets.all(5),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: values[i] == selected ? AppColors.green : Colors.transparent, width: 5),
-          ),
-          child: BigIconButton(
-            key: ValueKey('$keyPrefix-${ids[i]}'),
-            icon: icons[i],
-            semanticLabel: labels[i],
-            color: values[i] == selected ? AppColors.green : AppColors.card,
-            foreground: values[i] == selected ? Colors.white : AppColors.ink,
-            size: 72,
-            onPressed: () => onChosen(values[i]),
-          ),
+  Widget build(BuildContext context) => Center(
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      child: SizedBox(
+        width: _rowWidth,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            for (var i = 0; i < values.length; i++)
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: values[i] == selected ? AppColors.green : Colors.transparent, width: 4),
+                ),
+                child: BigIconButton(
+                  key: ValueKey('$keyPrefix-${ids[i]}'),
+                  icon: icons[i],
+                  semanticLabel: labels[i],
+                  color: values[i] == selected ? AppColors.green : AppColors.card,
+                  foreground: values[i] == selected ? Colors.white : AppColors.ink,
+                  size: 72,
+                  onPressed: () => onChosen(values[i]),
+                ),
+              ),
+          ],
         ),
-    ],
+      ),
+    ),
   );
 }

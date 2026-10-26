@@ -5,6 +5,7 @@ on:
     paths: ['mobile/**', 'voice/**', '.github/workflows/mobile.yml']
   pull_request:
     paths: ['mobile/**', 'voice/**', '.github/workflows/mobile.yml']
+  workflow_dispatch:          # build an APK on demand (Actions tab, or `gh workflow run mobile`)
 
 # Least privilege: the job only reads the repository (no token write scopes, no secrets are used).
 permissions:
@@ -36,4 +37,32 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test
-      # An APK or IPA build needs the Android SDK / Xcode: not done here (see docs/design-notes/mobile1.md).
+
+  # Android APK (arm64, release mode) built on the runner's preinstalled Android SDK, so no developer PC needs the SDK.
+  # Server address: the app default (API_BASE_URL; changeable in the app). Signed with the runner's throwaway debug key, so a
+  # new APK cannot be installed over one from another run: uninstall the old app first. An IPA needs Xcode: not done here.
+  build-apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.7'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build apk --release --target-platform android-arm64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FarmTrack-apk
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14

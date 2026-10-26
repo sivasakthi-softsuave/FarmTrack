@@ -25,15 +25,11 @@ class OldInfoBanner extends ConsumerWidget {
     final theme = Theme.of(context).textTheme;
     return Container(
       key: const ValueKey('field-old'),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.amberSoft,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.amberDark, width: 3),
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: AppDecor.panel(AppColors.amberSoft, AppColors.amberDark),
       child: Row(
         children: [
-          const Icon(Icons.history_rounded, size: 40, color: Color(0xFF8A5A00)),
+          const Icon(Icons.history_rounded, size: 32, color: AppColors.amberDark),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -95,12 +91,11 @@ class ReadingTiles extends ConsumerWidget {
                 child: Material(
                   key: ValueKey('reading-${tile.id}'),
                   color: AppColors.card,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(color: tile.color, width: 3),
-                  ),
+                  elevation: 2,
+                  shadowColor: AppColors.shadow,
+                  shape: AppDecor.shape(AppDecor.side(tile.color)),
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(Dimens.radius),
                     onTap: () {
                       Haptics.tap();
                       onSpeak('${t(tile.labelKey)}, ${t(tile.wordKey)}');
@@ -112,8 +107,16 @@ class ReadingTiles extends ConsumerWidget {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(tile.icon, size: 48, color: tile.color),
-                            const SizedBox(height: 4),
+                            Container(
+                              width: 52,
+                              height: 52,
+                              decoration: BoxDecoration(
+                                color: tile.color.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(tile.icon, size: 32, color: tile.color),
+                            ),
+                            const SizedBox(height: 6),
                             FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
@@ -170,12 +173,8 @@ class RiskCard extends ConsumerWidget {
     return Container(
       key: ValueKey('risk-${risk.id}'),
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.severitySoft(level),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.severityAccent(level), width: 3),
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: AppDecor.panel(AppColors.severitySoft(level), AppColors.severityAccent(level)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -202,7 +201,8 @@ class RiskCard extends ConsumerWidget {
             key: ValueKey('risk-speak-${risk.id}'),
             icon: AppIcons.speaker,
             semanticLabel: t('field_listen_card'),
-            color: AppColors.blue,
+            color: AppColors.card,
+            foreground: AppColors.green,
             size: Dimens.minTouch,
             onPressed: onSpeak,
           ),
@@ -242,13 +242,9 @@ class ForecastStrip extends ConsumerWidget {
                   child: Container(
                     key: ValueKey('forecast-${day.day}'),
                     width: 84,
-                    margin: const EdgeInsets.only(right: 8),
+                    margin: const EdgeInsets.only(right: 8, bottom: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.card,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.line, width: 2),
-                    ),
+                    decoration: AppDecor.card(radius: 16),
                     child: Column(
                       children: [
                         FittedBox(

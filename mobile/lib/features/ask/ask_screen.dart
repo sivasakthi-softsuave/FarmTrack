@@ -43,6 +43,7 @@ class AskScreen extends ConsumerWidget {
     );
 
     return VoiceScaffold(
+      title: t('home_ask_label'),
       script: promptList(const ['ask_intro', 'ask_tap_picture']),
       body: Column(
         mainAxisSize: MainAxisSize.min,
@@ -102,7 +103,7 @@ class _OwnQuestionButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                const Icon(Icons.keyboard_rounded, size: 56, color: Colors.white),
+                const Icon(Icons.keyboard_rounded, size: 40, color: Colors.white),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text(label, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
@@ -128,7 +129,12 @@ class _SuggestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final picture = Icon(icon, size: 52, color: AppColors.blue);
+    final picture = Container(
+      width: 56,
+      height: 56,
+      decoration: const BoxDecoration(color: AppColors.blueSoft, shape: BoxShape.circle),
+      child: Icon(icon, size: 32, color: AppColors.blue),
+    );
     final words = Text(
       label,
       textAlign: wide ? TextAlign.start : TextAlign.center,
@@ -141,10 +147,8 @@ class _SuggestionCard extends StatelessWidget {
       child: Material(
         color: AppColors.card,
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimens.radius),
-          side: const BorderSide(color: AppColors.blue, width: 3),
-        ),
+        shadowColor: AppColors.shadow,
+        shape: AppDecor.shape(AppDecor.side(AppColors.blue)),
         child: InkWell(
           borderRadius: BorderRadius.circular(Dimens.radius),
           onTap: () {

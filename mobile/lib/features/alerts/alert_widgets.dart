@@ -33,12 +33,15 @@ class AlertCard extends ConsumerWidget {
     return Material(
       key: ValueKey('alert-${alert.id}'),
       color: unread ? AppColors.severitySoft(alert.level) : AppColors.card,
+      // A read alert is a plain white card with a soft shadow; an unread one keeps its thick coloured border.
+      elevation: unread ? 0 : 2,
+      shadowColor: AppColors.shadow,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Dimens.radius),
         side: BorderSide(color: unread ? AppColors.severityAccent(alert.level) : AppColors.line, width: unread ? 4 : 2),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(Dimens.radius),
         onTap: () {
           Haptics.tap();
           onTap();
@@ -46,7 +49,7 @@ class AlertCard extends ConsumerWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 96),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(14),
             child: Row(
               children: [
                 Container(
@@ -66,7 +69,7 @@ class AlertCard extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.titleMedium?.copyWith(fontWeight: unread ? FontWeight.w800 : FontWeight.w500),
                       ),
-                      if (date.isNotEmpty) Text(date, style: theme.bodyMedium),
+                      if (date.isNotEmpty) Text(date, style: theme.bodyMedium?.copyWith(color: AppColors.inkSoft)),
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 8,
@@ -87,7 +90,7 @@ class AlertCard extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Icon(AppIcons.greenArrow, size: 32, color: AppColors.green),
+                const Icon(AppIcons.greenArrow, size: 28, color: AppColors.green),
               ],
             ),
           ),

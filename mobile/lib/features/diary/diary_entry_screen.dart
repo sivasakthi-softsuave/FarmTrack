@@ -355,21 +355,21 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
             buildCounter: (context, {required currentLength, required isFocused, required maxLength}) => null,
             decoration: InputDecoration(
               hintText: t('diary_medicine_hint'),
-              prefixIcon: const Icon(AppIcons.medicine, size: 32, color: AppColors.blue),
+              prefixIcon: const Icon(AppIcons.medicine, size: 28, color: AppColors.blue),
               filled: true,
               fillColor: AppColors.card,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20),
-                borderSide: const BorderSide(color: AppColors.blue, width: 3),
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFFC9D3C6), width: 2),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20),
-                borderSide: const BorderSide(color: AppColors.blue, width: 3),
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: Color(0xFFC9D3C6), width: 2),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20),
-                borderSide: const BorderSide(color: AppColors.green, width: 4),
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: AppColors.green, width: 3),
               ),
             ),
             onChanged: (_) => setState(() {}),
@@ -686,12 +686,11 @@ class _RecentName extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: AppColors.card,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-      side: const BorderSide(color: AppColors.blue, width: 2),
-    ),
+    elevation: 2,
+    shadowColor: AppColors.shadow,
+    shape: AppDecor.shape(AppDecor.side(AppColors.blue)),
     child: InkWell(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(Dimens.radius),
       onTap: () {
         Haptics.tap();
         onTap();
@@ -723,12 +722,11 @@ class _NameCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: AppColors.card,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-      side: const BorderSide(color: AppColors.blue, width: 2),
-    ),
+    elevation: 2,
+    shadowColor: AppColors.shadow,
+    shape: AppDecor.shape(AppDecor.side(AppColors.blue)),
     child: InkWell(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(Dimens.radius),
       onTap: onTap,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 88),

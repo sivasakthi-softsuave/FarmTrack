@@ -77,6 +77,7 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
 
     return VoiceScaffold(
       owner: _owner,
+      title: t('home_diary_label'),
       script: script,
       speakEnabled: !loading,
       onBack: _back,

@@ -150,17 +150,16 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
+    padding: const EdgeInsets.only(bottom: 10),
     child: Semantics(
       button: true,
       label: label,
       excludeSemantics: true,
       child: Material(
         color: background,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimens.radius),
-          side: BorderSide(color: border, width: 3),
-        ),
+        elevation: background == AppColors.card ? 2 : 0,
+        shadowColor: AppColors.shadow,
+        shape: AppDecor.shape(AppDecor.side(border)),
         child: InkWell(
           borderRadius: BorderRadius.circular(Dimens.radius),
           onTap: onTap == null
@@ -172,7 +171,7 @@ class _Card extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: Dimens.minTouch),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               child: Row(
                 children: [
                   icon,

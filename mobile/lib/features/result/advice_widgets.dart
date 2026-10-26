@@ -11,7 +11,8 @@ IconData severityIcon(Severity s) => switch (s) {
   Severity.red => AppIcons.danger,
 };
 
-/// The coloured band at the top of an advice: colour and picture carry the urgency before any word is read.
+/// The panel at the top of an advice: colour and picture carry the urgency before any word is read. A soft panel of the
+/// severity colour, the picture in a full-colour circle, the severity word as a small tag and the disease name large.
 class SeverityBand extends ConsumerWidget {
   const SeverityBand({super.key, required this.severity, required this.headline});
 
@@ -21,37 +22,36 @@ class SeverityBand extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(stringsProvider);
-    final fg = AppColors.onSeverity(severity);
+    final theme = Theme.of(context).textTheme;
+    final accent = AppColors.severityAccent(severity);
     return Container(
       key: ValueKey('severity-${severity.wire}'),
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.severity(severity),
-        borderRadius: BorderRadius.circular(Dimens.radius),
-      ),
+      padding: const EdgeInsets.all(14),
+      decoration: AppDecor.panel(AppColors.severitySoft(severity), accent),
       child: Row(
         children: [
           Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(color: fg.withValues(alpha: 0.18), shape: BoxShape.circle),
-            child: Icon(severityIcon(severity), size: 38, color: fg),
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(color: AppColors.severity(severity), shape: BoxShape.circle),
+            child: Icon(severityIcon(severity), size: 34, color: AppColors.onSeverity(severity)),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  t('severity_${severity.wire}'),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: fg),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(999)),
+                  child: Text(
+                    t('severity_${severity.wire}'),
+                    style: theme.labelLarge?.copyWith(fontSize: 14, color: accent),
+                  ),
                 ),
-                Text(
-                  headline,
-                  key: const ValueKey('advice-headline'),
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: fg),
-                ),
+                const SizedBox(height: 4),
+                Text(headline, key: const ValueKey('advice-headline'), style: theme.headlineMedium),
               ],
             ),
           ),
@@ -72,16 +72,16 @@ class WarningTile extends StatelessWidget {
     final color = level == Severity.red ? AppColors.red : AppColors.amberDark;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.severitySoft(level == Severity.red ? Severity.red : Severity.yellow),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color, width: 2),
+      padding: const EdgeInsets.all(14),
+      decoration: AppDecor.panel(
+        AppColors.severitySoft(level == Severity.red ? Severity.red : Severity.yellow),
+        color,
+        radius: 16,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(level == Severity.red ? AppIcons.danger : AppIcons.warning, size: 36, color: color),
+          Icon(level == Severity.red ? AppIcons.danger : AppIcons.warning, size: 30, color: color),
           const SizedBox(width: 12),
           Expanded(child: Text(text, style: Theme.of(context).textTheme.bodyLarge)),
         ],
@@ -102,7 +102,7 @@ class _IconLine extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Icon(icon, size: 32, color: color),
+      Icon(icon, size: 28, color: color),
       const SizedBox(width: 12),
       Expanded(
         child: Text(
@@ -134,21 +134,17 @@ class ProductCard extends ConsumerWidget {
       key: ValueKey('product-${product.productId}'),
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.blue, width: 2),
-      ),
+      decoration: AppDecor.card(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 52,
+                height: 52,
                 decoration: const BoxDecoration(color: AppColors.blueSoft, shape: BoxShape.circle),
-                child: const Icon(AppIcons.medicine, size: 34, color: AppColors.blue),
+                child: const Icon(AppIcons.medicine, size: 30, color: AppColors.blue),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -156,13 +152,14 @@ class ProductCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(product.activeIngredient.forLang(lang), style: Theme.of(context).textTheme.titleLarge),
-                    if (brand.isNotEmpty) Text(brand, style: Theme.of(context).textTheme.bodyLarge),
+                    if (brand.isNotEmpty)
+                      Text(brand, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.inkSoft)),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
           _IconLine(
             icon: Icons.water_drop_rounded,
             text: dose.isNotEmpty
@@ -228,11 +225,7 @@ class _AdviceCardsState extends ConsumerState<AdviceCards> {
           Container(
             key: const ValueKey('advice-timing'),
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.greenSoft,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.green, width: 2),
-            ),
+            decoration: AppDecor.panel(AppColors.greenSoft, AppColors.green, radius: 16),
             child: _IconLine(
               icon: timingIcon(timing.action),
               text: '${t('advice_when')}: ${timing.text.forLang(lang)}',
@@ -267,13 +260,13 @@ class _AdviceCardsState extends ConsumerState<AdviceCards> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 36,
+                    height: 36,
                     alignment: Alignment.center,
-                    decoration: const BoxDecoration(color: AppColors.ink, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
                     child: Text(
                       '${i + 1}',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -306,13 +299,10 @@ class _MoreButton extends ConsumerWidget {
       excludeSemantics: true,
       child: Material(
         key: const ValueKey('advice-more'),
-        color: AppColors.blueSoft,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(Dimens.radius),
-          side: const BorderSide(color: AppColors.blue, width: 2),
-        ),
+        color: AppColors.card,
+        shape: AppDecor.shape(const BorderSide(color: AppColors.line, width: 2), radius: 18),
         child: InkWell(
-          borderRadius: BorderRadius.circular(Dimens.radius),
+          borderRadius: BorderRadius.circular(18),
           onTap: onTap,
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: Dimens.minTouch),
@@ -353,13 +343,13 @@ class SprayStatusChip extends StatelessWidget {
       excludeSemantics: true,
       child: Container(
         key: ValueKey(waiting ? 'sprayed-waiting' : 'sprayed-done'),
-        height: 72,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(36)),
+        height: 64,
+        padding: const EdgeInsets.symmetric(horizontal: 22),
+        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(32)),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(waiting ? AppIcons.clock : AppIcons.tick, size: 40, color: Colors.white),
+            Icon(waiting ? AppIcons.clock : AppIcons.tick, size: 32, color: Colors.white),
             const SizedBox(width: 10),
             Text(label, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
           ],
