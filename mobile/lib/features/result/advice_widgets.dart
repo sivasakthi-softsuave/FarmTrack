@@ -346,14 +346,20 @@ class SprayStatusChip extends StatelessWidget {
       child: Container(
         key: ValueKey(waiting ? 'sprayed-waiting' : 'sprayed-done'),
         height: 64,
-        padding: const EdgeInsets.symmetric(horizontal: 22),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
         decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(32)),
+        // It sits beside other buttons: the word shrinks rather than overflow.
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(waiting ? AppIcons.clock : AppIcons.tick, size: 32, color: Colors.white),
-            const SizedBox(width: 10),
-            Text(label, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
+            Icon(waiting ? AppIcons.clock : AppIcons.tick, size: 30, color: Colors.white),
+            const SizedBox(width: 8),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
+              ),
+            ),
           ],
         ),
       ),
