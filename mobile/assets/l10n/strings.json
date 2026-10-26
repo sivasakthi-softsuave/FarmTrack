@@ -106,6 +106,8 @@
     "login_show_password": {"en": "Show password", "hi": "पासवर्ड दिखाएँ"},
     "login_hide_password": {"en": "Hide password", "hi": "पासवर्ड छिपाएँ"},
     "a11y_login": {"en": "Log in", "hi": "लॉग इन"},
+    "login_welcome": {"en": "Welcome. Please log in to come in.", "hi": "स्वागत है। अंदर आने के लिए कृपया लॉग इन कीजिए।"},
+    "login_server_change": {"en": "Change", "hi": "बदलिए"},
     "offline_waiting_card": {"en": "Waiting to send: {n}", "hi": "भेजने के लिए रुके हैं: {n}"},
     "offline_result_card": {"en": "Result ready: tap to see", "hi": "नतीजा आ गया: देखने के लिए दबाइए"},
     "last_result_card": {"en": "Last advice: {date}", "hi": "पिछली सलाह: {date}"},

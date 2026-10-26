@@ -102,29 +102,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(stringsProvider);
+    final theme = Theme.of(context).textTheme;
+    // The picture gives way to the fields while the keyboard is up.
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     return VoiceScaffold(
       owner: _owner,
       script: promptList(const ['login_intro', 'login_ask_username', 'login_ask_password', 'login_tap_tick']),
       onBack: () => context.go(Routes.welcome),
+      flatTopBar: true,
+      titleWidget: _Logo(name: t('app_name')),
+      alignTop: true,
+      wideAction: true,
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ExcludeSemantics(
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(color: AppColors.brand, borderRadius: BorderRadius.circular(14)),
-                  child: const Icon(AppIcons.leaf, size: 28, color: Colors.white),
-                ),
-                const SizedBox(width: 12),
-                Expanded(child: Text(t('app_name'), style: Theme.of(context).textTheme.headlineMedium)),
-              ],
+          if (!keyboardOpen) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(Dimens.radius),
+              child: const SizedBox(height: 140, child: CustomPaint(painter: _HillsPainter())),
             ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 18),
+          ],
+          Text(t('a11y_login'), style: theme.headlineMedium),
+          const SizedBox(height: 2),
+          Text(t('login_welcome'), style: theme.bodyLarge?.copyWith(color: AppColors.inkSoft)),
+          const SizedBox(height: 18),
           _FieldLabel(icon: AppIcons.person, text: t('login_username_label')),
           const SizedBox(height: 8),
           Semantics(
@@ -149,42 +152,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SizedBox(height: 16),
           _FieldLabel(icon: AppIcons.lock, text: t('login_password_label')),
           const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Semantics(
-                  label: t('login_password_label'),
-                  child: TextField(
-                    key: const ValueKey('login-password'),
-                    controller: _password,
-                    focusNode: _passwordFocus,
-                    autofocus: _username.text.isNotEmpty,
-                    enabled: !_busy,
-                    obscureText: _hidden,
-                    // Plain letters and numbers, no suggestions or learned words.
-                    keyboardType: TextInputType.visiblePassword,
-                    textInputAction: TextInputAction.done,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    maxLength: 128,
-                    style: Theme.of(context).textTheme.titleMedium,
-                    decoration: _decoration(),
-                    onSubmitted: (_) => _submit(),
+          Semantics(
+            label: t('login_password_label'),
+            child: TextField(
+              key: const ValueKey('login-password'),
+              controller: _password,
+              focusNode: _passwordFocus,
+              autofocus: _username.text.isNotEmpty,
+              enabled: !_busy,
+              obscureText: _hidden,
+              // Plain letters and numbers, no suggestions or learned words.
+              keyboardType: TextInputType.visiblePassword,
+              textInputAction: TextInputAction.done,
+              autocorrect: false,
+              enableSuggestions: false,
+              maxLength: 128,
+              style: Theme.of(context).textTheme.titleMedium,
+              // The eye sits inside the box, at its right end.
+              decoration: _decoration().copyWith(
+                suffixIcon: Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: BigIconButton(
+                    key: const ValueKey('login-eye'),
+                    icon: _hidden ? AppIcons.eye : AppIcons.eyeOff,
+                    semanticLabel: t(_hidden ? 'login_show_password' : 'login_hide_password'),
+                    color: AppColors.neutralSoft,
+                    foreground: AppColors.ink,
+                    size: Dimens.minTouch,
+                    onPressed: _toggleHidden,
                   ),
                 ),
+                suffixIconConstraints: const BoxConstraints(minWidth: 60, minHeight: Dimens.minTouch),
               ),
-              const SizedBox(width: 8),
-              BigIconButton(
-                key: const ValueKey('login-eye'),
-                icon: _hidden ? AppIcons.eye : AppIcons.eyeOff,
-                semanticLabel: t(_hidden ? 'login_show_password' : 'login_hide_password'),
-                color: AppColors.card,
-                foreground: AppColors.ink,
-                size: 72,
-                onPressed: _toggleHidden,
-              ),
-            ],
+              onSubmitted: (_) => _submit(),
+            ),
           ),
           if (_busy) const Padding(padding: EdgeInsets.only(top: 16), child: LinearProgressIndicator()),
           // Only against a real server: which PC or server the test phone talks to (never shown with the demo mock).
@@ -193,7 +194,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
       bottomRight: TickButton(
         key: const ValueKey('login-submit'),
-        size: 72,
+        size: 64,
         showLabel: true,
         semanticLabel: t('a11y_login'),
         onPressed: _busy ? null : _submit,
@@ -254,15 +255,95 @@ class _ServerLink extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(stringsProvider);
     final url = ref.watch(apiBaseUrlProvider);
+    final small = Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14);
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: TextButton.icon(
+      padding: const EdgeInsets.only(top: 8),
+      child: TextButton(
         key: const ValueKey('server-link'),
-        style: TextButton.styleFrom(minimumSize: const Size(64, 56), foregroundColor: AppColors.inkSoft),
+        style: TextButton.styleFrom(
+          minimumSize: const Size(64, 56),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          foregroundColor: AppColors.inkSoft,
+        ),
         onPressed: enabled ? () => showServerDialog(context, ref) : null,
-        icon: const Icon(Icons.dns_rounded),
-        label: Text('${t('login_server')}: $url', overflow: TextOverflow.ellipsis, maxLines: 1),
+        child: Row(
+          children: [
+            const Icon(Icons.dns_rounded, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('${t('login_server')}: $url', overflow: TextOverflow.ellipsis, maxLines: 1, style: small),
+            ),
+            const SizedBox(width: 8),
+            Text(t('login_server_change'), style: small?.copyWith(color: AppColors.blue, fontWeight: FontWeight.w700)),
+          ],
+        ),
       ),
     );
   }
+}
+
+/// The FarmTrack mark in the top bar: a leaf on a deep-green tile and the name.
+class _Logo extends StatelessWidget {
+  const _Logo({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(color: AppColors.brand, borderRadius: BorderRadius.circular(14)),
+          child: const Icon(AppIcons.leaf, size: 26, color: Colors.white),
+        ),
+        const SizedBox(width: 10),
+        Text(name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+      ],
+    ),
+  );
+}
+
+/// Green hills with a few apple trees and a sun: the login picture (drawn, so it costs no download).
+class _HillsPainter extends CustomPainter {
+  const _HillsPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    canvas.drawRect(Offset.zero & size, Paint()..color = AppColors.greenSoft);
+    canvas.drawCircle(Offset(w * 0.77, h * 0.32), h * 0.15, Paint()..color = const Color(0xFFF2C94C));
+    final far = Path()
+      ..moveTo(0, h * 0.73)
+      ..cubicTo(w * 0.17, h * 0.47, w * 0.31, h * 0.47, w * 0.49, h * 0.67)
+      ..cubicTo(w * 0.66, h * 0.82, w * 0.83, h * 0.55, w, h * 0.63)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(far, Paint()..color = const Color(0xFF9CCFA8));
+    final near = Path()
+      ..moveTo(0, h * 0.87)
+      ..cubicTo(w * 0.2, h * 0.67, w * 0.4, h * 0.73, w * 0.57, h * 0.83)
+      ..cubicTo(w * 0.74, h * 0.92, w * 0.86, h * 0.75, w, h * 0.8)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(near, Paint()..color = const Color(0xFF4E9F62));
+    final trunk = Paint()..color = const Color(0xFF6B4E2E);
+    final crown = Paint()..color = AppColors.green;
+    final apple = Paint()..color = AppColors.red;
+    for (final (x, y, r) in const [(0.2, 0.64, 0.08), (0.3, 0.61, 0.067), (0.69, 0.65, 0.08)]) {
+      final c = Offset(w * x, h * y);
+      canvas.drawRect(Rect.fromLTWH(c.dx - 2, c.dy + h * r * 0.6, 4, h * r * 1.1), trunk);
+      canvas.drawCircle(c, h * r, crown);
+      canvas.drawCircle(c + Offset(-h * r * 0.35, -h * r * 0.2), h * 0.014, apple);
+      canvas.drawCircle(c + Offset(h * r * 0.4, h * r * 0.25), h * 0.014, apple);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_HillsPainter oldDelegate) => false;
 }

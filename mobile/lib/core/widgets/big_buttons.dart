@@ -152,24 +152,35 @@ class PillButton extends StatelessWidget {
                   onPressed!();
                 }
               : null,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: height, minWidth: height * 2),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: height * 0.4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, size: height * 0.5, color: fg),
-                  const SizedBox(width: 10),
-                  Text(
-                    label,
-                    maxLines: 1,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(color: fg, fontWeight: FontWeight.w800),
+          // Natural width in an action row; the whole width (the word shrinks if it must) in a wide strip.
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final word = Text(
+                label,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(color: fg, fontWeight: FontWeight.w800),
+              );
+              return ConstrainedBox(
+                constraints: BoxConstraints(minHeight: height, minWidth: height * 2),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: height * 0.4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: height * 0.5, color: fg),
+                      const SizedBox(width: 10),
+                      if (constraints.hasBoundedWidth)
+                        Flexible(
+                          child: FittedBox(fit: BoxFit.scaleDown, child: word),
+                        )
+                      else
+                        word,
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ),
       ),
