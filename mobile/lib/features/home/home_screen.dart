@@ -331,7 +331,10 @@ class _FieldSummary extends ConsumerWidget {
                                   style: theme.bodyMedium?.copyWith(color: AppColors.inkSoft),
                                 ),
                               ),
-                              FittedBox(fit: BoxFit.scaleDown, child: Text(t(tile.wordKey), style: theme.titleMedium)),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(t(tile.wordKey), style: theme.titleMedium),
+                              ),
                             ],
                           ),
                         ),

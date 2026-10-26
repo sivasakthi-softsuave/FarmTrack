@@ -165,6 +165,11 @@ class _Viewfinder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final height = (MediaQuery.sizeOf(context).height * 0.42).clamp(200.0, 360.0);
+    // The tip keeps to two lines at any text size, so the picture keeps its room.
+    return MediaQuery.withClampedTextScaling(maxScaleFactor: 1.3, child: _frame(context, height));
+  }
+
+  Widget _frame(BuildContext context, double height) {
     return ExcludeSemantics(
       child: Container(
         height: height,
@@ -190,6 +195,8 @@ class _Viewfinder extends StatelessWidget {
                     Flexible(
                       child: Text(
                         tip,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14, color: Colors.white),
                       ),

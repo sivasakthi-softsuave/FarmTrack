@@ -204,7 +204,7 @@ class _Card extends StatelessWidget {
 }
 
 /// The last advice as a card: a picture of its severity, the disease name, the severity word and the day, and a tick
-/// once it was written into the diary. A result without a medicine advice says "Last advice: <day>".
+/// once it was written into the diary. A result without a medicine advice says "Last advice: `day`".
 class _LastAdviceCard extends ConsumerWidget {
   const _LastAdviceCard({super.key, required this.last, required this.sprayed, required this.onTap});
 

@@ -203,8 +203,7 @@ class VoiceScaffold extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (action != null && !floating)
-                _ActionStrip(wide: wideAction, maxHeight: maxAction, child: action),
+              if (action != null && !floating) _ActionStrip(wide: wideAction, maxHeight: maxAction, child: action),
               ?nav,
             ],
           ),
@@ -247,8 +246,14 @@ class _ActionStrip extends StatelessWidget {
   }
 }
 
-const _stripDecoration = BoxDecoration(color: AppColors.card, border: Border(top: BorderSide(color: AppColors.line)));
-const _barDecoration = BoxDecoration(color: AppColors.card, border: Border(bottom: BorderSide(color: AppColors.line)));
+const _stripDecoration = BoxDecoration(
+  color: AppColors.card,
+  border: Border(top: BorderSide(color: AppColors.line)),
+);
+const _barDecoration = BoxDecoration(
+  color: AppColors.card,
+  border: Border(bottom: BorderSide(color: AppColors.line)),
+);
 const _flatDecoration = BoxDecoration(color: AppColors.paper);
 
 /// The bar on top of an ordinary screen: back arrow, title, the screen's own buttons, the speaker. White with a

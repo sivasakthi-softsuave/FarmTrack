@@ -274,7 +274,10 @@ class _ServerLink extends ConsumerWidget {
               child: Text('${t('login_server')}: $url', overflow: TextOverflow.ellipsis, maxLines: 1, style: small),
             ),
             const SizedBox(width: 8),
-            Text(t('login_server_change'), style: small?.copyWith(color: AppColors.blue, fontWeight: FontWeight.w700)),
+            Text(
+              t('login_server_change'),
+              style: small?.copyWith(color: AppColors.blue, fontWeight: FontWeight.w700),
+            ),
           ],
         ),
       ),
