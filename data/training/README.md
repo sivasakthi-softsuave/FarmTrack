@@ -92,3 +92,21 @@ expert-review guards on.
 
 `output/apple_leaf_v1/model_card.md` has the data, licences, metrics and limits. In short: tiny and curated data; each class comes largely
 from a different imaging source (so the model may partly learn the source, not the disease); field accuracy is unknown and lower.
+
+## v2: one model for the five MVP crops (26 Oct 2026, Kaggle GPU)
+
+`train_leaf_v2_kaggle.py` trains `farmtrack_leaf_v2`: ConvNeXt-Tiny fully fine-tuned, 29 classes (apple 8, tomato 10, potato 3,
+maize 4, grape 4), labels = catalogue ids. It runs as a Kaggle notebook with GPU and internet on and three datasets attached as
+**Datasets** (not notebooks) in the notebook's Input panel: `bhataakib02/apple-disease-dataset`,
+`nirmalsankalana/plant-diseases-training-dataset`, `nirmalsankalana/plantdoc-dataset`. (Attaching through the Kaggle API/MCP did not
+work; attach them once in the Kaggle editor.) About 50 minutes on a T4. Output: `output/farmtrack_leaf_v2/` (weights not committed;
+`config.json`, `metrics.json`, `class_counts.csv`, `model_card.md` are).
+
+```
+DISEASE_PROVIDER=model
+DISEASE_MODEL_DIR=D:\FarmTracker\FarmTrack\data	raining\outputarmtrack_leaf_v2
+```
+
+The backend uses it for every crop it has classes of; other crops still use model A. **Read `output/farmtrack_leaf_v2/model_card.md`
+first:** near-perfect on lab-like photos, about 2 in 3 right on field photos (PlantDoc test), about 1 in 2 on the Kashmir orchard photos;
+part of the training data has unclear licence terms (internal demo only).
