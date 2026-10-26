@@ -93,7 +93,9 @@ class ModelDiseaseClassifier:
         self._a = model_a
         self._b = model_b
         self._apple_a_weight = apple_a_weight
-        self._apple_local = apple_local          # locally trained apple model (DISEASE_MODEL_DIR): replaces A+B for apple
+        # Locally trained model (DISEASE_MODEL_DIR): answers instead of A (and B) for every crop it has two or more classes of.
+        # apple_leaf_v1 knows apple only; farmtrack_leaf_v2 knows apple, tomato, potato, maize and grape.
+        self._apple_local = apple_local
         self._apple_local_name = apple_local_name
 
     def covers(self, crop_id: str) -> bool:
@@ -104,8 +106,8 @@ class ModelDiseaseClassifier:
         if not covers_crop(crop):
             return DiseaseResult(crop_id=crop, disease_id=None, model="none", model_covers_crop=False)
         pictures = decode_all(images)
-        if crop in B_COVERED_CROPS and self._apple_local is not None:
-            return self._result(crop, self._local_apple(pictures), self._apple_local_name)
+        if self._apple_local is not None and len(pv_labels_for(crop, list(self._apple_local.labels))) >= 2:
+            return self._result(crop, self._local(pictures, crop), self._apple_local_name)
         dist = self._model_a(pictures, crop)
         model = MODEL_A.short
         if crop in B_COVERED_CROPS:
@@ -122,14 +124,20 @@ class ModelDiseaseClassifier:
         return DiseaseResult(crop_id=crop, disease_id=ranked[0][0], confidence=candidates[0].confidence, candidates=candidates,
                              model=model, model_covers_crop=True)
 
-    def _local_apple(self, pictures: list[Image.Image]) -> dict[str, float]:
-        """The locally trained model: its labels ARE catalogue ids (train_apple.py writes them), averaged over the photos."""
+    def _local(self, pictures: list[Image.Image], crop: str) -> dict[str, float]:
+        """The locally trained model: its labels ARE catalogue ids (the training scripts write them). The classes of the crop are
+        renormalised per photo (the same crop mask as model A; a one-crop model is unchanged by it), then averaged."""
         assert self._apple_local is not None
         raw = list(self._apple_local.labels)
-        vectors = self._apple_local.predict_proba(pictures)
-        for probs in vectors:
+        wanted = set(pv_labels_for(crop, raw))
+        index = [i for i, label in enumerate(raw) if label in wanted]
+        per_photo: list[list[float]] = []
+        for probs in self._apple_local.predict_proba(pictures):
             check_distribution(probs, raw)
-        return dict(zip(raw, mean_vectors(vectors), strict=True))
+            masked = [probs[i] for i in index]
+            total = sum(masked)
+            per_photo.append([p / total for p in masked] if total > 1e-12 else [1.0 / len(index)] * len(index))
+        return {raw[i]: p for i, p in zip(index, mean_vectors(per_photo), strict=True)}
 
     def _model_a(self, pictures: list[Image.Image], crop: str) -> dict[str, float]:
         labels = list(self._a.labels)

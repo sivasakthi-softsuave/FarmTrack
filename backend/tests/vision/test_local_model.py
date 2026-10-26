@@ -1,4 +1,4 @@
-"""DISEASE_MODEL_DIR: a locally trained apple model (data/training/train_apple.py) answers for apple instead of the downloaded A+B mix.
+"""DISEASE_MODEL_DIR: a locally trained model (train_apple.py, train_leaf_v2_kaggle.py) answers for its crops instead of A (+B).
 
 Fake models only, except two tests that need torch/timm (skipped without the `ml` extras) and one that needs the exported folder
 (skipped when data/training/output/apple_leaf_v1 does not exist)."""
@@ -44,6 +44,23 @@ def test_local_model_answers_for_apple_and_a_still_answers_other_crops():
     assert (apple.disease_id, apple.model, apple.model_covers_crop) == ("Apple___Marssonina_blotch", "local:apple_leaf_v1", True)
     assert abs(sum(c.confidence for c in apple.candidates) - 1.0) < 0.01
     assert clf.classify(photo_bytes(), "Tomato").disease_id == "Tomato___Late_blight"
+
+
+def test_a_multi_crop_local_model_answers_for_each_of_its_crops_within_that_crop():
+    multi = LOCAL + ["Tomato___Late_blight", "Tomato___healthy", "Corn_(maize)___Common_rust_", "Corn_(maize)___healthy"]
+    a = FakeClassifier(PV_LABELS, distribution(PV_LABELS, {"Potato___Early_blight": 0.9}))
+    b = FakeClassifier(["Healthy"], [1.0])
+    # Most of the mass on a tomato class: for a photo said to be maize, only the maize classes count.
+    local = FakeClassifier(multi, distribution(multi, {"Tomato___Late_blight": 0.6, "Corn_(maize)___Common_rust_": 0.3}))
+    clf = ModelDiseaseClassifier(a, b, apple_local=local, apple_local_name="local:farmtrack_leaf_v2")
+    maize = clf.classify(photo_bytes(), "Maize")
+    assert (maize.disease_id, maize.model) == ("Corn_(maize)___Common_rust_", "local:farmtrack_leaf_v2")
+    assert {c.disease_id for c in maize.candidates} <= {"Corn_(maize)___Common_rust_", "Corn_(maize)___healthy"}
+    assert abs(sum(c.confidence for c in maize.candidates) - 1.0) < 0.01
+    assert clf.classify(photo_bytes(), "Tomato").disease_id == "Tomato___Late_blight"
+    # A crop the local model does not know still goes to model A.
+    potato = clf.classify(photo_bytes(), "Potato")
+    assert potato.disease_id == "Potato___Early_blight" and potato.model != "local:farmtrack_leaf_v2"
 
 
 def test_factory_uses_the_configured_dir(monkeypatch, tmp_path):

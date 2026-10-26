@@ -213,3 +213,20 @@ result: `data/training/output/apple_leaf_v1/` (weights not committed, rebuilt by
   (Less / कम देखें); `last_result_card` shortened (Last advice: {date} / पिछली सलाह: {date}). No voice prompt was added or changed.
 - **Backend/voice requests:** `result_next_diary` ("tap the notebook picture") is no longer used by the app; the backend may stop returning it (fixtures still have it).
 - **Not seen on a screen:** expert result, saved-offline, retake, alert detail, language/settings at 320 dp (layout covered only by the widget audit tests); real phone, real TTS.
+
+## I. Leaf model v2 for the five MVP crops (26 Oct 2026, trained on Kaggle)
+The owner asked for a model for the FarmTrack use case, trained with the Kaggle MCP. Result: `data/training/output/farmtrack_leaf_v2/`
+(29 catalogue classes for apple, tomato, potato, maize, grape; ConvNeXt-Tiny fine-tuned on a Kaggle T4; script
+`data/training/train_leaf_v2_kaggle.py`; card `model_card.md`). Backend change: a `DISEASE_MODEL_DIR` model now answers for every crop
+it has two or more classes of (crop mask as for model A), not only apple; `apple_leaf_v1` behaves as before.
+- **Field accuracy is the real number:** PlantDoc test (176 web photos of real plants, never trained on) 0.65 top-1, 0.69 disease
+  within the right crop, 0.94 crop; Kashmir orchard photos (62) 0.55 within crop, apple scab 7/24 (mostly called black rot).
+  Lab-like sources 0.96 to 1.00. Small samples: a direction, not a measure.
+- **Confidence is now informative** (PlantDoc test: >= 0.9 right 92 %, < 0.7 about 40 %), unlike the earlier models. Candidate for the
+  expert-queue threshold once measured on Himachal photos.
+- **Licences (decision needed):** FGVC7/8 (Kaggle competition data) and PlantVillage terms are unclear; the model is an internal demo
+  model until reviewed. Retraining without them is possible (would drop most apple field photos).
+- **Labels still unconfirmed** (brown spot = Marssonina, Kashmir leaf blotch = Alternaria, frogeye = black rot, rust = cedar rust).
+  Marssonina comes from one source only.
+- **Not done:** the model was not loaded in the backend on this PC (torch not installed here); the weights' tensor names and shapes
+  and the labels were checked. Not run on `data/images/testset_v1` (not in this checkout). Not published as a Kaggle Model.
