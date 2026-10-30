@@ -65,6 +65,17 @@ abstract interface class ApiClient {
   Future<List<SprayLogOut>> listSprayLogs({int limit = 50});
 
   Future<FieldOut> field();
+
+  /// `GET /v1/weather`: live weather for a place the farmer picked on the map (the shape of My field, without sensors and risks).
+  Future<FieldOut> weatherAt(double lat, double lon);
+
+  /// `GET /v1/places/search`: a state, district, town or village by name. Call it when the farmer submits the search, never on
+  /// every key press (the public OpenStreetMap search forbids that).
+  Future<PlaceSearchOut> searchPlaces(String query, {String lang = 'en', int limit = 5});
+
+  /// `GET /v1/places/reverse`: the named area a point lies in (the nearest village, its tehsil, district and state), so that a touch
+  /// on the map or the phone's position is shown by its real name. A 404 `place_not_found` means nothing is known there.
+  Future<PlaceOut> reversePlace(double lat, double lon, {String lang = 'en'});
   Future<AlertListOut> listAlerts({int limit = 30});
   Future<AlertOut> markAlertRead(String alertId);
   Future<void> registerDevice(DeviceIn device);

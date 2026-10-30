@@ -81,6 +81,10 @@ class Dimens {
 
   /// The round picture buttons of the top bars, as drawn in the mockup.
   static const ibtn = 48.0;
+
+  /// The same buttons drawn a little smaller where three of them share one line (the Home header: alerts, settings, voice).
+  /// Their tap area stays [minTouch].
+  static const compactIbtn = 40.0;
   static const primary = 96.0;
   static const hero = 148.0;
   static const gutter = 16.0;
@@ -91,6 +95,9 @@ class Dimens {
   static const topBar = 64.0;
   static const actionButton = 60.0;
   static const nav = 80.0;
+
+  /// How far the camera circle of the navigation bar rises above the bar.
+  static const navRise = 26.0;
 }
 
 /// The card look shared by every screen: white cards with a soft shadow on the light ground, and tinted panels with a

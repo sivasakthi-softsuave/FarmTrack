@@ -12,7 +12,9 @@ import '../../core/widgets/voice_scaffold.dart';
 import 'result_prompts.dart';
 import 'scan_flow.dart';
 
-/// The photo was not usable: speaks what was wrong (blurry, dark, far, no leaf) and offers the camera again.
+/// The photo was not usable: speaks what was wrong (blurry, dark, far, no leaf) and offers the camera again. It is also
+/// where a leaf the system could not identify ends (the farmer is never asked to pick a crop): "I cannot identify this
+/// leaf, please give another photo".
 ///
 /// An amber card (a warning, as in the mockup's advice) with the picture of the problem and the sentence the voice speaks;
 /// the one action is the green camera button.
@@ -28,10 +30,17 @@ class RetakeScreen extends ConsumerWidget {
     final issues = scan?.quality.issues ?? const <String>[];
     final tip = qualityTipPrompt(scan?.quality, catalogue);
     final retake = pickPrompt(scan?.promptsFor(NextAction.retake) ?? const [], 'scan_retake_tap', catalogue);
-    final reason = catalogue.text(tip, lang);
+    final unknown = scan != null && cropNotIdentified(scan);
+    final title = t(unknown ? 'retake_unknown_title' : 'retake_title');
+    final reason = unknown ? t('retake_unknown_hint') : catalogue.text(tip, lang);
 
     return VoiceScaffold(
-      script: promptList([tip, retake]),
+      script: unknown
+          ? [
+              TextUtterance('$title${lang == 'hi' ? '।' : '.'} $reason', lang: lang),
+              ...promptList([retake]),
+            ]
+          : promptList([tip, retake]),
       onBack: () => context.go(Routes.home),
       body: AppCard(
         color: AppColors.amberSoft,
@@ -42,7 +51,7 @@ class RetakeScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconDot(
-              _issueIcon(issues),
+              unknown ? AppIcons.leaf : _issueIcon(issues),
               key: const ValueKey('retake-issue'),
               background: AppColors.amber,
               foreground: AppColors.ink,
@@ -51,7 +60,7 @@ class RetakeScreen extends ConsumerWidget {
               iconSize: 38,
             ),
             const SizedBox(height: 12),
-            Text(t('retake_title'), textAlign: TextAlign.center, style: AppText.big),
+            Text(title, key: const ValueKey('retake-title'), textAlign: TextAlign.center, style: AppText.big),
             if (reason.isNotEmpty) ...[
               const SizedBox(height: 6),
               // The amber card's text colour of the mockup (`#3B3320`).

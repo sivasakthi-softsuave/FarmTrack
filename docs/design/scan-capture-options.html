@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Take Photos Options</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600;700;800&family=Noto+Sans+Devanagari:wght@400;600;700;800&display=swap">
+<style>
+/* Layout concept: a review sheet. A short intro, then a wrapping grid of cards: the current screen first, options A to E after it.
+   Each card = name + code-change meter, one 360x790 phone drawn from the app's own tokens, and three lines on what changes. */
+:root{
+  --bg:#F3F6F1; --fg:#17201A; --muted:#4F5B52; --card:#FFFFFF; --line:#E1E7DE;
+  --accent:#1B7F3A; --accent-ink:#1B7F3A; --accent-soft:#E3F2E7;
+  /* The app's own tokens (ui-redesign-mockup.html / app_theme.dart). They paint the phones, so they do not follow the page theme. */
+  --ground:#0E1510; --panel:#0B110D; --frame:#16261A; --sun:#F2C94C; --green:#1B7F3A; --red:#C62828;
+  --glass:rgba(255,255,255,.14); --mint:#7BE08F;
+  --paper:#F3F6F1; --ink:#17201A; --ink-soft:#4F5B52; --green-soft:#E3F2E7; --amber-soft:#FFF3D1; --amber-dark:#8A5A00;
+  --app-line:#E1E7DE; --neutral:#EEF2EC; --dashed:#B9C4BB; --chevron:#8A958C;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#0D130F;--fg:#E7EEE8;--muted:#A7B4AA;--card:#17201A;--line:#26332A;--accent-ink:#7BD48F;--accent-soft:#1B2E21;color-scheme:dark}
+}
+:root[data-theme="dark"]{--bg:#0D130F;--fg:#E7EEE8;--muted:#A7B4AA;--card:#17201A;--line:#26332A;--accent-ink:#7BD48F;--accent-soft:#1B2E21;color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);margin:0;font:15px/1.5 "Noto Sans","Noto Sans Devanagari",system-ui,sans-serif}
+button{font-family:inherit}
+:focus-visible{outline:3px solid var(--accent-ink);outline-offset:2px}
+
+/* ---------- page chrome ---------- */
+.page{max-width:1300px;margin-inline:auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:clamp(26px,4vw,38px);line-height:1.15;font-weight:800;margin:6px 0 12px;text-wrap:balance}
+.lead{max-width:68ch;color:var(--muted);font-size:16px;margin:0}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;margin:22px 0 26px}
+.bar span.k{font-weight:700;font-size:14px}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;padding:3px;background:var(--card)}
+.seg button{border:0;background:none;padding:6px 18px;min-height:40px;border-radius:999px;font-weight:700;font-size:15px;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,396px),1fr));gap:24px}
+.opt{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;min-width:0;display:flex;flex-direction:column;gap:14px}
+.opt header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.opt h2{margin:0;font-size:19px;font-weight:800;line-height:1.25;flex:1;min-width:0}
+.tag{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;flex:none}
+.tag.now{width:auto;padding:0 12px;border-radius:999px;font-size:13px;background:var(--line);color:var(--fg)}
+.meter{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.meter i{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--muted)}
+.meter i.on{background:var(--accent-ink);border-color:var(--accent-ink)}
+.meter span{margin-left:3px}
+.idea{margin:0;font-weight:600;font-size:15px}
+.notes{margin:0;padding:0;list-style:none;display:grid;gap:9px;font-size:14.5px;color:var(--fg)}
+.notes li{position:relative;padding-left:18px}
+.notes li::before{content:"";position:absolute;left:3px;top:.62em;width:6px;height:6px;border-radius:50%;background:var(--accent-ink)}
+.notes li.warn::before{background:var(--muted)}
+.same{margin-top:28px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px 22px}
+.same h2{margin:0 0 8px;font-size:18px;font-weight:800}
+.same ul{margin:0;padding-left:20px;display:grid;gap:6px;max-width:80ch}
+.next{margin-top:18px;font-weight:600}
+
+/* ---------- phone shell ---------- */
+.stage{width:min(100%,360px);height:calc(790px*var(--s,1));margin-inline:auto}
+.phone{width:360px;height:790px;transform:scale(var(--s,1));transform-origin:0 0;position:relative;overflow:hidden;border-radius:30px;background:var(--ground);color:#fff;font-family:"Noto Sans","Noto Sans Devanagari",sans-serif;font-size:14px;line-height:1.35;box-shadow:0 0 0 1px var(--line),0 16px 36px rgba(16,40,24,.16)}
+.phone.light{background:var(--paper);color:var(--ink)}
+.phone *{box-sizing:border-box}
+.screen{position:relative;z-index:1;height:100%;display:flex;flex-direction:column}
+.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.i.s{width:18px;height:18px}
+.i.xs{width:13px;height:13px;stroke-width:3}
+.i.l{width:26px;height:26px}
+
+.sb{height:24px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 18px;font-size:12px;font-weight:600}
+.sb .r{display:flex;gap:5px;align-items:center}
+.sb .r i{width:11px;height:11px;border-radius:50%;background:currentColor;opacity:.75}
+.sb .r i.b{width:21px;height:11px;border-radius:3px;opacity:.9}
+
+.top{height:56px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
+.ibtn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--glass);color:#fff}
+.ibtn.white{background:#fff;color:var(--red)}
+.pillg{background:var(--glass);border-radius:999px;padding:7px 14px;font-weight:700;font-size:13px}
+.cap{margin:0 12px 8px;flex:none;display:flex;gap:12px;align-items:center;padding:10px 14px;border-radius:16px;background:rgba(255,255,255,.09);font-size:14px;line-height:1.3}
+.cap .wf{color:var(--mint)}
+.cap .x{margin-left:auto;opacity:.7}
+.zone{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+
+/* viewfinder frame */
+.vf{position:relative;width:300px;height:340px;border-radius:24px;background:var(--frame);flex:none}
+.vf .in{position:absolute;inset:0;border-radius:24px;overflow:hidden}
+.art{position:absolute;inset:0;width:100%;height:100%}
+.corners{position:absolute;inset:-6px;pointer-events:none}
+.corners i{position:absolute;width:32px;height:32px;border:4px solid #fff}
+.corners i:nth-child(1){left:0;top:0;border-right:0;border-bottom:0;border-top-left-radius:13px}
+.corners i:nth-child(2){right:0;top:0;border-left:0;border-bottom:0;border-top-right-radius:13px}
+.corners i:nth-child(3){left:0;bottom:0;border-right:0;border-top:0;border-bottom-left-radius:13px}
+.corners i:nth-child(4){right:0;bottom:0;border-left:0;border-top:0;border-bottom-right-radius:13px}
+.tip{display:inline-flex;align-items:center;gap:7px;background:rgba(0,0,0,.5);border-radius:999px;padding:8px 14px;font-weight:700;font-size:14px;white-space:nowrap}
+.tip .i{color:var(--sun)}
+
+/* bottom panel, photo strip, controls */
+.panel{flex:none;background:var(--panel);border-radius:28px 28px 0 0;padding:14px 16px 22px}
+.strip{display:flex;align-items:center;gap:10px;height:60px}
+.tile{width:60px;height:60px;border-radius:14px;flex:none;display:grid;place-items:center;border:2px dashed rgba(255,255,255,.35);font-weight:700;font-size:18px;color:rgba(255,255,255,.3)}
+.tile.empty{border-color:rgba(255,255,255,.17)}
+.strip .hint{margin-left:auto;font-size:13px;color:rgba(255,255,255,.75);text-align:right}
+.cnt{margin-left:auto;display:grid;justify-items:end;line-height:1.1;font-size:12px;color:rgba(255,255,255,.7)}
+.cnt b{font-size:19px;color:#fff;font-weight:800}
+.controls{display:flex;justify-content:space-between;align-items:center;padding:0 6px;margin-top:14px}
+.cbtn{width:72px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12.5px;color:rgba(255,255,255,.85)}
+.round{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--glass);color:#fff}
+.round.green{background:var(--green)}
+.round.off{opacity:.4}
+.shutter{width:88px;height:88px;border-radius:50%;border:5px solid #fff;display:grid;place-items:center}
+.shutter::after{content:"";width:68px;height:68px;border-radius:50%;background:#fff}
+
+/* ---------- A: alive frame + tip chips ---------- */
+#pA .vf{background:radial-gradient(ellipse at 50% 38%,#25422f 0%,#16261A 62%,#101b13 100%)}
+#pA .dots{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.08) 1px,transparent 1.3px);background-size:18px 18px}
+#pA .leaf{animation:floaty 6s ease-in-out infinite}
+#pA .scan{position:absolute;left:12px;right:12px;top:50%;height:3px;border-radius:3px;opacity:0;background:linear-gradient(90deg,transparent,#8CE8A0,transparent);box-shadow:0 0 14px 4px rgba(123,224,143,.35);animation:sweep 3.4s ease-in-out infinite}
+#pA .rw{position:absolute;inset:0;animation:ph1 9s infinite}
+#pA .ring{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:2.5px solid var(--sun);animation:ping 1.8s ease-out infinite}
+#pA .ring.b{animation-delay:.6s}
+#pA .glow{position:absolute;inset:0;opacity:0;background:radial-gradient(circle at 88% 6%,rgba(242,201,76,.6),transparent 55%);animation:ph3 9s infinite}
+#pA .corners{animation:breathe 9s ease-in-out infinite}
+#pA .zone{gap:14px}
+.tips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 16px;width:100%}
+.tc{display:flex;flex-direction:column;align-items:center;gap:7px;padding:10px 6px 10px;border-radius:16px;background:rgba(255,255,255,.07);border:1.5px solid transparent;text-align:center;font-size:12.5px;font-weight:600;line-height:1.25}
+.tc .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.1)}
+.tc .ic.sun{color:var(--sun)}
+.tc:nth-child(1){animation:tc1 9s infinite}
+.tc:nth-child(2){animation:tc2 9s infinite}
+.tc:nth-child(3){animation:tc3 9s infinite}
+@keyframes floaty{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-5px) rotate(1.2deg)}}
+@keyframes sweep{0%{top:6%;opacity:0}12%{opacity:1}88%{opacity:1}100%{top:94%;opacity:0}}
+@keyframes ping{0%{transform:scale(.55);opacity:.95}80%,100%{transform:scale(1.9);opacity:0}}
+@keyframes ph1{0%,31%{opacity:1}36%,100%{opacity:0}}
+@keyframes ph3{0%,64%{opacity:0}70%,94%{opacity:1}100%{opacity:0}}
+@keyframes breathe{0%,33%{transform:scale(1)}42%,60%{transform:scale(.94)}70%,100%{transform:scale(1)}}
+@keyframes tc1{0%,31%{background:rgba(95,209,122,.2);border-color:rgba(123,224,143,.9)}36%,100%{background:rgba(255,255,255,.07);border-color:transparent}}
+@keyframes tc2{0%,31%{background:rgba(255,255,255,.07);border-color:transparent}36%,64%{background:rgba(95,209,122,.2);border-color:rgba(123,224,143,.9)}70%,100%{background:rgba(255,255,255,.07);border-color:transparent}}
+@keyframes tc3{0%,64%{background:rgba(255,255,255,.07);border-color:transparent}70%,94%{background:rgba(95,209,122,.2);border-color:rgba(123,224,143,.9)}100%{background:rgba(255,255,255,.07);border-color:transparent}}
+
+/* ---------- B: camera feel ---------- */
+#pB .cam{position:absolute;inset:0;overflow:hidden;background:linear-gradient(#101c14,#0b130d)}
+#pB .bk{position:absolute;border-radius:50%;filter:blur(22px)}
+#pB .b1{width:210px;height:210px;left:-50px;top:80px;background:rgba(62,142,74,.55)}
+#pB .b2{width:180px;height:180px;right:-40px;top:250px;background:rgba(44,107,55,.65)}
+#pB .b3{width:150px;height:150px;left:50px;top:430px;background:rgba(95,170,105,.35)}
+#pB .b4{width:120px;height:120px;right:30px;top:100px;background:rgba(242,201,76,.2)}
+#pB .cap{background:rgba(14,21,16,.55);backdrop-filter:blur(6px)}
+#pB .zoneB{flex:1;position:relative;margin:8px 24px 4px;min-height:0}
+#pB .thirds{position:absolute;inset:0;background-image:linear-gradient(to right,transparent calc(33.33% - .5px),rgba(255,255,255,.16) calc(33.33% - .5px),rgba(255,255,255,.16) calc(33.33% + .5px),transparent calc(33.33% + .5px),transparent calc(66.66% - .5px),rgba(255,255,255,.16) calc(66.66% - .5px),rgba(255,255,255,.16) calc(66.66% + .5px),transparent calc(66.66% + .5px)),linear-gradient(to bottom,transparent calc(33.33% - .5px),rgba(255,255,255,.16) calc(33.33% - .5px),rgba(255,255,255,.16) calc(33.33% + .5px),transparent calc(33.33% + .5px),transparent calc(66.66% - .5px),rgba(255,255,255,.16) calc(66.66% - .5px),rgba(255,255,255,.16) calc(66.66% + .5px),transparent calc(66.66% + .5px))}
+#pB .ghost{position:absolute;left:50%;top:50%;width:276px;height:313px;transform:translate(-50%,-50%) rotate(-6deg)}
+#pB .ghost path.o{animation:march 5s linear infinite}
+#pB .focus{position:absolute;left:60%;top:57%;width:60px;height:60px;margin:-30px 0 0 -30px;border:2px solid var(--sun);border-radius:12px;animation:focus 3.2s ease-out infinite}
+#pB .fchip{position:absolute;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:7px;white-space:nowrap;background:rgba(0,0,0,.52);backdrop-filter:blur(6px);border-radius:999px;padding:7px 14px;font-weight:700;font-size:13.5px}
+#pB .fchip.top{top:14px}
+#pB .fchip.bot{bottom:14px}
+#pB .fchip .sunc{color:var(--sun)}
+#pB .dock{flex:none;padding:30px 16px 22px;background:linear-gradient(rgba(11,17,13,0),rgba(11,17,13,.93) 34%)}
+#pB .mini{display:flex;gap:8px;align-items:center;justify-content:center}
+#pB .mini .tile{width:44px;height:44px;border-radius:12px;font-size:15px}
+#pB .mini .cnt2{margin-left:8px;font-weight:800;font-size:15px;color:rgba(255,255,255,.8)}
+#pB .controls{margin-top:12px}
+@keyframes march{to{stroke-dashoffset:-36}}
+@keyframes focus{0%{transform:scale(1.7);opacity:0}25%{opacity:1}55%,100%{transform:scale(1);opacity:.9}}
+
+/* ---------- C: good / not good ---------- */
+#pC .zone{gap:10px;justify-content:flex-start;padding-top:10px}
+#pC .vf{height:286px}
+.lbl{align-self:flex-start;padding:6px 20px 0;font-size:13px;font-weight:700;letter-spacing:.52px;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.exrow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 16px;width:100%}
+.ex{border-radius:16px;padding:6px 6px 8px;text-align:center;font-size:12.5px;font-weight:700;display:flex;flex-direction:column;gap:6px}
+.ex.good{background:rgba(27,127,58,.28);border:1.5px solid rgba(123,224,143,.75)}
+.ex.bad{background:rgba(198,40,40,.18);border:1.5px solid rgba(240,120,112,.5)}
+.th{position:relative;height:74px;border-radius:11px;overflow:hidden;background:#1f3d27}
+.th.dark{background:#080c09}
+.th svg.pic{position:absolute;inset:0;width:100%;height:100%}
+.th.blur svg.pic{filter:blur(2.6px)}
+.th.dark svg.pic{filter:brightness(.38)}
+.bdg{position:absolute;right:4px;top:4px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff}
+.bdg.ok{background:var(--green)}
+.bdg.no{background:var(--red)}
+.th .sunb{position:absolute;left:5px;top:5px;color:var(--sun)}
+
+/* ---------- D: step cards ---------- */
+#pD .zone{gap:12px;justify-content:flex-start;padding-top:8px}
+#pD .vf{height:322px}
+#pD .artD{transition:transform .5s ease;transform-origin:50% 55%}
+#pD .corners{transition:transform .5s ease}
+#pD[data-step="2"] .artD{transform:scale(1.12)}
+#pD[data-step="2"] .corners{transform:scale(.93)}
+.hl{position:absolute;inset:0;opacity:0;transition:opacity .35s}
+#pD[data-step="1"] .h1,#pD[data-step="3"] .h3,#pD[data-step="4"] .h4{opacity:1}
+#pD .h1 .ring{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:2.5px solid var(--sun);animation:ping 1.8s ease-out infinite}
+#pD .h4{background:radial-gradient(circle at 88% 6%,rgba(242,201,76,.6),transparent 55%)}
+#pD .h4 .i{position:absolute;right:14px;top:14px;color:var(--sun);width:30px;height:30px}
+#pD .h3 .tick{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:inline-flex;gap:6px;align-items:center;background:var(--green);border-radius:999px;padding:5px 12px 5px 8px;font-weight:700;font-size:13px}
+.stepcard{width:328px;flex:none;border-radius:22px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);padding:14px}
+.sc{display:flex;gap:12px;align-items:center;min-height:74px}
+.sc .big{width:54px;height:54px;border-radius:50%;background:var(--green);display:grid;place-items:center;flex:none}
+.sc .big.sun{background:rgba(242,201,76,.2);color:var(--sun)}
+.sc small{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mint);margin-bottom:3px}
+.sc p{margin:0;font-size:17px;font-weight:700;line-height:1.3}
+.eq{display:inline-flex;gap:2px;align-items:center;height:12px}
+.eq i{width:3px;height:100%;border-radius:2px;background:var(--mint);transform-origin:50% 50%;animation:eq 1s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:.2s}.eq i:nth-child(3){animation-delay:.4s}.eq i:nth-child(4){animation-delay:.1s}
+@keyframes eq{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+.stepfoot{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.dts{display:flex;gap:6px}
+.dt{width:10px;height:10px;border-radius:999px;border:0;padding:0;background:rgba(255,255,255,.3);cursor:pointer;position:relative;transition:width .25s}
+.dt::after{content:"";position:absolute;inset:-18px -6px}
+.dt[aria-current="true"]{width:26px;background:var(--mint)}
+.replay{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px 0 12px;border-radius:999px;border:0;background:var(--glass);color:#fff;font-weight:700;font-size:14px;cursor:pointer}
+
+/* ---------- E: light, like the other screens ---------- */
+.light .sb{color:var(--ink)}
+.tb{height:64px;flex:none;background:#fff;display:flex;align-items:center;gap:12px;padding:0 12px;box-shadow:0 1px 0 var(--app-line)}
+.tb .ib{width:48px;height:48px;border-radius:50%;background:var(--neutral);display:grid;place-items:center;color:var(--ink);flex:none}
+.tb h3{margin:0;font-size:20px;font-weight:700;flex:1;line-height:1.3}
+.eb{flex:1;min-height:0;padding:12px 16px 0;display:flex;flex-direction:column;gap:10px}
+.card{background:#fff;border-radius:20px;box-shadow:0 1px 2px rgba(16,40,24,.06),0 6px 18px rgba(16,40,24,.07)}
+.cap.lt{margin:0;background:var(--green-soft);border:1px solid rgba(27,127,58,.25);color:var(--ink)}
+.cap.lt .wf{color:var(--green)}
+.hero{padding:10px;flex:none}
+.vfE{position:relative;height:188px;border-radius:16px;background:radial-gradient(ellipse at 50% 40%,#25422f,#16261A 66%);overflow:hidden}
+.vfE .scan{position:absolute;left:10px;right:10px;top:50%;height:3px;border-radius:3px;opacity:0;background:linear-gradient(90deg,transparent,#8CE8A0,transparent);box-shadow:0 0 14px 4px rgba(123,224,143,.35);animation:sweep 3.4s ease-in-out infinite}
+.vfE .leafE{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-7deg) scale(.96)}
+.vfE .corners{inset:8px}
+.vfE .corners i{width:26px;height:26px;border-width:3.5px}
+.vfE .hintE{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:inline-flex;gap:7px;align-items:center;white-space:nowrap;background:rgba(0,0,0,.5);border-radius:999px;padding:6px 12px;color:#fff;font-weight:700;font-size:13px}
+.lblE{font-size:13px;font-weight:700;letter-spacing:.52px;text-transform:uppercase;color:var(--ink-soft);padding:2px 4px 0}
+.rows{flex:none}
+.row{display:flex;gap:12px;align-items:center;padding:9px 14px;min-height:56px}
+.row+.row{border-top:1px solid var(--app-line)}
+.ric{width:40px;height:40px;border-radius:50%;background:var(--green-soft);color:var(--green);display:grid;place-items:center;flex:none}
+.ric.sun{background:var(--amber-soft);color:var(--amber-dark)}
+.row p{margin:0;font-size:15px;font-weight:600;line-height:1.35}
+.slotsE{padding:12px 14px;display:flex;align-items:center;gap:8px;flex:none}
+.slotsE .tl{width:50px;height:50px;border-radius:14px;border:2px dashed var(--dashed);display:grid;place-items:center;color:var(--chevron);font-weight:700;font-size:16px}
+.slotsE .tl.first{border-color:var(--green);color:var(--green)}
+.slotsE .c{margin-left:auto;text-align:right;line-height:1.15;font-size:12px;color:var(--ink-soft)}
+.slotsE .c b{display:block;font-size:19px;color:var(--ink);font-weight:800}
+.act{display:flex;gap:10px;padding:0 16px 22px;flex:none}
+.btn{height:60px;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700;font-size:18px;border:0}
+.btn.sec{background:#fff;color:var(--ink);padding:0 18px;border:1.5px solid var(--app-line)}
+.btn.pri{flex:1;background:var(--green);color:#fff}
+
+@media (prefers-reduced-motion: reduce){
+  .phone *,.phone *::before,.phone *::after{animation:none!important;transition:none!important}
+}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+    <symbol id="i-spk" viewBox="0 0 24 24"><path d="M4 9.5v5h4l5 4v-13l-5 4H4z"/><path d="M16.5 9a4.2 4.2 0 010 6M19 6.5a8 8 0 010 11"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5v5h4l5 4v-13l-5 4H4z"/><path d="M17 9.5l4.5 5M21.5 9.5l-4.5 5"/></symbol>
+    <symbol id="i-gal" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.7"/><path d="M20.5 16l-5-5-8 8"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19C5 10 10 5 20 5c0 10-5 15-14 15"/><path d="M5 19c3-5 6-8 10-10"/></symbol>
+    <symbol id="i-spots" viewBox="0 0 24 24"><path d="M5 19C5 10 10 5 20 5c0 10-5 15-14 15"/><circle cx="12.5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.8" r="1" fill="currentColor" stroke="none"/><circle cx="9.5" cy="15.5" r="1" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></symbol>
+    <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z"/><circle cx="12" cy="13" r="3.6"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 9V5.5A1.5 1.5 0 015.5 4H9M15 4h3.5A1.5 1.5 0 0120 5.5V9M20 15v3.5a1.5 1.5 0 01-1.5 1.5H15M9 20H5.5A1.5 1.5 0 014 18.5V15"/><path d="M9 15.5c0-3.5 2-5.5 6-5.5 0 4-2 6-5.500 6"/></symbol>
+    <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M10.5 7.8v5.4M7.8 10.5h5.4"/></symbol>
+    <symbol id="i-wave" viewBox="0 0 24 24"><path d="M4 10v4M8 6v12M12 9v6M16 4v16M20 10v4"/></symbol>
+    <g id="leafg">
+      <path d="M150 40C230 80 250 190 160 300C70 250 50 120 150 40Z" fill="#3E8E4A"/>
+      <g fill="none" stroke="#2C6B37" stroke-linecap="round">
+        <path d="M150 52L158 296" stroke-width="4"/>
+        <path d="M152 120L205 95M154 170L218 150M156 220L205 215M151 140L100 115M153 195L90 175M155 245L110 240" stroke-width="2.5"/>
+      </g>
+      <g fill="#5B4630" fill-opacity=".9"><circle cx="190" cy="130" r="9"/><circle cx="120" cy="160" r="7"/><circle cx="175" cy="200" r="11"/><circle cx="125" cy="225" r="6"/><circle cx="200" cy="175" r="5"/></g>
+    </g>
+  </defs>
+</svg>
+
+<main class="page">
+  <div class="eyebrow">FarmTrack · Take photos screen</div>
+  <h1>Five ways to fill the Take photos screen</h1>
+  <p class="lead">Every design uses the app's own colors, Noto Sans, round buttons and 56 dp touch targets, and keeps the voice sentences that already exist. Nothing in the Flutter code has changed. Tell me a letter, or a mix such as "A's chips with D's step card", and I will build that one.</p>
+  <div class="bar" role="group" aria-label="Language of the app screens">
+    <span class="k">App screens in</span>
+    <span class="seg">
+      <button type="button" id="lang-en" aria-pressed="true">English</button>
+      <button type="button" id="lang-hi" aria-pressed="false">हिन्दी</button>
+    </span>
+  </div>
+
+  <div class="grid">
+
+    <!-- ===== Current ===== -->
+    <article class="opt" id="current">
+      <header><span class="tag now">Now</span><h2>Current screen</h2></header>
+      <p class="idea">Why it feels blank</p>
+      <div class="stage"><div class="phone" id="p0"><div class="screen">
+        <div class="sb"><span>15:05</span><span class="r"><i></i><i></i><i class="b"></i></span></div>
+        <div class="top"><span class="ibtn"><svg class="i"><use href="#i-back"/></svg></span><span class="pillg" data-hi="फोटो 1 / 4">Photo 1 of 4</span><span class="ibtn white"><svg class="i"><use href="#i-mute"/></svg></span></div>
+        <div class="cap"><svg class="i wf"><use href="#i-wave"/></svg><span data-hi="चलिए, पत्ती की फोटो खींचते हैं। बड़ी कैमरे वाली तस्वीर दबाइए।">Let us take a photo of a leaf. Tap the big camera picture.</span><svg class="i x"><use href="#i-x"/></svg></div>
+        <div class="zone">
+          <div class="vf"><div class="in"><svg class="art" viewBox="0 0 300 340"><use href="#leafg"/></svg></div><div class="corners"><i></i><i></i><i></i><i></i></div></div>
+          <span class="tip"><svg class="i s"><use href="#i-sun"/></svg><span data-hi="दिन की रोशनी में फोटो लीजिए।">Take the photo in daylight.</span></span>
+        </div>
+        <div class="panel">
+          <div class="strip"><span class="tile"><svg class="i l"><use href="#i-plus"/></svg></span><span class="hint" data-hi="4 फोटो तक">up to 4 photos</span></div>
+          <div class="controls">
+            <div class="cbtn"><span class="round"><svg class="i"><use href="#i-gal"/></svg></span><span data-hi="गैलरी">Gallery</span></div>
+            <span class="shutter"></span>
+            <div class="cbtn"><span class="round green off"><svg class="i l"><use href="#i-check"/></svg></span><span data-hi="भेजें">Send</span></div>
+          </div>
+        </div>
+      </div></div></div>
+      <ul class="notes">
+        <li>The frame is a flat green box with one leaf picture, and nothing shows where the real leaf should go.</li>
+        <li>The voice gives four tips, but only "daylight" is on screen.</li>
+        <li>The bottom panel holds one plus tile and the words "up to 4 photos", so a third of the screen is empty.</li>
+      </ul>
+    </article>
+
+    <!-- ===== A ===== -->
+    <article class="opt" id="A">
+      <header><span class="tag">A</span><h2>Alive frame with tip chips</h2><span class="meter" aria-label="Code change: small"><i class="on"></i><i></i><i></i><span>Small</span></span></header>
+      <p class="idea">Same screen, but it moves, and the tips are pictures under the frame.</p>
+      <div class="stage"><div class="phone" id="pA"><div class="screen">
+        <div class="sb"><span>15:05</span><span class="r"><i></i><i></i><i class="b"></i></span></div>
+        <div class="top"><span class="ibtn"><svg class="i"><use href="#i-back"/></svg></span><span class="pillg" data-hi="फोटो 1 / 4">Photo 1 of 4</span><span class="ibtn white"><svg class="i"><use href="#i-mute"/></svg></span></div>
+        <div class="cap"><svg class="i wf"><use href="#i-wave"/></svg><span data-hi="चलिए, पत्ती की फोटो खींचते हैं। बड़ी कैमरे वाली तस्वीर दबाइए।">Let us take a photo of a leaf. Tap the big camera picture.</span><svg class="i x"><use href="#i-x"/></svg></div>
+        <div class="zone">
+          <div class="vf">
+            <div class="in">
+              <i class="dots"></i>
+              <svg class="art leaf" viewBox="0 0 300 340"><use href="#leafg"/></svg>
+              <span class="scan"></span>
+              <div class="rw"><span class="ring" style="left:175px;top:200px"></span><span class="ring b" style="left:190px;top:130px"></span></div>
+              <span class="glow"></span>
+            </div>
+            <div class="corners"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="tips">
+            <div class="tc"><span class="ic"><svg class="i"><use href="#i-spots"/></svg></span><span data-hi="दाग वाली एक पत्ती">One leaf with spots</span></div>
+            <div class="tc"><span class="ic"><svg class="i"><use href="#i-zoom"/></svg></span><span data-hi="पास से, पूरी पत्ती">Close, whole leaf</span></div>
+            <div class="tc"><span class="ic sun"><svg class="i"><use href="#i-sun"/></svg></span><span data-hi="दिन की रोशनी">Daylight</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="strip"><span class="tile" style="border-color:rgba(255,255,255,.55);color:#fff"><svg class="i l"><use href="#i-plus"/></svg></span><span class="tile empty">2</span><span class="tile empty">3</span><span class="tile empty">4</span><span class="cnt"><b>0/4</b><span data-hi="फोटो">photos</span></span></div>
+          <div class="controls">
+            <div class="cbtn"><span class="round"><svg class="i"><use href="#i-gal"/></svg></span><span data-hi="गैलरी">Gallery</span></div>
+            <span class="shutter"></span>
+            <div class="cbtn"><span class="round green off"><svg class="i l"><use href="#i-check"/></svg></span><span data-hi="भेजें">Send</span></div>
+          </div>
+        </div>
+      </div></div></div>
+      <ul class="notes">
+        <li>A slow scan line and pulsing rings on the spots make the frame look ready to read a leaf.</li>
+        <li>The three spoken tips become picture chips that light up one after another, like the voice does.</li>
+        <li>Four numbered slots replace the lone plus tile, so "up to 4 photos" needs no words.</li>
+        <li class="warn">Code: a new chips row and slot tiles in the existing photo strip, plus two animations on the frame painter.</li>
+      </ul>
+    </article>
+
+    <!-- ===== B ===== -->
+    <article class="opt" id="B">
+      <header><span class="tag">B</span><h2>Camera feel</h2><span class="meter" aria-label="Code change: medium"><i class="on"></i><i class="on"></i><i></i><span>Medium</span></span></header>
+      <p class="idea">A full-screen viewfinder with a thirds grid and a dashed leaf outline to place the leaf in.</p>
+      <div class="stage"><div class="phone" id="pB">
+        <div class="cam"><i class="bk b1"></i><i class="bk b2"></i><i class="bk b3"></i><i class="bk b4"></i></div>
+        <div class="screen">
+          <div class="sb"><span>15:05</span><span class="r"><i></i><i></i><i class="b"></i></span></div>
+          <div class="top"><span class="ibtn"><svg class="i"><use href="#i-back"/></svg></span><span class="pillg" data-hi="फोटो 1 / 4">Photo 1 of 4</span><span class="ibtn white"><svg class="i"><use href="#i-mute"/></svg></span></div>
+          <div class="cap"><svg class="i wf"><use href="#i-wave"/></svg><span data-hi="चलिए, पत्ती की फोटो खींचते हैं। बड़ी कैमरे वाली तस्वीर दबाइए।">Let us take a photo of a leaf. Tap the big camera picture.</span><svg class="i x"><use href="#i-x"/></svg></div>
+          <div class="zoneB">
+            <i class="thirds"></i>
+            <svg class="ghost" viewBox="0 0 300 340" aria-hidden="true"><path class="o" d="M150 40C230 80 250 190 160 300C70 250 50 120 150 40Z" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.8)" stroke-width="3.5" stroke-dasharray="10 8" stroke-linecap="round"/><path d="M150 52L158 296" stroke="rgba(255,255,255,.45)" stroke-width="2.5" stroke-dasharray="3 9" stroke-linecap="round"/></svg>
+            <span class="focus"></span>
+            <span class="fchip top"><svg class="i s"><use href="#i-scan"/></svg><span data-hi="पूरी पत्ती चौखट में रखिए">Fit the whole leaf inside</span></span>
+            <span class="fchip bot"><svg class="i s sunc"><use href="#i-sun"/></svg><span data-hi="दिन की रोशनी में फोटो लीजिए।">Take the photo in daylight.</span></span>
+            <div class="corners"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="dock">
+            <div class="mini"><span class="tile" style="border-color:rgba(255,255,255,.55);color:#fff"><svg class="i"><use href="#i-plus"/></svg></span><span class="tile empty">2</span><span class="tile empty">3</span><span class="tile empty">4</span><span class="cnt2">0/4</span></div>
+            <div class="controls">
+              <div class="cbtn"><span class="round"><svg class="i"><use href="#i-gal"/></svg></span><span data-hi="गैलरी">Gallery</span></div>
+              <span class="shutter"></span>
+              <div class="cbtn"><span class="round green off"><svg class="i l"><use href="#i-check"/></svg></span><span data-hi="भेजें">Send</span></div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <ul class="notes">
+        <li>The viewfinder fills the screen and the controls sit on a fade, so there is no solid panel and no dead space.</li>
+        <li>A dashed leaf outline shows where to put the leaf; the two floating chips carry two of the tips.</li>
+        <li class="warn">It looks like a live camera, but the shutter still opens the phone's camera app. A real live preview needs the camera plugin, which is a bigger change to test on low-end phones.</li>
+      </ul>
+    </article>
+
+    <!-- ===== C ===== -->
+    <article class="opt" id="C">
+      <header><span class="tag">C</span><h2>Good and not good</h2><span class="meter" aria-label="Code change: medium"><i class="on"></i><i class="on"></i><i></i><span>Medium</span></span></header>
+      <p class="idea">Teach with four small pictures: one good photo and the three usual mistakes.</p>
+      <div class="stage"><div class="phone" id="pC"><div class="screen">
+        <div class="sb"><span>15:05</span><span class="r"><i></i><i></i><i class="b"></i></span></div>
+        <div class="top"><span class="ibtn"><svg class="i"><use href="#i-back"/></svg></span><span class="pillg" data-hi="फोटो 1 / 4">Photo 1 of 4</span><span class="ibtn white"><svg class="i"><use href="#i-mute"/></svg></span></div>
+        <div class="cap"><svg class="i wf"><use href="#i-wave"/></svg><span data-hi="चलिए, पत्ती की फोटो खींचते हैं। बड़ी कैमरे वाली तस्वीर दबाइए।">Let us take a photo of a leaf. Tap the big camera picture.</span><svg class="i x"><use href="#i-x"/></svg></div>
+        <div class="zone">
+          <div class="vf"><div class="in"><svg class="art" viewBox="0 0 300 340" preserveAspectRatio="xMidYMid meet"><use href="#leafg"/></svg></div><div class="corners"><i></i><i></i><i></i><i></i></div></div>
+          <span class="lbl" data-hi="ऐसे लीजिए">How to take it</span>
+          <div class="exrow">
+            <div class="ex good"><div class="th"><svg class="pic" viewBox="45 35 210 255" preserveAspectRatio="xMidYMid slice"><use href="#leafg"/></svg><svg class="i s sunb"><use href="#i-sun"/></svg><span class="bdg ok"><svg class="i xs"><use href="#i-check"/></svg></span></div><span data-hi="सही">Good</span></div>
+            <div class="ex bad"><div class="th"><svg class="pic" viewBox="-170 -150 640 640" preserveAspectRatio="xMidYMid slice"><use href="#leafg"/></svg><span class="bdg no"><svg class="i xs"><use href="#i-x"/></svg></span></div><span data-hi="दूर">Far</span></div>
+            <div class="ex bad"><div class="th dark"><svg class="pic" viewBox="45 35 210 255" preserveAspectRatio="xMidYMid slice"><use href="#leafg"/></svg><span class="bdg no"><svg class="i xs"><use href="#i-x"/></svg></span></div><span data-hi="अंधेरा">Dark</span></div>
+            <div class="ex bad"><div class="th blur"><svg class="pic" viewBox="45 35 210 255" preserveAspectRatio="xMidYMid slice"><use href="#leafg"/></svg><span class="bdg no"><svg class="i xs"><use href="#i-x"/></svg></span></div><span data-hi="धुंधली">Blurry</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="strip"><span class="tile" style="border-color:rgba(255,255,255,.55);color:#fff"><svg class="i l"><use href="#i-plus"/></svg></span><span class="tile empty">2</span><span class="tile empty">3</span><span class="tile empty">4</span><span class="cnt"><b>0/4</b><span data-hi="फोटो">photos</span></span></div>
+          <div class="controls">
+            <div class="cbtn"><span class="round"><svg class="i"><use href="#i-gal"/></svg></span><span data-hi="गैलरी">Gallery</span></div>
+            <span class="shutter"></span>
+            <div class="cbtn"><span class="round green off"><svg class="i l"><use href="#i-check"/></svg></span><span data-hi="भेजें">Send</span></div>
+          </div>
+        </div>
+      </div></div></div>
+      <ul class="notes">
+        <li>It works without reading: green tick for the good photo, red cross for far, dark and blurry, the same meaning colors as the rest of the app.</li>
+        <li>Each picture has one word under it, so the voice can say them in the same order.</li>
+        <li class="warn">Code: the examples are drawn from the leaf we already paint (zoomed, shrunk, dimmed, blurred), so no photo files are added to the app.</li>
+      </ul>
+    </article>
+
+    <!-- ===== D ===== -->
+    <article class="opt" id="D">
+      <header><span class="tag">D</span><h2>Step cards that speak</h2><span class="meter" aria-label="Code change: medium"><i class="on"></i><i class="on"></i><i></i><span>Medium</span></span></header>
+      <p class="idea">One big card follows the voice, and the frame shows what each step means. It moves on by itself; tap a dot to jump.</p>
+      <div class="stage"><div class="phone" id="pD" data-step="1"><div class="screen">
+        <div class="sb"><span>15:05</span><span class="r"><i></i><i></i><i class="b"></i></span></div>
+        <div class="top"><span class="ibtn"><svg class="i"><use href="#i-back"/></svg></span><span class="pillg" data-hi="फोटो 1 / 4">Photo 1 of 4</span><span class="ibtn white"><svg class="i"><use href="#i-mute"/></svg></span></div>
+        <div class="zone">
+          <div class="vf">
+            <div class="in">
+              <svg class="art artD" viewBox="0 0 300 340"><use href="#leafg"/></svg>
+              <div class="hl h1"><span class="ring" style="left:175px;top:200px"></span><span class="ring" style="left:190px;top:130px;animation-delay:.5s"></span><span class="ring" style="left:120px;top:160px;animation-delay:1s"></span></div>
+              <div class="hl h3"><svg class="art" viewBox="0 0 300 340"><path d="M150 40C230 80 250 190 160 300C70 250 50 120 150 40Z" fill="none" stroke="#7BE08F" stroke-width="4" stroke-dasharray="10 8" stroke-linecap="round" transform="translate(-4 -4) scale(1.03)"/></svg><span class="tick"><svg class="i xs"><use href="#i-check"/></svg><span data-hi="पूरी पत्ती">Whole leaf</span></span></div>
+              <div class="hl h4"><svg class="i"><use href="#i-sun"/></svg></div>
+            </div>
+            <div class="corners"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="stepcard">
+            <div class="sc" data-s="1"><span class="big"><svg class="i l"><use href="#i-spots"/></svg></span><div><small><span data-hi="चरण 1 / 4">Step 1 of 4</span><span class="eq"><i></i><i></i><i></i><i></i></span></small><p data-hi="एक ऐसी पत्ती चुनिए जिस पर दाग या खराबी दिखती हो।">Choose one leaf that has spots or damage.</p></div></div>
+            <div class="sc" data-s="2" hidden><span class="big"><svg class="i l"><use href="#i-zoom"/></svg></span><div><small><span data-hi="चरण 2 / 4">Step 2 of 4</span><span class="eq"><i></i><i></i><i></i><i></i></span></small><p data-hi="फोन को पत्ती के पास लाइए।">Hold the phone close to the leaf.</p></div></div>
+            <div class="sc" data-s="3" hidden><span class="big"><svg class="i l"><use href="#i-scan"/></svg></span><div><small><span data-hi="चरण 3 / 4">Step 3 of 4</span><span class="eq"><i></i><i></i><i></i><i></i></span></small><p data-hi="पूरी पत्ती फोटो में दिखनी चाहिए।">Keep the whole leaf in the picture.</p></div></div>
+            <div class="sc" data-s="4" hidden><span class="big sun"><svg class="i l"><use href="#i-sun"/></svg></span><div><small><span data-hi="चरण 4 / 4">Step 4 of 4</span><span class="eq"><i></i><i></i><i></i><i></i></span></small><p data-hi="फोटो दिन की रोशनी में खींचिए।">Take the photo in daylight.</p></div></div>
+            <div class="stepfoot">
+              <div class="dts">
+                <button type="button" class="dt" data-go="1" aria-label="Step 1" aria-current="true"></button>
+                <button type="button" class="dt" data-go="2" aria-label="Step 2"></button>
+                <button type="button" class="dt" data-go="3" aria-label="Step 3"></button>
+                <button type="button" class="dt" data-go="4" aria-label="Step 4"></button>
+              </div>
+              <button type="button" class="replay" id="replay"><svg class="i s"><use href="#i-spk"/></svg><span data-hi="फिर सुनिए">Hear again</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="strip"><span class="tile" style="border-color:rgba(255,255,255,.55);color:#fff"><svg class="i l"><use href="#i-plus"/></svg></span><span class="tile empty">2</span><span class="tile empty">3</span><span class="tile empty">4</span><span class="cnt"><b>0/4</b><span data-hi="फोटो">photos</span></span></div>
+          <div class="controls">
+            <div class="cbtn"><span class="round"><svg class="i"><use href="#i-gal"/></svg></span><span data-hi="गैलरी">Gallery</span></div>
+            <span class="shutter"></span>
+            <div class="cbtn"><span class="round green off"><svg class="i l"><use href="#i-check"/></svg></span><span data-hi="भेजें">Send</span></div>
+          </div>
+        </div>
+      </div></div></div>
+      <ul class="notes">
+        <li>The card replaces the caption banner and the tip pill. It shows the sentence being spoken, with the same wording as the voice prompts.</li>
+        <li>The frame acts out the step: rings on the spots, corners moving in, a dashed outline round the whole leaf, a sun glow.</li>
+        <li class="warn">Code: one "current step" state. I would first check whether the voice service can tell the screen which sentence is playing; if it cannot, the steps move on a timer.</li>
+      </ul>
+    </article>
+
+    <!-- ===== E ===== -->
+    <article class="opt" id="E">
+      <header><span class="tag">E</span><h2>Light, like the other screens</h2><span class="meter" aria-label="Code change: larger"><i class="on"></i><i class="on"></i><i class="on"></i><span>Larger</span></span></header>
+      <p class="idea">A guide page in Home's style: white top bar, paper ground, white cards and a labelled green "Open camera" button.</p>
+      <div class="stage"><div class="phone light" id="pE"><div class="screen">
+        <div class="sb"><span>15:05</span><span class="r"><i></i><i></i><i class="b"></i></span></div>
+        <div class="tb"><span class="ib"><svg class="i"><use href="#i-back"/></svg></span><h3 data-hi="फोटो लीजिए">Take photos</h3><span class="ib"><svg class="i"><use href="#i-spk"/></svg></span></div>
+        <div class="eb">
+          <div class="cap lt"><svg class="i wf"><use href="#i-wave"/></svg><span data-hi="चलिए, पत्ती की फोटो खींचते हैं। बड़ी कैमरे वाली तस्वीर दबाइए।">Let us take a photo of a leaf. Tap the big camera picture.</span></div>
+          <div class="card hero">
+            <div class="vfE">
+              <svg class="leafE" viewBox="0 0 340 300" preserveAspectRatio="xMidYMid meet"><g transform="translate(340 0) rotate(90)"><use href="#leafg"/></g></svg>
+              <span class="scan"></span>
+              <div class="corners"><i></i><i></i><i></i><i></i></div>
+              <span class="hintE"><svg class="i s"><use href="#i-scan"/></svg><span data-hi="पत्ती को कोनों के अंदर रखिए">Keep the leaf inside the corners</span></span>
+            </div>
+          </div>
+          <div class="lblE" data-hi="फोटो लेने से पहले">Before you take it</div>
+          <div class="card rows">
+            <div class="row"><span class="ric"><svg class="i"><use href="#i-spots"/></svg></span><p data-hi="एक ऐसी पत्ती चुनिए जिस पर दाग या खराबी दिखती हो।">Choose one leaf that has spots or damage.</p></div>
+            <div class="row"><span class="ric"><svg class="i"><use href="#i-zoom"/></svg></span><p data-hi="फोन को पत्ती के पास लाइए। पूरी पत्ती फोटो में दिखनी चाहिए।">Hold the phone close. Keep the whole leaf in the picture.</p></div>
+            <div class="row"><span class="ric sun"><svg class="i"><use href="#i-sun"/></svg></span><p data-hi="फोटो दिन की रोशनी में खींचिए।">Take the photo in daylight.</p></div>
+          </div>
+          <div class="card slotsE">
+            <span class="tl first"><svg class="i"><use href="#i-plus"/></svg></span><span class="tl">2</span><span class="tl">3</span><span class="tl">4</span>
+            <span class="c"><b>0/4</b><span data-hi="फोटो">photos</span></span>
+          </div>
+        </div>
+        <div class="act">
+          <span class="btn sec"><svg class="i"><use href="#i-gal"/></svg><span data-hi="गैलरी">Gallery</span></span>
+          <span class="btn pri"><svg class="i l"><use href="#i-cam"/></svg><span data-hi="कैमरा खोलें">Open camera</span></span>
+        </div>
+      </div></div></div>
+      <ul class="notes">
+        <li>Same top bar, ground, cards and button height as Home, Diary and Alerts, so this screen no longer looks like a different app.</li>
+        <li>The farmer reads or hears the three tips before the camera opens; the big green button is the only thing to tap.</li>
+        <li class="warn">It drops the dark camera mood of the approved mockup. The system camera opens right after anyway, so the dark look was never a live preview. Code: the largest change of the five, a new layout for the whole screen.</li>
+      </ul>
+    </article>
+
+  </div>
+
+  <section class="same">
+    <h2>The same in every option</h2>
+    <ul>
+      <li>The spoken caption and the mute button, "Photo 1 of 4", up to four photos, and the same places for Gallery, the shutter and Send.</li>
+      <li>56 dp touch targets, text scaling kept to 1.3 times, and the existing keys, voice prompts and accessibility labels.</li>
+      <li>English and Hindi. Tap हिन्दी above to see the Hindi layout. The new Hindi words in these pictures are drafts for the native-speaker review, as the other new strings are.</li>
+    </ul>
+  </section>
+  <p class="next">Approve one by its letter, or ask for changes: a different tip order, other colors, fewer animations.</p>
+</main>
+
+<script>
+(function () {
+  var stages = document.querySelectorAll('.stage');
+  function fit() {
+    stages.forEach(function (s) { s.style.setProperty('--s', Math.min(1, s.clientWidth / 360)); });
+  }
+  fit();
+  window.addEventListener('resize', fit);
+  if (window.ResizeObserver) { var ro = new ResizeObserver(fit); stages.forEach(function (s) { ro.observe(s); }); }
+
+  /* language of the app screens */
+  var hi = document.querySelectorAll('[data-hi]');
+  var bEn = document.getElementById('lang-en'), bHi = document.getElementById('lang-hi');
+  function setLang(l) {
+    document.documentElement.lang = l === 'hi' ? 'hi' : 'en';
+    hi.forEach(function (e) {
+      if (!('en' in e.dataset)) e.dataset.en = e.textContent;
+      e.textContent = l === 'hi' ? e.dataset.hi : e.dataset.en;
+    });
+    bEn.setAttribute('aria-pressed', String(l === 'en'));
+    bHi.setAttribute('aria-pressed', String(l === 'hi'));
+  }
+  bEn.addEventListener('click', function () { setLang('en'); });
+  bHi.addEventListener('click', function () { setLang('hi'); });
+
+  /* option D: the step card follows the "voice" */
+  var pD = document.getElementById('pD');
+  var cards = pD.querySelectorAll('.sc'), dots = pD.querySelectorAll('.dt');
+  var step = 1, timer = null;
+  var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+  function go(n) {
+    step = n; pD.setAttribute('data-step', n);
+    cards.forEach(function (c) { c.hidden = Number(c.dataset.s) !== n; });
+    dots.forEach(function (d) { d.setAttribute('aria-current', String(Number(d.dataset.go) === n)); });
+  }
+  function play() {
+    clearInterval(timer);
+    if (calm && calm.matches) return;
+    timer = setInterval(function () { go(step % 4 + 1); }, 4500);
+  }
+  dots.forEach(function (d) { d.addEventListener('click', function () { go(Number(d.dataset.go)); play(); }); });
+  document.getElementById('replay').addEventListener('click', function () { go(1); play(); });
+  play();
+})();
+</script>
+
+</body>
+</html>

@@ -224,6 +224,9 @@ class SprayLogOut(BaseModel):
     warnings: list[WarningOut] = Field(default_factory=list)   # e.g. nutrient mixed same day, same chemical repeated; PRODUCT_NOT_RECOGNISED (yellow) when a typed name could not be matched
     synced_to_zoho: bool = False
     spoken: SpokenOut | None = None
+    # The medicine with its dose and waiting period, so the diary can show how to use it: taken from the advice the entry was
+    # written from, else from the approved product list. None for a typed name that is not in the list.
+    product: ProductOut | None = None
 
 
 # ---------------------------------------------------------------------------------------------- field / alerts
@@ -233,6 +236,61 @@ class ReadingsOut(BaseModel):
     rain_24h_mm: float | None = None
     leaf_wetness_min: int | None = None
     soil_moisture_pct: float | None = None
+
+
+class ConditionsOut(BaseModel):
+    """"Current weather" of the hour: what a weather app shows besides the temperature. Every field is optional: None = this source
+    does not know it (the demo CSV archive knows none of it; the air quality can fail on its own). The humidity is `readings.rh_pct`."""
+    sky: str | None = None                  # clear | mostly_clear | partly_cloudy | cloudy | fog | drizzle | rain | heavy_rain | showers | snow | thunderstorm
+    is_day: bool | None = None
+    feels_like_c: float | None = None
+    wind_kmh: float | None = None
+    visibility_km: float | None = None
+    pressure_hpa: float | None = None       # mean sea level, as a weather app shows it
+    dew_point_c: float | None = None
+    aqi: int | None = None                  # US AQI 0-500 (a modelled grid, not a sensor)
+    uv_index: float | None = None           # of the current hour, 0 to 11 or more
+    sunrise: datetime | None = None         # today's, UTC (the app shows them on the phone's clock)
+    sunset: datetime | None = None
+
+
+class HourOut(BaseModel):
+    """One hour of the next hours (`FieldOut.hours`). `time` is UTC; every other field may be unknown (null)."""
+    time: datetime
+    temp_c: float | None = None
+    sky: str | None = None                  # the same words as `conditions.sky`
+    is_day: bool | None = None
+    rain_chance_pct: int | None = None      # 0-100
+    rain_mm: float | None = None
+    wind_kmh: float | None = None
+
+
+SprayStatus = Literal["ok", "care", "stop"]
+
+
+class SprayWindOut(BaseModel):
+    kmh: float | None = None
+    status: SprayStatus
+
+
+class SprayRainOut(BaseModel):
+    dry_hours: int | None = None            # whole hours from now until the first wet hour; null = none in the hours known
+    mm_next_3h: float = 0.0
+    status: SprayStatus
+
+
+class SprayHeatOut(BaseModel):
+    temp_c: float | None = None
+    status: SprayStatus
+
+
+class SprayOut(BaseModel):
+    """"Can I spray today?", the weather part only (wind, rain, heat of the next hours). DRAFT limits: see app/services/spray_weather.py."""
+    state: Literal["go", "care", "stop"]
+    headline: Literal["calm_dry", "windy", "hot", "rain_soon", "raining"]
+    wind: SprayWindOut
+    rain: SprayRainOut
+    heat: SprayHeatOut
 
 
 class ForecastDayOut(BaseModel):
@@ -255,9 +313,25 @@ class FieldOut(BaseModel):
     as_of: datetime
     stale: bool = False
     readings: ReadingsOut | None = None
+    conditions: ConditionsOut | None = None
+    hours: list[HourOut] = Field(default_factory=list)      # the next hours, the current one first; empty = the weather source has none
+    spray: SprayOut | None = None                           # null: switched off (SPRAY_WEATHER_ENABLED) or nothing to judge from
     forecast: list[ForecastDayOut] = Field(default_factory=list)
     risks: list[RiskOut] = Field(default_factory=list)
     spoken: SpokenOut
+
+
+class PlaceOut(BaseModel):
+    """One result of the place search: what the farmer reads (`label`) and the point the map flies to."""
+    name: str
+    label: str
+    kind: Literal["state", "district", "tehsil", "town", "village", "place"] = "place"
+    lat: float
+    lon: float
+
+
+class PlaceSearchOut(BaseModel):
+    items: list[PlaceOut] = Field(default_factory=list)
 
 
 class AlertOut(BaseModel):
@@ -334,6 +408,8 @@ class MetaOut(BaseModel):
     supported_crops: list[str]                  # crops with approved-list data
     providers: dict[str, str]
     weather_enabled: bool = True                # False: the app hides every weather screen and card (WEATHER_ENABLED)
+    place_weather_enabled: bool = False         # True: GET /v1/weather works (PLACE_WEATHER_PROVIDER); the app offers "choose a place"
+    places_search_enabled: bool = False         # True: GET /v1/places/search works (PLACES_PROVIDER); the app shows the search box
 
 
 class HealthOut(BaseModel):

@@ -53,9 +53,8 @@ void main() {
         expect(container.read(settingsProvider).homeTourDone, isTrue);
 
         env.voice.clear();
-        await tester.tap(keyed('speaker-button'));
-        await tester.pump();
-        expect(env.voice.spokenIds, hasLength(6), reason: 'the speaker button replays the whole tour');
+        await replayVoice(tester);
+        expect(env.voice.spokenIds, hasLength(6), reason: 'turning the voice back on replays the whole tour');
 
         // A second visit (new Home screen): only the short intro.
         env.voice.clear();
@@ -66,34 +65,85 @@ void main() {
       },
     );
 
-    testWidgets('the gallery row under the photo card opens the gallery and goes on to the review', (tester) async {
+    testWidgets('the photo card is one button: there is no gallery row under it (the camera page has the gallery)', (
+      tester,
+    ) async {
       useSmallPhone(tester);
-      final env = await TestEnv.create(loggedIn: true);
+      final env = await TestEnv.create(loggedIn: true, language: 'en');
       await pumpApp(tester, env, location: '/home');
-      expect(tester.getSize(keyed('home-gallery')).height, greaterThanOrEqualTo(56));
-      env.picker.queueGallery(2);
-      await tapKey(tester, 'home-gallery');
-      expect(env.picker.galleryOpened, 1);
-      expect(env.picker.lastGalleryLimit, 4, reason: 'a scan takes four photos');
-      expect(env.picker.opened, 0, reason: 'the camera stays closed');
-      expect(keyed('photo-1'), findsOneWidget, reason: 'both photos are on the review screen');
-      expect(keyed('send-photos'), findsOneWidget);
+      expect(keyed('home-scan'), findsOneWidget);
+      expect(find.text('Or choose a photo from the gallery'), findsNothing);
+      expect(find.byIcon(AppIcons.gallery), findsNothing);
+      expect(find.byKey(const ValueKey('home-gallery')), findsNothing);
+      expect(env.picker.galleryOpened, 0);
+      await tapKey(tester, 'home-scan');
+      expect(find.byKey(const ValueKey('gallery-button')), findsOneWidget, reason: 'the gallery is on the camera page');
     });
 
-    testWidgets('leaving the gallery without choosing stays on Home; a failing gallery says so', (tester) async {
-      useSmallPhone(tester);
-      final env = await TestEnv.create(loggedIn: true);
-      await pumpApp(tester, env, location: '/home');
-      await tapKey(tester, 'home-gallery'); // nothing queued: the farmer backed out
-      expect(env.picker.galleryOpened, 1);
-      expect(keyed('home-scan'), findsOneWidget);
-      expect(find.byKey(const ValueKey('send-photos')), findsNothing);
+    testWidgets(
+      'alerts, settings and the voice button share one line at the right, drawn smaller, with 56 dp tap areas',
+      (tester) async {
+        useSmallPhone(tester, size: const Size(390, 844));
+        final env = await TestEnv.create(loggedIn: true, language: 'en');
+        await pumpApp(tester, env, location: '/home');
+        final bell = tester.getRect(keyed('home-alerts'));
+        final gear = tester.getRect(keyed('home-settings'));
+        final voice = tester.getRect(keyed('voice-button'));
+        final greeting = tester.getRect(keyed('home-greeting'));
 
-      env.picker.gallery.add(Exception('no access'));
+        // One line at the right, in this order: bell, gear, voice; the names (greeting, place) are left of them.
+        expect(gear.center.dy, closeTo(bell.center.dy, 0.5));
+        expect(voice.center.dy, closeTo(bell.center.dy, 0.5));
+        expect(greeting.right, lessThanOrEqualTo(bell.left + 0.5));
+        expect(bell.right, lessThanOrEqualTo(gear.left + 0.5));
+        expect(gear.right, lessThanOrEqualTo(voice.left + 0.5));
+        expect(voice.right, lessThanOrEqualTo(390));
+
+        // One voice button, not a speaker and a mute button.
+        expect(find.byIcon(AppIcons.speaker), findsOneWidget);
+        expect(
+          find.byIcon(AppIcons.noVoice),
+          findsNothing,
+          reason: 'the crossed-out speaker shows only while the voice is off',
+        );
+
+        // The circles are drawn 40 dp (a little smaller than the 48 dp of the other screens); the tap areas stay 56 dp.
+        for (final key in ['home-alerts', 'home-settings', 'voice-button']) {
+          final area = tester.getSize(keyed(key));
+          expect(area.width, greaterThanOrEqualTo(56), reason: key);
+          expect(area.height, greaterThanOrEqualTo(56), reason: key);
+          final circle = find.descendant(
+            of: keyed(key),
+            matching: find.byWidgetPredicate(
+              (w) => w is Container && w.constraints == BoxConstraints.tightFor(width: 40, height: 40),
+            ),
+          );
+          expect(circle, findsOneWidget, reason: '$key is drawn 40 dp wide');
+        }
+        expectBigTouchTargets(tester);
+      },
+    );
+
+    testWidgets('one voice button turns the voice off and on: the speaker, then the crossed-out speaker in red', (
+      tester,
+    ) async {
+      useSmallPhone(tester);
+      final env = await TestEnv.create(loggedIn: true, language: 'en');
+      final container = await pumpApp(tester, env, location: '/home');
+      expect(container.read(settingsProvider).muted, isFalse);
+      await tester.tap(keyed('voice-button'));
+      await tester.pump();
+      expect(container.read(settingsProvider).muted, isTrue);
+      expect(find.byIcon(AppIcons.noVoice), findsOneWidget);
+      expect(find.byIcon(AppIcons.speaker), findsNothing);
+      expect(env.voice.stopCalls, greaterThan(0), reason: 'what is being said stops at once');
       env.voice.clear();
-      await tapKey(tester, 'home-gallery');
-      expect(env.voice.spokenIds, contains('error_try_again'));
-      expect(keyed('home-scan'), findsOneWidget);
+      await tester.tap(keyed('voice-button'));
+      await tester.pump();
+      expect(container.read(settingsProvider).muted, isFalse);
+      expect(find.byIcon(AppIcons.speaker), findsOneWidget);
+      expect(env.voice.spokenIds.first, 'home_intro', reason: 'the voice is back and says the page again');
+      expect(env.voice.spokenIds, hasLength(6), reason: 'the whole tour, as the speaker button used to');
     });
 
     testWidgets('each button opens its screen, which speaks its own introduction', (tester) async {

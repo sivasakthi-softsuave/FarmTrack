@@ -30,7 +30,8 @@
         }
       ],
       "synced_to_zoho": true,
-      "spoken": null
+      "spoken": null,
+      "product": null
     },
     {
       "id": "34e1df1fed3b8ae28676fdb00e2fe305",
@@ -50,7 +51,29 @@
         }
       ],
       "synced_to_zoho": true,
-      "spoken": null
+      "spoken": null,
+      "product": {
+        "product_id": "P005",
+        "active_ingredient": {
+          "en": "Mancozeb",
+          "hi": "मैन्कोज़ेब"
+        },
+        "brand_examples": [
+          "Dithane M-45 / Indofil M-45"
+        ],
+        "formulation": "75 WP",
+        "category": "fungicide",
+        "frac_irac_code": "M03",
+        "dose_text": {
+          "en": "600 g in 200 litres of water",
+          "hi": "200 लीटर पानी में 600 ग्राम"
+        },
+        "dose_min": 600.0,
+        "dose_max": 600.0,
+        "dose_unit": "g/200L",
+        "waiting_period_days": null,
+        "warnings": []
+      }
     },
     {
       "id": "46e8032671eb8be11a19ba6120ba64c8",
@@ -61,7 +84,41 @@
       "advice_id": "d6377e2270798d4310fdc30a52b338b3",
       "warnings": [],
       "synced_to_zoho": true,
-      "spoken": null
+      "spoken": null,
+      "product": {
+        "product_id": "P011",
+        "active_ingredient": {
+          "en": "Hexaconazole",
+          "hi": "हेक्साकोनाज़ोल"
+        },
+        "brand_examples": [
+          "Contaf",
+          "Envil",
+          "Glow",
+          "Hexcon"
+        ],
+        "formulation": "5 EC",
+        "category": "fungicide",
+        "frac_irac_code": "3",
+        "dose_text": {
+          "en": "100 ml in 200 litres of water",
+          "hi": "200 लीटर पानी में 100 मिलीलीटर"
+        },
+        "dose_min": 100.0,
+        "dose_max": 100.0,
+        "dose_unit": "ml/200L",
+        "waiting_period_days": 30,
+        "warnings": [
+          {
+            "code": "DOSE_PER_200L",
+            "level": "green",
+            "text": {
+              "en": "The dose is for 200 litres of water.",
+              "hi": "यह मात्रा 200 लीटर पानी के लिए है।"
+            }
+          }
+        ]
+      }
     },
     {
       "id": "0bb48a89d1d5e774e4c94fc22a633ae7",
@@ -72,7 +129,41 @@
       "advice_id": "d6377e2270798d4310fdc30a52b338b3",
       "warnings": [],
       "synced_to_zoho": true,
-      "spoken": null
+      "spoken": null,
+      "product": {
+        "product_id": "P011",
+        "active_ingredient": {
+          "en": "Hexaconazole",
+          "hi": "हेक्साकोनाज़ोल"
+        },
+        "brand_examples": [
+          "Contaf",
+          "Envil",
+          "Glow",
+          "Hexcon"
+        ],
+        "formulation": "5 EC",
+        "category": "fungicide",
+        "frac_irac_code": "3",
+        "dose_text": {
+          "en": "100 ml in 200 litres of water",
+          "hi": "200 लीटर पानी में 100 मिलीलीटर"
+        },
+        "dose_min": 100.0,
+        "dose_max": 100.0,
+        "dose_unit": "ml/200L",
+        "waiting_period_days": 30,
+        "warnings": [
+          {
+            "code": "DOSE_PER_200L",
+            "level": "green",
+            "text": {
+              "en": "The dose is for 200 litres of water.",
+              "hi": "यह मात्रा 200 लीटर पानी के लिए है।"
+            }
+          }
+        ]
+      }
     },
     {
       "id": "b8d4a88fc3c2479afc7fc5513356c634",
@@ -92,7 +183,29 @@
         }
       ],
       "synced_to_zoho": true,
-      "spoken": null
+      "spoken": null,
+      "product": {
+        "product_id": "P005",
+        "active_ingredient": {
+          "en": "Mancozeb",
+          "hi": "मैन्कोज़ेब"
+        },
+        "brand_examples": [
+          "Dithane M-45 / Indofil M-45"
+        ],
+        "formulation": "75 WP",
+        "category": "fungicide",
+        "frac_irac_code": "M03",
+        "dose_text": {
+          "en": "600 g in 200 litres of water",
+          "hi": "200 लीटर पानी में 600 ग्राम"
+        },
+        "dose_min": 600.0,
+        "dose_max": 600.0,
+        "dose_unit": "g/200L",
+        "waiting_period_days": null,
+        "warnings": []
+      }
     }
   ]
 }

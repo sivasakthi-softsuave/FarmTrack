@@ -14,5 +14,9 @@ class WeatherUnavailable(IntegrationError):
     """No weather could be produced for the requested place and time."""
 
 
+class PlacesUnavailable(IntegrationError):
+    """The place-name search could not answer (switched off, busy, no network, an unexpected reply)."""
+
+
 class ZohoError(IntegrationError):
     """Zoho CRM returned an error or an unexpected payload."""

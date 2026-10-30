@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FarmTrack Diary: five design proposals</title>
+<style>
+  @font-face { font-family: "Noto Sans"; font-weight: 400; src: url("../../mobile/assets/fonts/NotoSans-Regular.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 500; src: url("../../mobile/assets/fonts/NotoSans-Medium.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 600; src: url("../../mobile/assets/fonts/NotoSans-SemiBold.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 700; src: url("../../mobile/assets/fonts/NotoSans-Bold.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 800; src: url("../../mobile/assets/fonts/NotoSans-ExtraBold.ttf"); }
+
+  :root {
+    --ground: #F3F6F1; --card: #FFFFFF; --ink: #17201A; --ink2: #4F5B52; --line: #E1E7DE; --neutral: #EEF2EC;
+    --brand: #14532D; --green: #1B7F3A; --green-soft: #E3F2E7; --blue: #1F5FA8; --blue-soft: #E3EDF8;
+    --amber: #F2A900; --amber-soft: #FFF3D1; --amber-dark: #8A5A00; --amber-line: #EFD891; --red: #C62828; --red-soft: #FCE4E2; --red-line: #F2C2BE;
+    --shadow: 0 1px 2px rgba(16, 40, 24, .06), 0 6px 18px rgba(16, 40, 24, .07);
+    --page: #E6EAE4;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font-family: "Noto Sans", system-ui, sans-serif; width: 1440px; }
+  svg.i { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  svg.i.sm { width: 20px; height: 20px; } svg.i.xs { width: 16px; height: 16px; } svg.i.lg { width: 30px; height: 30px; }
+
+  .board { padding: 34px 40px 44px; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  .lead { font-size: 16px; color: #3E4A41; margin: 0 0 24px; max-width: 1250px; line-height: 1.5; }
+  .row3 { display: flex; gap: 38px; align-items: flex-start; margin-bottom: 44px; }
+  figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  figcaption { font-weight: 800; font-size: 17px; text-align: center; }
+  figcaption span { display: block; font-weight: 400; font-size: 13.5px; color: #4F5B52; max-width: 380px; margin-top: 3px; line-height: 1.4; }
+  .num { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; font-size: 15px; margin-right: 8px; }
+
+  .phone { width: 390px; height: 844px; background: var(--ground); border-radius: 44px; overflow: hidden; position: relative;
+    box-shadow: 0 0 0 10px #1C221E, 0 0 0 11px #3A433D, 0 24px 60px rgba(0, 0, 0, .28); }
+  .status { position: absolute; z-index: 5; top: 0; left: 0; right: 0; height: 30px; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; font-size: 13px; font-weight: 600; color: var(--ink); background: var(--ground); }
+  .top { position: absolute; z-index: 4; top: 30px; left: 0; right: 0; height: 66px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px 0 24px; background: var(--ground); }
+  .top h2 { margin: 0; font-size: 22px; font-weight: 800; }
+  .mute { width: 46px; height: 46px; border-radius: 50%; background: var(--red-soft); color: var(--red); display: grid; place-items: center; }
+  .scroller { position: absolute; left: 0; right: 0; top: 96px; bottom: 80px; overflow: hidden; padding: 6px 16px 0; display: flex; flex-direction: column; gap: 12px; }
+  .fab-add { position: absolute; z-index: 6; right: 16px; bottom: 96px; height: 56px; padding: 0 22px 0 18px; border-radius: 28px; background: var(--green); color: #fff; font-weight: 800; font-size: 17px; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 20px rgba(27, 127, 58, .38); }
+
+  .nav { position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; height: 80px; background: var(--card); border-top: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-around; padding-top: 8px; }
+  .nav a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 600; color: var(--ink2); width: 64px; }
+  .nav a .pl { width: 56px; height: 32px; border-radius: 16px; display: grid; place-items: center; }
+  .nav a.on { color: var(--green); font-weight: 700; } .nav a.on .pl { background: var(--green-soft); }
+  .nav a.scan { margin-top: -34px; color: var(--ink); font-weight: 700; }
+  .nav a.scan .fab { width: 68px; height: 68px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; border: 5px solid #fff; box-shadow: 0 6px 16px rgba(27, 127, 58, .35); }
+
+  .row { display: flex; align-items: center; gap: 12px; }
+  .grow { flex: 1; min-width: 0; }
+  .muted { color: var(--ink2); }
+  .card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 14px 16px; }
+  .h-name { font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .h-meta { font-size: 14px; color: var(--ink2); line-height: 1.35; }
+  .label { font-size: 13px; font-weight: 700; color: var(--ink2); letter-spacing: .04em; text-transform: uppercase; margin: 8px 4px -2px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .photo { width: 44px; height: 44px; border-radius: 14px; background-size: cover; background-position: center; flex: none; }
+  .photo.r { border-radius: 50%; }
+  .photo.lg { width: 56px; height: 56px; border-radius: 16px; }
+  .tick { width: 30px; height: 30px; border-radius: 50%; background: var(--green-soft); color: var(--green); display: grid; place-items: center; flex: none; }
+  .tick svg { width: 19px; height: 19px; stroke-width: 3; }
+  .wpill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 700; background: var(--neutral); color: var(--ink2); flex: none; }
+  .wpill svg { width: 15px; height: 15px; stroke-width: 2.4; }
+  .spk { width: 44px; height: 44px; border-radius: 50%; background: var(--green-soft); color: var(--green); display: grid; place-items: center; flex: none; }
+  .chev { color: var(--ink2); flex: none; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px 0 8px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--blue-soft); color: var(--blue); white-space: nowrap; }
+  .chip svg { width: 16px; height: 16px; stroke-width: 2.3; }
+  .chip.n { background: var(--neutral); color: var(--ink2); }
+  .chip.g { background: var(--green-soft); color: var(--green); }
+  .chip.a { background: var(--amber-soft); color: var(--amber-dark); }
+  .warnrow { display: flex; gap: 10px; align-items: flex-start; background: var(--amber-soft); border-radius: 12px; padding: 9px 12px; font-size: 14px; font-weight: 600; line-height: 1.35; margin-top: 10px; }
+  .warnrow svg { color: var(--amber-dark); width: 20px; height: 20px; margin-top: 1px; }
+
+  /* ---------- 1: month at a glance ---------- */
+  .cal .hd { display: flex; align-items: center; justify-content: space-between; font-size: 17px; font-weight: 800; }
+  .cal .hd .ar { display: flex; gap: 6px; }
+  .cal .hd .ar span { width: 34px; height: 34px; border-radius: 50%; background: var(--neutral); display: grid; place-items: center; color: var(--ink2); }
+  .cal .hd .ar svg { width: 18px; height: 18px; }
+  .cal .stats { display: flex; gap: 8px; margin: 10px 0 8px; }
+  .cal .grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; text-align: center; }
+  .cal .wd { font-size: 12px; font-weight: 700; color: var(--ink2); padding: 2px 0 4px; }
+  .cd { height: 37px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14.5px; font-weight: 600; border-radius: 12px; margin: 0 2px; gap: 2px; }
+  .cd.fut { color: #9AA59D; font-weight: 500; }
+  .cd.has { background: var(--green-soft); color: var(--green); font-weight: 800; }
+  .cd.today { background: var(--green); color: #fff; font-weight: 800; box-shadow: 0 3px 8px rgba(27, 127, 58, .35); }
+  .cd .dots { display: flex; gap: 3px; height: 5px; }
+  .cd .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+  .cd.today .dots i { background: #fff; }
+  .cd .nd { height: 5px; }
+
+  /* ---------- 2: can I pick ---------- */
+  .pick { border-radius: 22px; padding: 14px 14px 13px; border: 1.5px solid var(--line); box-shadow: var(--shadow); background: #fff; }
+  .pick.wait { background: linear-gradient(160deg, #FFF6DC 0%, #FDE5A6 100%); border-color: var(--amber-line); }
+  .pick.ok { background: linear-gradient(160deg, #E8F6EC 0%, #CBEAD4 100%); border-color: #A9D3B4; }
+  .pick.unk { background: linear-gradient(160deg, #F4F6F3 0%, #E4E9E3 100%); border-color: var(--line); }
+  .pick .tt { font-size: 14px; font-weight: 700; color: #34403A; }
+  .pick .big { font-size: 21px; font-weight: 800; line-height: 1.2; display: flex; align-items: center; gap: 7px; }
+  .pick.wait .big { color: var(--amber-dark); } .pick.ok .big { color: var(--green); } .pick.unk .big { color: var(--ink2); }
+  .pick .big svg { width: 24px; height: 24px; stroke-width: 2.6; }
+  .pick .bar { height: 11px; border-radius: 6px; background: rgba(255, 255, 255, .75); margin: 11px 0 9px; overflow: hidden; }
+  .pick .bar i { display: block; height: 100%; border-radius: 6px; background: var(--amber); }
+  .pick.ok .bar i { background: var(--green); }
+  .pick .sub { font-size: 13.5px; line-height: 1.4; color: #34403A; }
+  .pick .sub b { font-weight: 800; }
+  .mini { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; flex: none; }
+  .mini.w { color: var(--amber-dark); } .mini.o { color: var(--green); }
+  .mini svg { width: 16px; height: 16px; stroke-width: 2.4; }
+
+  /* ---------- 3: timeline ---------- */
+  .tl { position: relative; padding-left: 58px; }
+  .tl::before { content: ""; position: absolute; left: 21px; top: 12px; bottom: -400px; width: 3px; background: #D5DDD3; border-radius: 2px; }
+  .day { position: relative; margin-bottom: 8px; }
+  .node { position: absolute; left: -58px; top: 0; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 17px; background: #fff; color: var(--green); border: 2.5px solid var(--green); box-shadow: 0 0 0 5px var(--ground); }
+  .node.now { background: var(--green); color: #fff; }
+  .dh { height: 44px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; }
+  .dh span { font-weight: 500; color: var(--ink2); font-size: 14px; }
+  .tcard { background: #fff; border-radius: 20px; box-shadow: var(--shadow); padding: 12px 14px 12px; margin-bottom: 10px; }
+  .tcard .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+  /* ---------- 4: by crop ---------- */
+  .crops { display: flex; gap: 14px; padding: 0 2px; }
+  .cp { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 13.5px; font-weight: 600; color: var(--ink2); width: 76px; }
+  .cp .c { width: 62px; height: 62px; border-radius: 50%; background-size: cover; background-position: center; display: grid; place-items: center; border: 3px solid transparent; }
+  .cp .c.all { background: var(--green-soft); color: var(--green); }
+  .cp.on { color: var(--ink); font-weight: 800; } .cp.on .c { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+  .banner { border-radius: 24px; height: 128px; background-size: cover; background-position: center 38%; position: relative; overflow: hidden; box-shadow: var(--shadow); color: #fff; }
+  .banner::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 30, 16, .0) 20%, rgba(10, 30, 16, .78) 100%); }
+  .banner .in { position: absolute; left: 16px; right: 16px; bottom: 12px; display: flex; align-items: flex-end; justify-content: space-between; }
+  .banner .nm { font-size: 27px; font-weight: 800; line-height: 1.1; }
+  .banner .sb { font-size: 14px; font-weight: 600; opacity: .95; }
+  .banner .lp { background: rgba(255, 255, 255, .92); color: var(--ink); font-size: 13px; font-weight: 700; padding: 5px 11px; border-radius: 999px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .tile { border-radius: 18px; padding: 10px 11px; box-shadow: 0 1px 2px rgba(16, 40, 24, .06), 0 4px 10px rgba(16, 40, 24, .06); }
+  .tile .k { display: flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600; color: rgba(23, 32, 26, .78); }
+  .tile .k svg { width: 16px; height: 16px; stroke-width: 2.3; }
+  .tile .v { font-size: 20px; font-weight: 800; line-height: 1.2; margin-top: 2px; }
+  .tile .v small { font-size: 13px; font-weight: 700; }
+  .tile.b { background: linear-gradient(155deg, #E5F0FB, #BCD8F3); } .tile.b .k svg { color: var(--blue); }
+  .tile.n { background: linear-gradient(155deg, #F1F4EF, #DCE3D9); } .tile.n .k svg { color: var(--ink2); }
+  .tile.a { background: linear-gradient(155deg, #FFF6DC, #FDE5A6); } .tile.a .k svg { color: var(--amber-dark); } .tile.a .v { color: var(--amber-dark); }
+  .ledger { background: #fff; border-radius: 20px; box-shadow: var(--shadow); padding: 2px 14px; }
+  .lr { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .lr:first-child { border-top: 0; }
+  .lr .dt { width: 46px; text-align: center; flex: none; }
+  .lr .dt b { display: block; font-size: 20px; font-weight: 800; line-height: 1; }
+  .lr .dt span { font-size: 12px; font-weight: 700; color: var(--ink2); text-transform: uppercase; }
+  .lr .nm { font-size: 16.5px; font-weight: 700; line-height: 1.25; }
+  .lr .mt { font-size: 13.5px; color: var(--ink2); }
+
+  /* ---------- 5: big photo cards ---------- */
+  .big5 { background: #fff; border-radius: 24px; box-shadow: var(--shadow); overflow: hidden; }
+  .big5 .ph { height: 96px; background-size: cover; background-position: center 40%; position: relative; }
+  .big5 .ph::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 30, 16, .28) 0%, rgba(10, 30, 16, 0) 50%); }
+  .big5 .ph .dp { position: absolute; left: 12px; top: 10px; background: rgba(255, 255, 255, .94); font-size: 13px; font-weight: 800; padding: 4px 11px; border-radius: 999px; display: flex; align-items: center; gap: 5px; }
+  .big5 .ph .dp svg { width: 15px; height: 15px; stroke-width: 2.4; color: var(--green); }
+  .big5 .ph .st { position: absolute; right: 12px; top: 8px; }
+  .big5 .ph .st .tick { width: 32px; height: 32px; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .18); }
+  .big5 .ph .st .wpill { background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .18); }
+  .big5 .bd { padding: 11px 14px 12px; }
+  .big5 .nm { font-size: 19px; font-weight: 800; line-height: 1.25; }
+  .big5 .mt { font-size: 14px; color: var(--ink2); margin-top: 1px; }
+  .big5 .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 9px; }
+  .big5 .f { background: var(--neutral); border-radius: 12px; padding: 6px 8px; font-size: 12.5px; font-weight: 600; color: var(--ink2); line-height: 1.25; }
+  .big5 .f b { display: flex; align-items: center; gap: 4px; color: var(--ink); font-size: 13.5px; font-weight: 800; }
+  .big5 .f b svg { width: 15px; height: 15px; stroke-width: 2.4; color: var(--blue); }
+  .big5 .listen { margin-top: 10px; height: 52px; border-radius: 16px; background: var(--green-soft); color: var(--green); font-weight: 800; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  /* ---------- notes ---------- */
+  .side { width: 560px; display: flex; flex-direction: column; gap: 14px; }
+  .panel { background: #fff; border-radius: 20px; padding: 14px 18px; box-shadow: var(--shadow); }
+  .panel h3 { margin: 0 0 5px; font-size: 16px; display: flex; align-items: center; }
+  .panel p { font-size: 13.5px; color: #3E4A41; line-height: 1.45; margin: 3px 0; }
+  .panel p b { color: var(--ink); }
+  .panel ul { margin: 6px 0 0; padding-left: 18px; }
+  .panel li { font-size: 13.5px; color: #3E4A41; line-height: 1.45; margin: 2px 0; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--green-soft); color: var(--green); margin-left: 8px; }
+  .tag.opt { background: #E6E9F8; color: #3B4A9B; }
+  .tag.sm { background: #E8F6EC; color: var(--green); }
+  .tag.md { background: #FFE9C7; color: #8A4A00; }
+  .wide { background: #fff; border-radius: 22px; padding: 18px 22px 22px; box-shadow: var(--shadow); margin-top: 6px; }
+  .wide h3 { margin: 0 0 2px; font-size: 18px; }
+  .wide p { margin: 2px 0 12px; font-size: 14px; color: #3E4A41; max-width: 1200px; line-height: 1.45; }
+  .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 19a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L14 9V3"/><path d="M7.5 15h9"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-basket" viewBox="0 0 24 24"><path d="M3 10h18l-2 10H5z"/><path d="M8 10l3-6M16 10l-3-6"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5L16 9.5"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-bug" viewBox="0 0 24 24"><rect x="8" y="8" width="8" height="12" rx="4"/><path d="M9 8a3 3 0 0 1 6 0M4 12h4M16 12h4M5 19l3-2M19 19l-3-2M5 6l3 2M19 6l-3 2"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol>
+  <symbol id="i-field" viewBox="0 0 24 24"><path d="M12 21V11"/><path d="M12 11c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 14c0-3-2.5-5-6-5 0 3 2.5 5 6 5z"/><path d="M4 21h16"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18"/><path d="M10 8h5M10 12h5"/></symbol>
+  <symbol id="i-ask" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.8 9.5a2.3 2.3 0 0 1 4.4.8c0 1.5-2.2 2-2.2 3.2"/><path d="M12 16.5h.01"/></symbol>
+</svg>
+
+<div class="board">
+  <h1>Diary: five design proposals <span class="tag opt">proposal, nothing changed in the app</span></h1>
+  <p class="lead">Today's Diary is a plain list: a flask, the medicine, the crop and a green tick. Everything below is built from what the Diary already has (the medicine, its dose and its waiting days, the crop, the date, warnings, saved or waiting), so nothing needs the server to change. The header, the red mute button, the bottom bar, the green "Write a spray" button, the grey "Waiting" pill, the green tick and "touch a card to hear it" stay in every option. The medicines, doses and waiting days in the pictures are examples. Choose one (or mix: for example 2 on top of 3) and I will build it.</p>
+
+  <div class="row3" id="r1"></div>
+  <div class="row3" id="r2"></div>
+
+  <div class="wide">
+    <h3>The three answers of "Can I pick?" (option 2)</h3>
+    <p>The same card, in the three states it can have. Amber means "wait" (it is a warning about eating or selling too early), green means "safe", grey means "I do not know" (a medicine the app does not have in its list has no waiting days, and the app never says "safe" without them).</p>
+    <div class="three" id="states"></div>
+  </div>
+</div>
+
+<script>
+  const I = (n, c = '') => `<svg class="i ${c}"><use href="#i-${n}"/></svg>`;
+  const IMG = c => `style="background-image:url('../../mobile/assets/crops/${c}.jpg')"`;
+  const tick = `<div class="tick">${I('check')}</div>`;
+  const waiting = `<span class="wpill">${I('clock')}Waiting</span>`;
+  const spk = `<div class="spk">${I('speaker')}</div>`;
+
+  const nav = `<div class="nav">
+    <a><div class="pl">${I('home')}</div>Home</a><a><div class="pl">${I('field')}</div>Field</a>
+    <a class="scan"><div class="fab">${I('camera', 'lg')}</div>Scan</a>
+    <a class="on"><div class="pl">${I('book')}</div>Diary</a><a><div class="pl">${I('ask')}</div>Ask</a></div>`;
+  const phone = inner => `
+    <div class="phone">
+      <div class="status"><span>3:47</span><span>100%</span></div>
+      <div class="top"><h2>Diary</h2><div class="mute">${I('mute')}</div></div>
+      <div class="scroller">${inner}</div>
+      <div class="fab-add">${I('plus')}Write a spray</div>
+      ${nav}
+    </div>`;
+  const label = t => `<div class="label">${t}</div>`;
+  const fig = (n, title, sub, inner) => `<figure>${phone(inner)}<figcaption><span class="num">${n}</span>${title}<span>${sub}</span></figcaption></figure>`;
+
+  /* ----- 1: month at a glance ----- */
+  const sprayed = { 14: 1, 17: 1, 21: 1, 28: 2, 29: 2, 30: 1 };
+  let cells = ['', '', ''].map(() => `<div class="cd"></div>`).join('');
+  for (let d = 1; d <= 31; d++) {
+    const n = sprayed[d] || 0, today = d === 30, fut = d > 30;
+    const dots = n ? `<div class="dots">${'<i></i>'.repeat(n)}</div>` : `<div class="nd"></div>`;
+    cells += `<div class="cd ${n ? 'has' : ''} ${today ? 'today' : ''} ${fut ? 'fut' : ''}"><span>${d}</span>${dots}</div>`;
+  }
+  cells += `<div class="cd"></div>`;
+  const entry1 = (crop, name, sub, right) => `<div class="card row" style="padding:12px 14px"><div class="photo" ${IMG(crop)}></div><div class="grow"><div class="h-name">${name}</div><div class="h-meta">${sub}</div></div>${right}</div>`;
+  const o1 = `
+    <div class="card cal">
+      <div class="hd"><span>October 2026</span><div class="ar"><span>${I('left')}</span><span>${I('chev')}</span></div></div>
+      <div class="stats"><span class="chip g">${I('check')}8 sprays</span><span class="chip">${I('field')}2 crops</span><span class="chip n">${I('clock')}Last: today</span></div>
+      <div class="grid">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(x => `<div class="wd">${x}</div>`).join('')}${cells}</div>
+    </div>
+    ${label('Today')}
+    ${entry1('tomato', 'Fluxapyroxad + Pyraclostrobin', 'Tomato', waiting)}
+    ${label('Yesterday')}
+    ${entry1('apple', 'Captan', 'Apple', tick)}
+    ${entry1('apple', 'Ziram', 'Apple', tick)}`;
+
+  /* ----- 2: can I pick ----- */
+  const pickCard = (cls, crop, cropName, big, bar, sub) => `
+    <div class="pick ${cls}">
+      <div class="row">
+        <div class="photo lg" ${IMG(crop)}></div>
+        <div class="grow"><div class="tt">${cropName}</div><div class="big">${big}</div></div>
+        ${spk}
+      </div>
+      ${bar === null ? '' : `<div class="bar"><i style="width:${bar}%"></i></div>`}
+      <div class="sub" ${bar === null ? 'style="margin-top:9px"' : ''}>${sub}</div>
+    </div>`;
+  const row2 = (crop, name, sub, right) => `<div class="card row" style="padding:11px 14px"><div class="photo" ${IMG(crop)}></div><div class="grow"><div class="h-name" style="font-size:16.5px">${name}</div><div class="h-meta">${sub}</div></div>${right}</div>`;
+  const o2 = `
+    ${label('Can I pick my crop?')}
+    ${pickCard('wait', 'tomato', 'Tomato', `${I('clock')}Wait 3 days`, 4, '<b>Safe from Monday 2 Nov.</b> Because of Fluxapyroxad + Pyraclostrobin, sprayed today.')}
+    ${pickCard('wait', 'apple', 'Apple', `${I('clock')}Wait 13 days`, 7, '<b>Safe from Thursday 12 Nov.</b> Because of Ziram, sprayed yesterday.')}
+    ${label('My sprays')}
+    ${row2('tomato', 'Fluxapyroxad + Pyraclostrobin', 'Tomato · today', `<div class="mini w">${I('clock')}till 2 Nov</div>`)}
+    ${row2('apple', 'Ziram', 'Apple · yesterday', `<div class="mini w">${I('clock')}till 12 Nov</div>`)}`;
+
+  /* ----- 3: timeline ----- */
+  const tcard = (crop, name, crop2, chips, warn) => `
+    <div class="tcard">
+      <div class="row"><div class="photo r" ${IMG(crop)}></div><div class="grow"><div class="h-name">${name}</div><div class="h-meta">${crop2}</div></div>${spk}</div>
+      <div class="chips">${chips}</div>
+      ${warn ? `<div class="warnrow">${I('warn')}<span>${warn}</span></div>` : ''}
+    </div>`;
+  const o3 = `
+    <div class="tl">
+      <div class="day"><div class="node now">30</div><div class="dh">Today <span>Friday</span></div>
+        ${tcard('tomato', 'Fluxapyroxad + Pyraclostrobin', 'Tomato · saved', `<span class="chip">${I('flask')}Fungicide</span><span class="chip">${I('drop')}1 ml in 1 litre</span><span class="chip n">${I('clock')}Wait 3 days</span>`)}
+      </div>
+      <div class="day"><div class="node">29</div><div class="dh">Yesterday <span>Thursday</span></div>
+        ${tcard('apple', 'Ziram', 'Apple · saved', `<span class="chip">${I('flask')}Fungicide</span><span class="chip">${I('drop')}3 g in 1 litre</span><span class="chip n">${I('clock')}Wait 14 days</span>`, 'Do not spray when bees are flying.')}
+        ${tcard('apple', 'Captan', 'Apple · saved', `<span class="chip">${I('flask')}Fungicide</span><span class="chip">${I('drop')}2 g in 1 litre</span>`)}
+      </div>
+    </div>`;
+
+  /* ----- 4: by crop ----- */
+  const lr = (d, m, name, sub) => `<div class="lr"><div class="dt"><b>${d}</b><span>${m}</span></div><div class="grow"><div class="nm">${name}</div><div class="mt">${sub}</div></div>${tick}</div>`;
+  const o4 = `
+    <div class="crops">
+      <div class="cp"><div class="c all">${I('grid', 'lg')}</div>All</div>
+      <div class="cp on"><div class="c" ${IMG('apple')}></div>Apple</div>
+      <div class="cp"><div class="c" ${IMG('tomato')}></div>Tomato</div>
+    </div>
+    <div class="banner" ${IMG('apple')}><div class="in"><div><div class="nm">Apple</div><div class="sb">5 sprays in October</div></div><div class="lp">Last: yesterday</div></div></div>
+    <div class="tiles">
+      <div class="tile b"><div class="k">${I('flask')}Sprays</div><div class="v">5</div></div>
+      <div class="tile n"><div class="k">${I('cal')}Last</div><div class="v" style="font-size:17px;padding-top:2px">Yesterday</div></div>
+      <div class="tile a"><div class="k">${I('basket')}Safe from</div><div class="v">12 <small>Nov</small></div></div>
+    </div>
+    <div class="ledger">
+      ${lr('29', 'Oct', 'Ziram', 'Fungicide · 3 g in 1 litre')}
+      ${lr('29', 'Oct', 'Captan', 'Fungicide · 2 g in 1 litre')}
+      ${lr('28', 'Oct', 'Captan', 'Fungicide · 2 g in 1 litre')}
+      ${lr('28', 'Oct', 'Metiram', 'Fungicide · 2.5 g in 1 litre')}
+    </div>`;
+
+  /* ----- 5: big photo cards ----- */
+  const big5 = (crop, when, status, name, sub, f1, f2, f3, withListen) => `
+    <div class="big5">
+      <div class="ph" ${IMG(crop)}><div class="dp">${I('cal')}${when}</div><div class="st">${status}</div></div>
+      <div class="bd">
+        <div class="nm">${name}</div><div class="mt">${sub}</div>
+        <div class="facts">
+          <div class="f"><b>${I('flask')}${f1[0]}</b>${f1[1]}</div>
+          <div class="f"><b>${I('drop')}${f2[0]}</b>${f2[1]}</div>
+          <div class="f"><b>${I('clock')}${f3[0]}</b>${f3[1]}</div>
+        </div>
+        ${withListen ? `<div class="listen">${I('speaker')}Listen</div>` : ''}
+      </div>
+    </div>`;
+  const o5 = `
+    ${big5('tomato', 'Today · 30 Oct', waiting, 'Fluxapyroxad + Pyraclostrobin', 'Tomato', ['Type', 'Fungicide'], ['Dose', '1 ml / litre'], ['Wait', '3 days'], true)}
+    ${big5('apple', 'Yesterday · 29 Oct', tick, 'Ziram', 'Apple', ['Type', 'Fungicide'], ['Dose', '3 g / litre'], ['Wait', '14 days'], true)}`;
+
+  document.getElementById('r1').innerHTML =
+    fig(1, 'Month at a glance', 'A calendar with a green dot on every day I sprayed, three counters, then the list with the crop\'s photo.', o1) +
+    fig(2, 'Can I pick my crop?', 'First the answer a farmer asks: how many days to wait before picking or selling, then the list.', o2) +
+    fig(3, 'Timeline of the season', 'A line through the days. Dose and waiting days are on the card already, a warning is seen without a touch.', o3);
+
+  const notes = `
+    <div class="side">
+      <div class="panel"><h3><span class="num">1</span>Month at a glance <span class="tag sm">small to medium</span></h3>
+        <p><b>Shows:</b> a month with a dot on each day sprayed (two dots, two sprays), "8 sprays · 2 crops · last: today", then the list; a touch on a day jumps to it. The crop's photo replaces the flask, so the crop is known before reading.</p>
+        <p><b>Good for:</b> seeing how often and when I sprayed. <b>Data:</b> only the dates (the list holds the last 50 entries, so the counters are for those).</p></div>
+      <div class="panel"><h3><span class="num">2</span>Can I pick my crop? <span class="tag md">medium</span></h3>
+        <p><b>Shows:</b> one card per crop: days to wait, the date it is safe, a bar that fills as days pass, and a speaker that says it (in words, never digits). The list below says "till 2 Nov" on each spray.</p>
+        <p><b>Good for:</b> the question the diary is really kept for (is my crop safe to sell?). <b>Data:</b> the waiting days of each medicine, which the server already sends; a medicine without them shows the grey "I do not know" card. <b>Draft:</b> the words need an agronomist, like the spray check on Home.</p></div>
+      <div class="panel"><h3><span class="num">3</span>Timeline of the season <span class="tag sm">small to medium</span></h3>
+        <p><b>Shows:</b> a line down the page with a big circle for each day; every card already shows the type, dose and waiting days as chips, and its warning (amber), and has its own speaker, so nothing needs opening.</p>
+        <p><b>Good for:</b> reading without touching. <b>Cost:</b> cards are taller, so about 3 sprays per screen instead of 4.</p></div>
+      <div class="panel"><h3><span class="num">4</span>By crop <span class="tag md">medium</span></h3>
+        <p><b>Shows:</b> round crop pictures on top (All, Apple, Tomato); the chosen crop gets a photo banner, three facts (sprays, last spray, "safe from" in amber while a wait is running) and a tight list of its sprays, about 8 per screen.</p>
+        <p><b>Good for:</b> a farmer with several crops or many sprays. <b>Cost:</b> one more touch to change crop; with one crop only the banner and the list show.</p></div>
+      <div class="panel"><h3><span class="num">5</span>Big photo cards <span class="tag sm">small</span></h3>
+        <p><b>Shows:</b> one big card per spray: the crop's photo with the day, a tick or "Waiting", the name, three icon facts (type, dose, wait) and a big green "Listen" button.</p>
+        <p><b>Good for:</b> people who read little: the picture and the speaker do the work. <b>Cost:</b> about 2 sprays per screen, so a long diary is a long scroll.</p></div>
+    </div>`;
+
+  document.getElementById('r2').innerHTML =
+    fig(4, 'By crop', 'Choose the crop on top; its photo, three facts and its sprays in a tight list.', o4) +
+    fig(5, 'Big photo cards', 'The most visual: a big photo card per spray with a green "Listen" button.', o5) +
+    notes;
+
+  const state = (cls, crop, name, big, bar, sub) => pickCard(cls, crop, name, big, bar, sub);
+  document.getElementById('states').innerHTML =
+    state('wait', 'apple', 'Apple', `${I('clock')}Wait 13 days`, 7, '<b>Safe from 12 Nov.</b> Because of Ziram, sprayed yesterday.') +
+    state('ok', 'tomato', 'Tomato', `${I('shield')}Safe to pick`, 100, 'The last spray was on 21 Oct. The waiting days are over.') +
+    state('unk', 'apple', 'Apple', `${I('warn')}Ask first`, null, 'The last medicine you wrote, "Local mix", has no waiting days in the app. Ask your officer before you pick.');
+</script>
+</body>
+</html>

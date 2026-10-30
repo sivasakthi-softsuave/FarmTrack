@@ -211,8 +211,7 @@ void main() {
       await tapKey(tester, 'home-ask');
       await tapKey(tester, 'ask-card-mix_medicines');
       env.voice.clear();
-      await tester.tap(keyed('speaker-button'));
-      await tester.pump();
+      await replayVoice(tester);
       expect(env.voice.log, hasLength(1));
       expect(env.voice.log.single, contains('@hi'));
       expect(env.voice.spokenTexts.single, contains('मंज़ूर की हुई दवा'));

@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FarmTrack Diary: calendar + timeline + crops, five ways to combine</title>
+<style>
+  @font-face { font-family: "Noto Sans"; font-weight: 400; src: url("../../mobile/assets/fonts/NotoSans-Regular.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 500; src: url("../../mobile/assets/fonts/NotoSans-Medium.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 600; src: url("../../mobile/assets/fonts/NotoSans-SemiBold.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 700; src: url("../../mobile/assets/fonts/NotoSans-Bold.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 800; src: url("../../mobile/assets/fonts/NotoSans-ExtraBold.ttf"); }
+
+  :root {
+    --ground: #F3F6F1; --card: #FFFFFF; --ink: #17201A; --ink2: #4F5B52; --line: #E1E7DE; --neutral: #EEF2EC;
+    --brand: #14532D; --green: #1B7F3A; --green-soft: #E3F2E7; --blue: #1F5FA8; --blue-soft: #E3EDF8;
+    --amber: #F2A900; --amber-soft: #FFF3D1; --amber-dark: #8A5A00; --amber-line: #EFD891; --red: #C62828; --red-soft: #FCE4E2; --red-line: #F2C2BE;
+    --shadow: 0 1px 2px rgba(16, 40, 24, .06), 0 6px 18px rgba(16, 40, 24, .07);
+    --page: #E6EAE4;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font-family: "Noto Sans", system-ui, sans-serif; width: 1440px; }
+  svg.i { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  svg.i.sm { width: 20px; height: 20px; } svg.i.xs { width: 16px; height: 16px; } svg.i.lg { width: 30px; height: 30px; }
+
+  .board { padding: 34px 40px 44px; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  .lead { font-size: 16px; color: #3E4A41; margin: 0 0 24px; max-width: 1280px; line-height: 1.5; }
+  .row3 { display: flex; gap: 38px; align-items: flex-start; margin-bottom: 44px; }
+  figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  figcaption { font-weight: 800; font-size: 17px; text-align: center; }
+  figcaption span { display: block; font-weight: 400; font-size: 13.5px; color: #4F5B52; max-width: 380px; margin-top: 3px; line-height: 1.4; }
+  .num { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: #fff; font-size: 15px; margin-right: 8px; }
+
+  .phone { width: 390px; height: 844px; background: var(--ground); border-radius: 44px; overflow: hidden; position: relative;
+    box-shadow: 0 0 0 10px #1C221E, 0 0 0 11px #3A433D, 0 24px 60px rgba(0, 0, 0, .28); }
+  .status { position: absolute; z-index: 5; top: 0; left: 0; right: 0; height: 30px; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; font-size: 13px; font-weight: 600; color: var(--ink); background: var(--ground); }
+  .top { position: absolute; z-index: 4; top: 30px; left: 0; right: 0; height: 66px; display: flex; align-items: center; justify-content: space-between; padding: 0 18px 0 24px; background: var(--ground); }
+  .top h2 { margin: 0; font-size: 22px; font-weight: 800; }
+  .mute { width: 46px; height: 46px; border-radius: 50%; background: var(--red-soft); color: var(--red); display: grid; place-items: center; }
+  .scroller { position: absolute; left: 0; right: 0; top: 96px; bottom: 80px; overflow: hidden; padding: 4px 16px 0; display: flex; flex-direction: column; gap: 10px; }
+  .fab-add { position: absolute; z-index: 6; right: 16px; bottom: 96px; height: 56px; padding: 0 22px 0 18px; border-radius: 28px; background: var(--green); color: #fff; font-weight: 800; font-size: 17px; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 20px rgba(27, 127, 58, .38); }
+
+  .nav { position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; height: 80px; background: var(--card); border-top: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-around; padding-top: 8px; }
+  .nav a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 600; color: var(--ink2); width: 64px; }
+  .nav a .pl { width: 56px; height: 32px; border-radius: 16px; display: grid; place-items: center; }
+  .nav a.on { color: var(--green); font-weight: 700; } .nav a.on .pl { background: var(--green-soft); }
+  .nav a.scan { margin-top: -34px; color: var(--ink); font-weight: 700; }
+  .nav a.scan .fab { width: 68px; height: 68px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; border: 5px solid #fff; box-shadow: 0 6px 16px rgba(27, 127, 58, .35); }
+
+  .row { display: flex; align-items: center; gap: 12px; }
+  .grow { flex: 1; min-width: 0; }
+  .card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 14px 16px; }
+  .h-name { font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .h-meta { font-size: 14px; color: var(--ink2); line-height: 1.35; }
+  .photo { width: 44px; height: 44px; border-radius: 14px; background-size: cover; background-position: center; flex: none; }
+  .photo.r { border-radius: 50%; }
+  .spk { width: 44px; height: 44px; border-radius: 50%; background: var(--green-soft); color: var(--green); display: grid; place-items: center; flex: none; }
+  .chip { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px 0 8px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--blue-soft); color: var(--blue); white-space: nowrap; }
+  .chip svg { width: 16px; height: 16px; stroke-width: 2.3; }
+  .chip.n { background: var(--neutral); color: var(--ink2); }
+  .chip.g { background: var(--green-soft); color: var(--green); }
+  .chip.a { background: var(--amber-soft); color: var(--amber-dark); }
+  .warnrow { display: flex; gap: 10px; align-items: flex-start; background: var(--amber-soft); border-radius: 12px; padding: 9px 12px; font-size: 14px; font-weight: 600; line-height: 1.35; margin-top: 10px; }
+  .warnrow svg { color: var(--amber-dark); width: 20px; height: 20px; margin-top: 1px; }
+
+  /* ---------- crops row (from the fourth design) ---------- */
+  .crops { display: flex; gap: 14px; padding: 0 2px; }
+  .cp { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 13.5px; font-weight: 600; color: var(--ink2); width: 80px; text-align: center; line-height: 1.2; }
+  .cp .c { position: relative; width: 62px; height: 62px; border-radius: 50%; background-size: cover; background-position: center; display: grid; place-items: center; border: 3px solid transparent; }
+  .cp .c.all { background: var(--green-soft); color: var(--green); }
+  .cp.on { color: var(--ink); font-weight: 800; } .cp.on .c { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-soft); }
+  .cp .bg { position: absolute; right: -5px; bottom: -4px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; border: 2.5px solid var(--ground); }
+  .cp .bg svg { width: 14px; height: 14px; stroke-width: 3; }
+  .cp .bg.w { background: var(--amber); color: #3A2A00; } .cp .bg.o { background: var(--green); color: #fff; }
+  .cp .st { font-size: 12px; font-weight: 700; margin-top: -1px; }
+  .cp .st.w { color: var(--amber-dark); } .cp .st.o { color: var(--green); }
+  .incard .crops { justify-content: space-between; padding: 0 6px; }
+  .incard .cp .bg { border-color: #fff; }
+
+  /* ---------- calendar (from the first design) ---------- */
+  .cal .hd { display: flex; align-items: center; justify-content: space-between; font-size: 17px; font-weight: 800; }
+  .cal .hd .ar { display: flex; gap: 6px; }
+  .cal .hd .ar span { width: 34px; height: 34px; border-radius: 50%; background: var(--neutral); display: grid; place-items: center; color: var(--ink2); }
+  .cal .hd .ar svg { width: 18px; height: 18px; }
+  .cal .stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 8px; }
+  .cal .grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; text-align: center; }
+  .cal .wd { font-size: 12px; font-weight: 700; color: var(--ink2); padding: 2px 0 4px; }
+  .cd { height: 37px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14.5px; font-weight: 600; border-radius: 12px; margin: 0 2px; gap: 2px; }
+  .cal.tight .cd { height: 33px; }
+  .cd.fut { color: #9AA59D; font-weight: 500; }
+  .cd.has { background: var(--green-soft); color: var(--green); font-weight: 800; }
+  .cd.today { background: var(--green); color: #fff; font-weight: 800; box-shadow: 0 3px 8px rgba(27, 127, 58, .35); }
+  .cd.today.none { background: #fff; color: var(--green); box-shadow: inset 0 0 0 2px var(--green); }
+  .cd.sel { box-shadow: inset 0 0 0 3px var(--green), 0 3px 8px rgba(27, 127, 58, .25); }
+  .cd .dots { display: flex; gap: 3px; height: 5px; }
+  .cd .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+  .cd.today .dots i { background: #fff; }
+  .cd .nd { height: 5px; }
+  .cal .hr { height: 1px; background: var(--line); margin: 10px -2px 8px; }
+
+  /* the week strip */
+  .weekhd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .weekhd b { font-size: 16px; font-weight: 800; }
+  .mbtn { height: 34px; padding: 0 8px 0 12px; border-radius: 17px; background: var(--neutral); font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 3px; color: var(--ink); }
+  .mbtn svg { width: 18px; height: 18px; stroke-width: 2.4; }
+  .wkgrid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .wkc { height: 60px; margin: 0 2px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font-size: 16px; font-weight: 700; }
+  .wkc small { font-size: 11.5px; font-weight: 700; color: var(--ink2); }
+  .wkc.fut { color: #9AA59D; font-weight: 500; }
+  .wkc.has { background: var(--green-soft); color: var(--green); font-weight: 800; }
+  .wkc.today { background: var(--green); color: #fff; box-shadow: 0 3px 8px rgba(27, 127, 58, .35); } .wkc.today small { color: #DDF0E2; }
+  .wkc .dots { display: flex; gap: 3px; height: 5px; margin-top: 1px; } .wkc .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--green); } .wkc.today .dots i { background: #fff; }
+
+  /* ---------- timeline (from the third design) ---------- */
+  .tl { position: relative; padding-left: 58px; }
+  .tl::before { content: ""; position: absolute; left: 21px; top: 12px; bottom: -500px; width: 3px; background: #D5DDD3; border-radius: 2px; }
+  .day { position: relative; margin-bottom: 6px; }
+  .node { position: absolute; left: -58px; top: 0; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 17px; background: #fff; color: var(--green); border: 2.5px solid var(--green); box-shadow: 0 0 0 5px var(--ground); }
+  .node.now { background: var(--green); color: #fff; }
+  .dh { height: 44px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; }
+  .dh span { font-weight: 500; color: var(--ink2); font-size: 14px; }
+  .dh .back { margin-left: auto; height: 32px; font-size: 14px; font-weight: 700; color: var(--green); box-shadow: inset 0 0 0 1.5px #A9D3B4; }
+  .tcard { background: #fff; border-radius: 20px; box-shadow: var(--shadow); padding: 12px 14px 12px; margin-bottom: 10px; }
+  .tcard .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+  /* ---------- notes ---------- */
+  .side { width: 560px; display: flex; flex-direction: column; gap: 14px; }
+  .panel { background: #fff; border-radius: 20px; padding: 14px 18px; box-shadow: var(--shadow); }
+  .panel h3 { margin: 0 0 5px; font-size: 16px; display: flex; align-items: center; }
+  .panel p { font-size: 13.5px; color: #3E4A41; line-height: 1.45; margin: 3px 0; }
+  .panel p b { color: var(--ink); }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--green-soft); color: var(--green); margin-left: 8px; }
+  .tag.opt { background: #E6E9F8; color: #3B4A9B; }
+  .tag.md { background: #FFE9C7; color: #8A4A00; }
+  .wide { background: #fff; border-radius: 22px; padding: 18px 22px 20px; box-shadow: var(--shadow); margin-top: 6px; }
+  .wide h3 { margin: 0 0 2px; font-size: 18px; }
+  .wide p { margin: 2px 0 6px; font-size: 14px; color: #3E4A41; max-width: 1250px; line-height: 1.5; }
+  .src { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 8px; }
+  .src div { background: var(--neutral); border-radius: 14px; padding: 10px 14px; font-size: 14px; line-height: 1.45; }
+  .src b { display: block; font-size: 15px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.5 19a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L14 9V3"/><path d="M7.5 15h9"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-basket" viewBox="0 0 24 24"><path d="M3 10h18l-2 10H5z"/><path d="M8 10l3-6M16 10l-3-6"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-field" viewBox="0 0 24 24"><path d="M12 21V11"/><path d="M12 11c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 14c0-3-2.5-5-6-5 0 3 2.5 5 6 5z"/><path d="M4 21h16"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18"/><path d="M10 8h5M10 12h5"/></symbol>
+  <symbol id="i-ask" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.8 9.5a2.3 2.3 0 0 1 4.4.8c0 1.5-2.2 2-2.2 3.2"/><path d="M12 16.5h.01"/></symbol>
+</svg>
+
+<div class="board">
+  <h1>Diary: calendar + timeline + crops, five ways to combine <span class="tag opt">proposal, nothing changed in the app</span></h1>
+  <p class="lead">Your three pieces, put together: the <b>month calendar</b> from the first design, the <b>timeline with a thread</b> from the third, and the <b>crop circles</b> (All / Apple / Tomato) from the fourth. The five pictures differ in how much room the calendar takes, what a touch on the calendar or on a crop does, and whether the crop circles also say "wait" or "safe" (the status; I read your "status based" as the crop circles, so tell me if you meant something else). Same data as before, so nothing needs the server to change; medicines, doses and dates are examples. Pick one and I will build it.</p>
+
+  <div class="row3" id="r1"></div>
+  <div class="row3" id="r2"></div>
+
+  <div class="wide">
+    <h3>What comes from where</h3>
+    <div class="src">
+      <div><b>Calendar (first design)</b>A green dot on every day sprayed (two dots, two sprays), today in solid green, "8 sprays · 2 crops · last: today".</div>
+      <div><b>Timeline (third design)</b>A thread down the page, a big circle per day, a card per spray with the type, dose and wait, its own speaker and its warning in amber.</div>
+      <div><b>Crop circles (fourth design)</b>All / Apple / Tomato; the chosen one gets a green ring and the calendar and the timeline show only that crop.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const I = (n, c = '') => `<svg class="i ${c}"><use href="#i-${n}"/></svg>`;
+  const IMG = c => `style="background-image:url('../../mobile/assets/crops/${c}.jpg')"`;
+  const spk = `<div class="spk">${I('speaker')}</div>`;
+
+  const nav = `<div class="nav">
+    <a><div class="pl">${I('home')}</div>Home</a><a><div class="pl">${I('field')}</div>Field</a>
+    <a class="scan"><div class="fab">${I('camera', 'lg')}</div>Scan</a>
+    <a class="on"><div class="pl">${I('book')}</div>Diary</a><a><div class="pl">${I('ask')}</div>Ask</a></div>`;
+  const phone = inner => `
+    <div class="phone">
+      <div class="status"><span>3:47</span><span>100%</span></div>
+      <div class="top"><h2>Diary</h2><div class="mute">${I('mute')}</div></div>
+      <div class="scroller">${inner}</div>
+      <div class="fab-add">${I('plus')}Write a spray</div>
+      ${nav}
+    </div>`;
+  const fig = (n, title, sub, inner) => `<figure>${phone(inner)}<figcaption><span class="num">${n}</span>${title}<span>${sub}</span></figcaption></figure>`;
+
+  /* ----- crops row ----- */
+  // status: null (no status shown) or true (badge and a word under the name)
+  const crops = (sel, status) => {
+    const one = (key, name, st) => `
+      <div class="cp ${sel === key ? 'on' : ''}">
+        <div class="c ${key === 'all' ? 'all' : ''}" ${key === 'all' ? '' : IMG(key)}>${key === 'all' ? I('grid', 'lg') : ''}${status && st ? `<i class="bg ${st[0]}">${I(st[0] === 'w' ? 'clock' : 'check')}</i>` : ''}</div>
+        ${name}${status && st ? `<span class="st ${st[0]}">${st[1]}</span>` : ''}
+      </div>`;
+    return `<div class="crops">${one('all', 'All')}${one('apple', 'Apple', ['w', 'Wait 13 d'])}${one('tomato', 'Tomato', ['w', 'Wait 3 d'])}</div>`;
+  };
+
+  /* ----- calendar ----- */
+  const dots = n => n ? `<div class="dots">${'<i></i>'.repeat(n)}</div>` : `<div class="nd"></div>`;
+  const ALL = { 14: 1, 17: 1, 21: 1, 28: 2, 29: 2, 30: 1 };
+  const APPLE = { 17: 1, 28: 2, 29: 2 };
+  const monthCells = (map, sel) => {
+    let h = '<div class="cd"></div>'.repeat(3);
+    for (let d = 1; d <= 31; d++) {
+      const n = map[d] || 0, today = d === 30, fut = d > 30;
+      h += `<div class="cd ${n ? 'has' : ''} ${today ? 'today' : ''} ${today && !n ? 'none' : ''} ${fut ? 'fut' : ''} ${sel === d ? 'sel' : ''}"><span>${d}</span>${dots(n)}</div>`;
+    }
+    return h + '<div class="cd"></div>';
+  };
+  const WD = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(x => `<div class="wd">${x}</div>`).join('');
+  const calHead = `<div class="hd"><span>October 2026</span><div class="ar"><span>${I('left')}</span><span>${I('chev')}</span></div></div>`;
+  const allStats = `<div class="stats"><span class="chip g">${I('check')}8 sprays</span><span class="chip">${I('field')}2 crops</span><span class="chip n">${I('clock')}Last: today</span></div>`;
+  const monthCard = (map, sel, stats, tight) => `
+    <div class="card cal ${tight ? 'tight' : ''}">${calHead}${stats || ''}<div class="grid" ${stats ? '' : 'style="margin-top:6px"'}>${WD}${monthCells(map, sel)}</div></div>`;
+
+  /* ----- timeline ----- */
+  const tcard = (crop, name, meta, chips, warn) => `
+    <div class="tcard">
+      <div class="row"><div class="photo r" ${IMG(crop)}></div><div class="grow"><div class="h-name">${name}</div><div class="h-meta">${meta}</div></div>${spk}</div>
+      <div class="chips">${chips}</div>
+      ${warn ? `<div class="warnrow">${I('warn')}<span>${warn}</span></div>` : ''}
+    </div>`;
+  const fung = `<span class="chip">${I('flask')}Fungicide</span>`;
+  const dose = t => `<span class="chip">${I('drop')}${t}</span>`;
+  const wait = (t, cls = 'n') => `<span class="chip ${cls}">${I('clock')}${t}</span>`;
+  const day = (num, head, cards, now) => `<div class="day"><div class="node ${now ? 'now' : ''}">${num}</div><div class="dh">${head}</div>${cards}</div>`;
+
+  const flux = (w) => tcard('tomato', 'Fluxapyroxad + Pyraclostrobin', 'Tomato · saved', fung + dose('1 ml in 1 litre') + w);
+  const ziram = (w) => tcard('apple', 'Ziram', 'Apple · saved', fung + dose('3 g in 1 litre') + w, 'Do not spray when bees are flying.');
+  const captan = (w) => tcard('apple', 'Captan', 'Apple · saved', fung + dose('2 g in 1 litre') + w);
+  const metiram = (w) => tcard('apple', 'Metiram', 'Apple · saved', fung + dose('2.5 g in 1 litre') + w);
+
+  /* ===== 1: stacked ===== */
+  const o1 = `
+    ${crops('all', false)}
+    ${monthCard(ALL, null, allStats)}
+    <div class="tl">
+      ${day(30, 'Today <span>Friday</span>', flux(wait('Wait 3 days')), true)}
+      ${day(29, 'Yesterday <span>Thursday</span>', ziram(wait('Wait 14 days')) + captan(wait('Wait 7 days')))}
+    </div>`;
+
+  /* ===== 2: week strip, month on demand ===== */
+  const wk = (letter, d, n, today, fut) => `<div class="wkc ${n ? 'has' : ''} ${today ? 'today' : ''} ${fut ? 'fut' : ''}">${letter ? `<small>${letter}</small>` : ''}${d}${dots(n)}</div>`;
+  const week = [['S', 24, 0], ['S', 25, 0], ['M', 26, 0], ['T', 27, 0], ['W', 28, 2], ['T', 29, 2], ['F', 30, 1, true]]
+    .map(([l, d, n, t]) => wk(l, d, n, t)).join('');
+  const o2 = `
+    ${crops('all', false)}
+    <div class="card" style="padding:12px 12px 12px">
+      <div class="weekhd" style="padding:0 4px"><b>This week</b><div class="mbtn">${I('cal')}Month${I('down')}</div></div>
+      <div class="wkgrid">${week}</div>
+    </div>
+    <div class="tl" style="margin-top:2px">
+      ${day(30, 'Today <span>Friday</span>', flux(wait('Wait 3 days')), true)}
+      ${day(29, 'Yesterday <span>Thursday</span>', ziram(wait('Wait 14 days')) + captan(wait('Wait 7 days')))}
+      ${day(28, 'Wednesday <span>28 Oct</span>', captan(wait('Wait 7 days')))}
+    </div>`;
+
+  /* ===== 3: one card, crop + calendar, filtered by the crop ===== */
+  const o3 = `
+    <div class="card cal tight incard" style="padding:12px 12px 10px">
+      ${crops('apple', false)}
+      <div class="stats" style="margin:12px 0 4px;padding:0 4px"><span class="chip g">${I('check')}5 sprays</span><span class="chip n">${I('clock')}Last: yesterday</span><span class="chip a">${I('basket')}Safe from 12 Nov</span></div>
+      <div class="hr"></div>
+      <div class="hd" style="padding:0 4px;font-size:16px"><span>October 2026</span><div class="ar"><span style="width:30px;height:30px">${I('left')}</span><span style="width:30px;height:30px">${I('chev')}</span></div></div>
+      <div class="grid" style="margin-top:4px">${WD}${monthCells(APPLE, null)}</div>
+    </div>
+    <div class="tl" style="margin-top:2px">
+      ${day(29, 'Yesterday <span>Thursday</span>', ziram(wait('Wait 14 days')) + captan(wait('Wait 7 days')))}
+      ${day(28, 'Wednesday <span>28 Oct</span>', captan(wait('Wait 7 days')) + metiram(wait('Wait 7 days')))}
+    </div>`;
+
+  /* ===== 4: the calendar picks the day ===== */
+  const o4 = `
+    ${crops('all', false)}
+    ${monthCard(ALL, 29, `<div class="stats"><span class="chip g">${I('check')}8 sprays</span><span class="chip">${I('field')}2 crops</span></div>`, true)}
+    <div class="tl" style="margin-top:2px">
+      ${day(29, `Thursday <span>29 Oct · 2 sprays</span><span class="chip g back">${I('cal')}Today</span>`, ziram(wait('Wait 14 days')) + captan(wait('Wait 7 days')), true)}
+      ${day(28, 'Wednesday <span>28 Oct</span>', captan(wait('Wait 7 days')))}
+    </div>`;
+
+  /* ===== 5: the crop circles carry the status; two weeks of calendar ===== */
+  const fort = (cells) => cells.map(([l, d, n, t, f]) => wk(l, d, n, t, f)).join('');
+  const w1 = fort([['M', 19, 0], ['T', 20, 0], ['W', 21, 1], ['T', 22, 0], ['F', 23, 0], ['S', 24, 0], ['S', 25, 0]]);
+  const w2 = fort([[null, 26, 0], [null, 27, 0], [null, 28, 2], [null, 29, 2], [null, 30, 1, true], [null, 31, 0, false, true], [null, 1, 0, false, true]]);
+  const o5 = `
+    ${crops('all', true)}
+    <div class="card" style="padding:10px 12px 8px">
+      <div class="weekhd" style="padding:0 4px;margin-bottom:2px"><b>Last 2 weeks</b><div class="mbtn">${I('cal')}Month${I('down')}</div></div>
+      <div class="wkgrid">${w1}</div>
+      <div class="wkgrid" style="margin-top:2px">${w2}</div>
+    </div>
+    <div class="tl" style="margin-top:2px">
+      ${day(30, 'Today <span>Friday</span>', flux(wait('Wait till 2 Nov', 'a')), true)}
+      ${day(29, 'Yesterday <span>Thursday</span>', ziram(wait('Wait till 12 Nov', 'a')) + captan(wait('Wait till 5 Nov', 'a')))}
+    </div>`;
+
+  document.getElementById('r1').innerHTML =
+    fig(1, 'Stacked, as you drew it', 'Crops, then the full month, then the timeline. The most complete picture, the calendar takes the first screen.', o1) +
+    fig(2, 'Week strip, month on demand', 'Only this week on top (touch "Month" to open the full calendar), so the timeline starts at once.', o2) +
+    fig(3, 'One card, filtered by crop', 'Crops and calendar in one card: choose Apple and only Apple\'s days and sprays remain, with three facts.', o3);
+
+  const notes = `
+    <div class="side">
+      <div class="panel"><h3><span class="num">1</span>Stacked, as you drew it <span class="tag">small</span></h3>
+        <p><b>Behaviour:</b> a touch on a crop filters the calendar and the timeline; a touch on a day scrolls the timeline to it. The month can fold up (arrow) to give room.</p>
+        <p><b>Good for:</b> everything visible together, easy to understand. <b>Cost:</b> the calendar fills most of the first screen; only one card of the timeline is seen without scrolling.</p></div>
+      <div class="panel"><h3><span class="num">2</span>Week strip, month on demand <span class="tag">small</span></h3>
+        <p><b>Behaviour:</b> same filters; the week strip is the calendar for daily use, and "Month" opens the full calendar of the first design as a sheet.</p>
+        <p><b>Good for:</b> the daily visit: the latest sprays are on the first screen, with 3 cards. <b>Cost:</b> the month is one touch away.</p></div>
+      <div class="panel"><h3><span class="num">3</span>One card, filtered by crop <span class="tag md">medium</span></h3>
+        <p><b>Behaviour:</b> the crop choice sits in the card of the calendar. Apple chosen: only Apple's days are lit, the three facts say how many sprays, the last one and when it is safe to pick (amber while a wait runs), and the timeline shows only Apple.</p>
+        <p><b>Good for:</b> a farmer with several crops: each crop is its own diary. <b>Cost:</b> the card is tall; with "All" the facts are the totals.</p></div>
+      <div class="panel"><h3><span class="num">4</span>The calendar picks the day <span class="tag md">medium</span></h3>
+        <p><b>Behaviour:</b> the chosen day (29 Oct) has a thick ring; the timeline starts at that day and goes back from there; "Today" brings it back. A touch on a day with no spray says so ("nothing written on this day").</p>
+        <p><b>Good for:</b> "what did I spray last Tuesday?". <b>Cost:</b> one more idea to learn (a chosen day); the calendar stays on the page.</p></div>
+      <div class="panel"><h3><span class="num">5</span>Status on the crops <span class="tag md">medium</span></h3>
+        <p><b>Behaviour:</b> each crop circle says "Wait 13 d" (amber clock) or "Safe" (green tick) from the waiting days of its last sprays; two weeks of calendar are enough on screen, and the timeline's wait chips are amber ("Wait till 12 Nov") while a wait runs.</p>
+        <p><b>Good for:</b> "can I pick?" at a glance, before reading anything. <b>Needs:</b> waiting days (the server sends them; a medicine without them gets a grey "Ask first"); the words need an agronomist, as on Home. <b>Amber</b> here means "wait" (veto it if you keep amber for warnings only).</p></div>
+    </div>`;
+
+  document.getElementById('r2').innerHTML =
+    fig(4, 'The calendar picks the day', 'Touch a day: the timeline starts there. A chip brings you back to today.', o4) +
+    fig(5, 'Status on the crops', 'The crop circles say "wait" or "safe"; a short calendar of two weeks; amber wait chips on the cards.', o5) +
+    notes;
+</script>
+</body>
+</html>

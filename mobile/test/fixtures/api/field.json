@@ -20,6 +20,9 @@
       "leaf_wetness_min": 0,
       "soil_moisture_pct": 45.5
     },
+    "conditions": null,
+    "hours": [],
+    "spray": null,
     "forecast": [
       {
         "day": "2026-05-12",

@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FarmTrack Home: richer "Now in your field" (proposal)</title>
+<style>
+  /* The app's own fonts (subset of Noto Sans), so the picture looks like the app. */
+  @font-face { font-family: "Noto Sans"; font-weight: 400; src: url("../../mobile/assets/fonts/NotoSans-Regular.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 500; src: url("../../mobile/assets/fonts/NotoSans-Medium.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 600; src: url("../../mobile/assets/fonts/NotoSans-SemiBold.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 700; src: url("../../mobile/assets/fonts/NotoSans-Bold.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 800; src: url("../../mobile/assets/fonts/NotoSans-ExtraBold.ttf"); }
+
+  :root {
+    --ground: #F3F6F1; --card: #FFFFFF; --ink: #17201A; --ink2: #4F5B52; --line: #E1E7DE; --neutral: #EEF2EC;
+    --brand: #14532D; --green: #1B7F3A; --green-soft: #E3F2E7; --blue: #1F5FA8; --blue-soft: #E3EDF8;
+    --amber-soft: #FFF3D1; --amber-dark: #8A5A00; --red: #C62828;
+    --shadow: 0 1px 2px rgba(16, 40, 24, .06), 0 6px 18px rgba(16, 40, 24, .07);
+    --page: #E6EAE4;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font-family: "Noto Sans", system-ui, sans-serif; width: 1480px; }
+  svg.i { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  svg.i.sm { width: 20px; height: 20px; } svg.i.lg { width: 30px; height: 30px; } svg.i.xl { width: 38px; height: 38px; }
+
+  .board { padding: 34px 40px 40px; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  .lead { font-size: 16px; color: #3E4A41; margin: 0 0 22px; max-width: 1100px; line-height: 1.5; }
+  .stage { display: flex; gap: 44px; align-items: flex-start; }
+  figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  figcaption { font-weight: 700; font-size: 15px; text-align: center; }
+  figcaption span { display: block; font-weight: 400; font-size: 13px; color: #4F5B52; max-width: 380px; margin-top: 2px; }
+
+  /* ---------- the phone ---------- */
+  .phone { width: 390px; height: 844px; background: var(--ground); border-radius: 44px; overflow: hidden; position: relative;
+    box-shadow: 0 0 0 10px #1C221E, 0 0 0 11px #3A433D, 0 24px 60px rgba(0, 0, 0, .28); }
+  .scroller { position: absolute; inset: 0 0 80px 0; overflow: hidden; }
+  .status { position: absolute; z-index: 5; top: 0; left: 0; right: 0; height: 30px; display: flex; justify-content: space-between; align-items: center; padding: 0 22px; font-size: 13px; font-weight: 600; color: #fff; }
+  .status.dark { color: var(--ink); background: var(--ground); box-shadow: 0 1px 0 var(--line); }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .grow { flex: 1; min-width: 0; }
+  .muted { color: var(--ink2); }
+  .card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 16px; }
+  .dot { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; flex: none; }
+  .round { border-radius: 50%; }
+  .h-name { font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .h-meta { font-size: 14px; color: var(--ink2); line-height: 1.35; }
+  .label { font-size: 13px; font-weight: 700; color: var(--ink2); letter-spacing: .04em; text-transform: uppercase; margin: 6px 4px -2px; display: flex; justify-content: space-between; align-items: baseline; }
+  .label .more { color: var(--green); letter-spacing: 0; text-transform: none; font-size: 14px; display: flex; align-items: center; gap: 2px; }
+  .label .more svg { width: 16px; height: 16px; stroke-width: 2.4; }
+  .pad { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  .glass { width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, .16); color: #fff; display: grid; place-items: center; flex: none; position: relative; }
+  .glass.mute { background: #fff; color: var(--red); }
+  .glass .badge { position: absolute; top: -3px; right: -3px; min-width: 20px; height: 20px; border-radius: 10px; background: var(--red); color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; border: 2px solid var(--brand); }
+  .place { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px 0 10px; border-radius: 999px; background: rgba(255, 255, 255, .16); font-size: 16px; font-weight: 500; }
+
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; height: 80px; background: var(--card); border-top: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-around; padding-top: 8px; }
+  .nav a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 600; color: var(--ink2); width: 64px; }
+  .nav a .pl { width: 56px; height: 32px; border-radius: 16px; display: grid; place-items: center; }
+  .nav a.on { color: var(--green); font-weight: 700; } .nav a.on .pl { background: var(--green-soft); }
+  .nav a.scan { margin-top: -34px; color: var(--ink); font-weight: 700; }
+  .nav a.scan .fab { width: 68px; height: 68px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; border: 5px solid #fff; box-shadow: 0 6px 16px rgba(27, 127, 58, .35); }
+
+  /* ---------- the new weather cards ---------- */
+  .trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .wc { position: relative; border-radius: 22px; padding: 12px 11px 12px; display: flex; flex-direction: column; gap: 2px; overflow: hidden;
+        box-shadow: 0 1px 2px rgba(16, 40, 24, .08), 0 6px 14px rgba(16, 40, 24, .09); color: var(--ink); min-height: 156px; }
+  .wc::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 92% 4%, rgba(255, 255, 255, .62), rgba(255, 255, 255, 0) 55%); pointer-events: none; }
+  .wc > * { position: relative; }
+  .wc .top { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 700; color: rgba(23, 32, 26, .78); }
+  .wc .top svg { width: 22px; height: 22px; color: var(--deep); stroke-width: 2.2; }
+  .wc .val { font-size: 30px; font-weight: 800; line-height: 1.15; margin-top: 6px; letter-spacing: -.01em; }
+  .wc .val small { font-size: 15px; font-weight: 700; margin-left: 2px; }
+  .wc .word { align-self: flex-start; height: 26px; padding: 0 10px; border-radius: 999px; background: rgba(255, 255, 255, .72); font-size: 13.5px; font-weight: 800; color: var(--deep); display: inline-flex; align-items: center; margin: 3px 0 6px; white-space: nowrap; }
+  .wc .sub { font-size: 12.5px; line-height: 1.35; font-weight: 500; color: rgba(23, 32, 26, .82); white-space: nowrap; }
+  .wc .sub b { font-weight: 700; }
+
+  /* warmth */
+  .w-cold { --deep: #1F4F95; background: linear-gradient(155deg, #E6EFFF 0%, #B1CBF4 100%); }
+  .w-cool { --deep: #136C77; background: linear-gradient(155deg, #E2F4F5 0%, #9FD7DE 100%); }
+  .w-pleasant { --deep: #3E6D0F; background: linear-gradient(155deg, #F0F7D6 0%, #C4E391 100%); }
+  .w-warm { --deep: #A24F00; background: linear-gradient(155deg, #FFF1D2 0%, #FFBB76 100%); }
+  .w-hot { --deep: #A52F12; background: linear-gradient(155deg, #FFDFD2 0%, #F59679 100%); }
+  /* air (how wet the air is) */
+  .a-dry { --deep: #7A5A10; background: linear-gradient(155deg, #FAF0DB 0%, #E8CD91 100%); }
+  .a-normal { --deep: #1B6B49; background: linear-gradient(155deg, #E5F6EC 0%, #A3DBC1 100%); }
+  .a-damp { --deep: #1B5E92; background: linear-gradient(155deg, #E0EFFA 0%, #A3CDEC 100%); }
+  .a-wet { --deep: #2A4A9C; background: linear-gradient(155deg, #D8E3F8 0%, #92ADE8 100%); }
+  /* rain */
+  .r-none { --deep: #3F5B78; background: linear-gradient(155deg, #EDF3F9 0%, #C6D8EA 100%); }
+  .r-light { --deep: #1B5E92; background: linear-gradient(155deg, #E0EEFC 0%, #8FBFF2 100%); }
+  .r-heavy { --deep: #35379A; background: linear-gradient(155deg, #D8DEF8 0%, #8191E4 100%); }
+
+  .sumline { display: flex; align-items: center; gap: 12px; background: var(--blue-soft); border-radius: 18px; padding: 10px 14px 10px 10px; }
+  .sumline .sp { width: 36px; height: 36px; border-radius: 50%; background: #fff; color: var(--blue); display: grid; place-items: center; flex: none; }
+  .sumline .tx { font-size: 15px; font-weight: 500; line-height: 1.35; color: var(--ink); }
+
+  /* details and the week */
+  .tri-detail { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 14px 6px; }
+  .tri-detail > div { padding: 0 10px; }
+  .tri-detail > div + div { border-left: 1px solid var(--line); }
+  .tri-detail .k { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink2); }
+  .tri-detail .k svg { width: 18px; height: 18px; color: var(--blue); }
+  .tri-detail .v { font-size: 20px; font-weight: 800; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+  .tri-detail .s { font-size: 12.5px; color: var(--ink2); line-height: 1.3; }
+  .aqi-dot { width: 12px; height: 12px; border-radius: 50%; background: #F2A900; display: inline-block; }
+  .week { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; padding: 8px 6px; }
+  .week .d { text-align: center; padding: 6px 0 8px; border-radius: 14px; }
+  .week .d.today { background: var(--paper, #F3F6F1); }
+  .week .n { font-size: 13px; font-weight: 600; color: var(--ink2); }
+  .week .d.today .n { font-weight: 800; color: var(--ink); }
+  .week svg.g { width: 34px; height: 34px; margin: 4px 0 2px; }
+  .week .hi { font-size: 16px; font-weight: 700; }
+  .week .lo { font-size: 13px; color: var(--ink2); }
+  .week .mm { font-size: 12px; color: var(--blue); font-weight: 700; }
+
+  /* ---------- the side board ---------- */
+  .side { width: 470px; display: flex; flex-direction: column; gap: 16px; }
+  .panel { background: #fff; border-radius: 20px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .panel h3 { margin: 0 0 4px; font-size: 16px; }
+  .panel p, .panel li { font-size: 13.5px; color: #3E4A41; line-height: 1.45; margin: 2px 0; }
+  .panel ul { margin: 6px 0 0; padding-left: 18px; }
+  .state { margin-top: 10px; }
+  .state .cap { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .state .cap span { font-weight: 400; color: var(--ink2); }
+  .state .trio { grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .state .wc { min-height: 150px; }
+  .scale { display: grid; grid-template-columns: 74px 1fr; gap: 6px 10px; align-items: center; margin-top: 8px; font-size: 12.5px; }
+  .scale .bar { height: 18px; border-radius: 9px; border: 1px solid rgba(0, 0, 0, .06); }
+  .scale .ends { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink2); margin-top: 2px; grid-column: 2; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--green-soft); color: var(--green); }
+  .tag.new { background: #FFE9C7; color: #8A4A00; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol>
+  <symbol id="i-field" viewBox="0 0 24 24"><path d="M12 21V11"/><path d="M12 11c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 14c0-3-2.5-5-6-5 0 3 2.5 5 6 5z"/><path d="M4 21h16"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18"/><path d="M10 8h5M10 12h5"/></symbol>
+  <symbol id="i-ask" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.8 9.5a2.3 2.3 0 0 1 4.4.8c0 1.5-2.2 2-2.2 3.2"/><path d="M12 16.5h.01"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></symbol>
+  <symbol id="i-rain" viewBox="0 0 24 24"><path d="M16 13H8a4 4 0 1 1 .8-7.9A5 5 0 0 1 18 7a3 3 0 0 1-2 6z"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/></symbol>
+  <symbol id="i-wind" viewBox="0 0 24 24"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></symbol>
+  <symbol id="i-air" viewBox="0 0 24 24"><path d="M4 9h9a3 3 0 1 0-3-3"/><path d="M3 14h15a3 3 0 1 1-3 3"/></symbol>
+
+  <!-- drawn weather pictures (as in the app's week strip) -->
+  <defs>
+    <radialGradient id="gs" cx=".35" cy=".35" r=".8"><stop offset="0" stop-color="#FFD54F"/><stop offset="1" stop-color="#FF9800"/></radialGradient>
+    <linearGradient id="gc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D3DEEB"/><stop offset="1" stop-color="#93A7BE"/></linearGradient>
+  </defs>
+  <symbol id="g-sun" viewBox="0 0 48 48"><circle cx="24" cy="24" r="15" fill="#FF9800" opacity=".18"/><circle cx="24" cy="24" r="10.5" fill="url(#gs)"/></symbol>
+  <symbol id="g-rain" viewBox="0 0 48 48"><path d="M12 28a6.5 6.5 0 0 1 1.2-12.9A9.5 9.5 0 0 1 31.6 17 6 6 0 0 1 33 28z" fill="url(#gc)" stroke="#7F93AB" stroke-width="1.2"/><path d="M16 32l-2 6M24 32l-2 6M32 32l-2 6" stroke="#2F7BD9" stroke-width="3" stroke-linecap="round"/></symbol>
+  <symbol id="g-cloud" viewBox="0 0 48 48"><path d="M11 33a7 7 0 0 1 1.3-13.9A10 10 0 0 1 31.5 21 6.5 6.5 0 0 1 33 33z" fill="url(#gc)" stroke="#7F93AB" stroke-width="1.2"/></symbol>
+</svg>
+
+<div class="board">
+  <h1>Home: a richer "Now in your field" <span class="tag new">proposal, nothing changed in the app yet</span></h1>
+  <p class="lead">Kept exactly as it is: the green header with the name, the place and the three buttons, the big camera card, the last advice, the soft green background and the bottom bar. New: the three weather cards become bigger, coloured by the weather itself, and say more; under them come the details and the next days, so the landing page is useful when nobody is scanning a leaf.</p>
+
+  <div class="stage">
+    <div id="phoneA"></div>
+    <div id="phoneB"></div>
+    <div class="side" id="side"></div>
+  </div>
+</div>
+
+<script>
+  const I = (n, c = '') => `<svg class="i ${c}"><use href="#i-${n}"/></svg>`;
+  const G = n => `<svg class="g"><use href="#g-${n}"/></svg>`;
+
+  // one weather card: kind = icon, cls = colour band
+  const wc = (cls, icon, label, val, unit, word, s1, s2) => `
+    <div class="wc ${cls}">
+      <div class="top">${I(icon)}${label}</div>
+      <div class="val">${val}<small>${unit}</small></div>
+      <div class="word">${word}</div>
+      <div class="sub">${s1}</div>
+      <div class="sub">${s2}</div>
+    </div>`;
+
+  const trioWarm = `<div class="trio">
+      ${wc('w-warm', 'sun', 'Warmth', '27', '°C', 'Warm', 'Feels like <b>32°</b>', 'Day 24° – 33°')}
+      ${wc('a-normal', 'drop', 'Air', '72', '%', 'Normal', 'Dew point <b>22°</b>', 'Wind <b>4 km/h</b>')}
+      ${wc('r-none', 'rain', 'Rain', '0', 'mm', 'No rain', 'In the last day', 'Next: <b>Sun, 4 mm</b>')}
+    </div>`;
+
+  const page = () => `
+    <div style="background:var(--brand);color:#fff;padding:44px 16px 84px;border-radius:0 0 28px 28px">
+      <div class="row" style="align-items:center">
+        <div class="grow">
+          <div style="font-size:21px;font-weight:700;margin-bottom:8px">Namaste, Shahzad</div>
+          <span class="place">${I('pin', 'sm')}Navalur ${I('down', 'sm')}</span>
+        </div>
+        <div class="row" style="gap:8px">
+          <div class="glass">${I('bell', 'sm')}</div><div class="glass">${I('gear', 'sm')}</div><div class="glass mute">${I('mute', 'sm')}</div>
+        </div>
+      </div>
+    </div>
+    <div class="pad" style="margin-top:-62px">
+      <div class="card" style="padding:16px 18px;border-radius:24px">
+        <div class="row" style="gap:16px">
+          <div class="dot round" style="width:76px;height:76px;background:var(--green);color:#fff;box-shadow:0 6px 16px rgba(27,127,58,.3)">${I('camera', 'xl')}</div>
+          <div class="grow"><div style="font-size:22px;font-weight:800;line-height:1.2">Scan a leaf</div><div class="muted" style="font-size:15px;margin-top:2px">Take a photo, hear the advice</div></div>
+          <div class="dot round" style="width:40px;height:40px;background:var(--green-soft);color:var(--green)">${I('next')}</div>
+        </div>
+      </div>
+      <div class="row" style="background:#E3F2E7;border:1px solid #A9D3B4;border-radius:18px;padding:12px 14px;gap:12px">
+        <div class="dot" style="width:44px;height:44px;background:var(--green);color:#fff;border-radius:12px">${I('check')}</div>
+        <div class="grow" style="font-size:17px;font-weight:800">Result ready: tap to see</div>${I('chev')}
+      </div>
+      <div class="label">Last advice</div>
+      <div class="card row">
+        <div class="dot" style="background:var(--amber-soft);color:var(--amber-dark)">${I('warn')}</div>
+        <div class="grow"><div class="h-name">Apple scab: your next step</div><div class="h-meta">Be careful · 29 October</div></div>${I('chev')}
+      </div>
+
+      <div class="label"><span>Now at this place</span><span class="more">Navalur · 8:40 pm ${I('chev')}</span></div>
+      ${trioWarm}
+      <div class="sumline"><div class="sp">${I('speaker', 'sm')}</div><div class="tx">It is warm now. No rain is expected in the next two days.</div></div>
+
+      <div class="card tri-detail">
+        <div><div class="k">${I('wind')}Wind</div><div class="v">4 km/h</div><div class="s">Light breeze</div></div>
+        <div><div class="k">${I('air')}Air quality</div><div class="v"><span class="aqi-dot"></span>141</div><div class="s">Unhealthy for some</div></div>
+        <div><div class="k">${I('eye')}Visibility</div><div class="v">17.7 km</div><div class="s">Clear view</div></div>
+      </div>
+
+      <div class="label"><span>Next days</span><span class="more">See all ${I('chev')}</span></div>
+      <div class="card week">
+        <div class="d today"><div class="n">Today</div>${G('sun')}<div class="hi">32°</div><div class="lo">23°</div></div>
+        <div class="d"><div class="n">Fri</div>${G('sun')}<div class="hi">32°</div><div class="lo">23°</div></div>
+        <div class="d"><div class="n">Sat</div>${G('sun')}<div class="hi">33°</div><div class="lo">24°</div></div>
+        <div class="d"><div class="n">Sun</div>${G('rain')}<div class="hi">32°</div><div class="lo">23°</div><div class="mm">4 mm</div></div>
+        <div class="d"><div class="n">Mon</div>${G('rain')}<div class="hi">30°</div><div class="lo">23°</div><div class="mm">2 mm</div></div>
+      </div>
+    </div>`;
+
+  const nav = `<nav class="nav">
+      <a class="on"><span class="pl">${I('home')}</span>Home</a>
+      <a><span class="pl">${I('field')}</span>Field</a>
+      <a class="scan"><span class="fab">${I('camera', 'lg')}</span>Scan</a>
+      <a><span class="pl">${I('book')}</span>Diary</a>
+      <a><span class="pl">${I('ask')}</span>Ask</a>
+    </nav>`;
+
+  document.getElementById('phoneA').innerHTML = `<figure>
+    <div class="phone"><div class="status"><span>8:54</span><span>▮▮▮ 100%</span></div>
+      <div class="scroller">${page()}</div>${nav}</div>
+    <figcaption>1. First screen when the farmer lands<span>Header, camera, advice and background unchanged. The weather cards are colourful and tell more; the empty strip above the bottom bar is gone.</span></figcaption></figure>`;
+
+  document.getElementById('phoneB').innerHTML = `<figure>
+    <div class="phone"><div class="status dark"><span>8:54</span><span>▮▮▮ 100%</span></div>
+      <div class="scroller"><div id="pageB">${page()}</div></div>${nav}</div>
+    <figcaption>2. After a short scroll<span>The details a weather app shows (wind, air quality, visibility) and the next five days. A tap on any of it opens "My field".</span></figcaption></figure>`;
+
+  // phone B is scrolled to the very end of the page, as far as the real page would scroll
+  document.fonts.ready.then(() => {
+    const el = document.getElementById('pageB');
+    el.style.transform = `translateY(-${Math.max(0, el.offsetHeight - (844 - 80))}px)`;
+  });
+
+  // the side board: other days, colour scales, notes
+  const st = (cap, sub, a, b, c) => `<div class="state"><div class="cap">${cap} <span>${sub}</span></div><div class="trio">${a}${b}${c}</div></div>`;
+  const bar = (name, stops, l, r) => `<div>${name}</div><div><div class="bar" style="background:linear-gradient(90deg,${stops})"></div><div class="ends"><span>${l}</span><span>${r}</span></div></div>`;
+  document.getElementById('side').innerHTML = `
+    <div class="panel">
+      <h3>The colour follows the weather</h3>
+      <p>Each card changes colour with its own value, so a farmer can see "hot", "damp" or "heavy rain" before reading a word. The word stays on every card (colour is never the only sign).</p>
+      ${st('Cool, damp morning', 'your own field today: 8 °C, 81 %, 0.8 mm',
+        wc('w-cool', 'sun', 'Warmth', '8', '°C', 'Cool', 'Feels like <b>6°</b>', 'Day 3° – 12°'),
+        wc('a-damp', 'drop', 'Air', '81', '%', 'Damp', 'Dew point <b>5°</b>', 'Wind <b>6 km/h</b>'),
+        wc('r-none', 'rain', 'Rain', '0.8', 'mm', 'No rain', 'In the last day', 'Next: <b>Sun, 6 mm</b>'))}
+      ${st('Hot, dry afternoon', '36 °C, 28 %, no rain',
+        wc('w-hot', 'sun', 'Warmth', '36', '°C', 'Hot', 'Feels like <b>37°</b>', 'Day 22° – 37°'),
+        wc('a-dry', 'drop', 'Air', '28', '%', 'Dry', 'Dew point <b>9°</b>', 'Wind <b>12 km/h</b>'),
+        wc('r-none', 'rain', 'Rain', '0', 'mm', 'No rain', 'In the last day', 'None in 7 days'))}
+      ${st('Heavy rain', '14 °C, 95 %, 24 mm',
+        wc('w-cool', 'sun', 'Warmth', '14', '°C', 'Cool', 'Feels like <b>12°</b>', 'Day 11° – 16°'),
+        wc('a-wet', 'drop', 'Air', '95', '%', 'Very damp', 'Dew point <b>13°</b>', 'Wind <b>9 km/h</b>'),
+        wc('r-heavy', 'rain', 'Rain', '24', 'mm', 'Heavy rain', 'In the last day', 'More: <b>Sat, 11 mm</b>'))}
+    </div>
+    <div class="panel">
+      <h3>Colour scales</h3>
+      <div class="scale">
+        ${bar('Warmth', '#B1CBF4,#9FD7DE,#C4E391,#FFBB76,#F59679', 'Cold', 'Hot')}
+        ${bar('Air', '#E8CD91,#A3DBC1,#A3CDEC,#92ADE8', 'Dry', 'Very damp')}
+        ${bar('Rain', '#C6D8EA,#8FBFF2,#8191E4', 'None', 'Heavy')}
+      </div>
+      <p style="margin-top:8px">Text on the cards is the app's dark ink on pale colours (readable in sun). The amber of warnings is not used on these cards.</p>
+    </div>
+    <div class="panel">
+      <h3>What each card says <span class="tag">kept</span> <span class="tag new">new</span></h3>
+      <ul>
+        <li><b>Warmth:</b> the temperature and its word <span class="tag">kept</span>, "feels like" and the day's low and high <span class="tag new">new</span></li>
+        <li><b>Air:</b> how wet the air is <span class="tag">kept</span>, dew point and wind <span class="tag new">new</span></li>
+        <li><b>Rain:</b> rain in the last day <span class="tag">kept</span>, when it rains next <span class="tag new">new</span></li>
+        <li><b>One sentence under the cards</b> (the server's own short summary, today only spoken; a tap plays it) <span class="tag new">new</span></li>
+        <li><b>Details and next days</b> (wind, air quality, visibility, five days) <span class="tag new">new</span>; the leaf-wetness reading stays on "My field".</li>
+        <li>Spoken text does not change: the voice still says the server's short summary, never the digits.</li>
+      </ul>
+    </div>`;
+</script>
+</body>
+</html>

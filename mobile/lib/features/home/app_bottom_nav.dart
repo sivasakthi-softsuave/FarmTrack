@@ -24,7 +24,7 @@ class AppBottomNav extends ConsumerWidget {
   final AppTab current;
 
   /// How far the camera circle rises above the bar (the mockup's -34 px margin, minus the 8 px of padding).
-  static const rise = 26.0;
+  static const rise = Dimens.navRise;
 
   /// The bar's own height without the phone's bottom inset.
   static const height = Dimens.nav;

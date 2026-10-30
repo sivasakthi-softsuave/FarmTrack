@@ -85,12 +85,24 @@ void main() {
       // The demo farmer grows apple and potato: the first row; tomato comes on the next row.
       expect(potato.dy, apple.dy);
       expect(tomato.dy, greaterThan(apple.dy));
-      // Each crop is a white card: the crop's blue picture in a 44 dp square and its name beside it.
+      // Each crop is a white card: the crop's picture in a 44 dp square and its name beside it. Every crop the server lists
+      // has its real photo (assets/crops/); a crop without one gets the blue picture of its group (test/crop_pictures_test.dart).
       final card = keyed('crop-apple');
-      expect(find.descendant(of: card, matching: find.byIcon(AppIcons.tree)), findsOneWidget);
+      expect(
+        find.descendant(of: card, matching: find.byType(Image)),
+        findsOneWidget,
+        reason: 'the real apple photo',
+      );
+      expect(find.descendant(of: card, matching: find.byIcon(AppIcons.tree)), findsNothing);
       expect(find.descendant(of: card, matching: find.text('सेब')), findsOneWidget);
-      final dot = tester.getSize(find.descendant(of: card, matching: find.byType(IconDot)));
-      expect(dot, const Size(44, 44));
+      expect(tester.getSize(find.descendant(of: card, matching: find.byType(Image))), const Size(44, 44));
+      final tomatoCard = keyed('crop-tomato');
+      expect(tester.getSize(find.descendant(of: tomatoCard, matching: find.byType(Image))), const Size(44, 44));
+      expect(
+        find.descendant(of: tomatoCard, matching: find.byType(IconDot)),
+        findsNothing,
+        reason: 'the real tomato photo',
+      );
       expectBigTouchTargets(tester);
     });
 
@@ -102,8 +114,9 @@ void main() {
       // Own crops first, once each (the server lists them again), in the app's own words.
       expect(find.descendant(of: keyed('crop-Apple'), matching: find.text('सेब')), findsOneWidget);
       expect(find.descendant(of: keyed('crop-Potato'), matching: find.text('आलू')), findsOneWidget);
-      expect(find.descendant(of: keyed('crop-Apple'), matching: find.byIcon(AppIcons.tree)), findsOneWidget);
-      expect(find.descendant(of: keyed('crop-Potato'), matching: find.byIcon(AppIcons.leaf)), findsOneWidget);
+      expect(find.descendant(of: keyed('crop-Apple'), matching: find.byType(Image)), findsOneWidget);
+      expect(find.descendant(of: keyed('crop-Potato'), matching: find.byType(Image)), findsOneWidget);
+      expect(find.descendant(of: keyed('crop-Potato'), matching: find.byIcon(AppIcons.leaf)), findsNothing);
       expect(find.byKey(const ValueKey('crop-apple')), findsNothing);
 
       await tapKey(tester, 'crop-Potato');
@@ -252,7 +265,7 @@ void main() {
       await openAdd(tester, env);
       await tapKey(tester, 'crop-apple');
       env.voice.clear();
-      await tapKey(tester, 'speaker-button');
+      await replayVoice(tester);
       expect(env.voice.spokenIds, ['diary_type_medicine', 'diary_pick_recent']);
     });
 

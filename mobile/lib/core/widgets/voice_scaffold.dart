@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers.dart';
+import '../utils/haptics.dart';
 import '../theme/app_theme.dart';
 import '../voice/speak_on_enter.dart';
 import '../voice/utterance.dart';
@@ -13,12 +14,12 @@ import 'big_buttons.dart';
 import 'demo_clock_banner.dart';
 
 /// The frame of every screen, as in the approved mockup: one slim white bar on top (back arrow, the screen's name, its
-/// own buttons, mute and speaker), the content, and at the bottom only the screen's one main action on a white strip
+/// own buttons and the voice button), the content, and at the bottom only the screen's one main action on a white strip
 /// (or the navigation bar of the four main pages). The spoken sentence floats over the content as a dark caption (tap
 /// for all of it) instead of taking a footer. It speaks [script] when the screen appears.
 ///
 /// With [brandHeader] the top bar is the deep-green Home header: [title] and [subtitle] in white, no back arrow, the
-/// voice buttons on a second line. With [bottomNav] (the four main pages) the navigation bar sits at the bottom and
+/// voice button on the greeting's line, after [topRight]. With [bottomNav] (the four main pages) the navigation bar sits at the bottom and
 /// [bottomRight] floats above it.
 class VoiceScaffold extends ConsumerWidget {
   const VoiceScaffold({
@@ -38,6 +39,8 @@ class VoiceScaffold extends ConsumerWidget {
     this.title,
     this.titleWidget,
     this.subtitle,
+    this.onSubtitleTap,
+    this.subtitleLabel,
     this.avatar,
     this.brandHeader = false,
     this.flatTopBar = false,
@@ -64,7 +67,7 @@ class VoiceScaffold extends ConsumerWidget {
   /// The screen's one main action (or, with [wideAction], a row of them). Its strip is the only thing under the content.
   final Widget? bottomRight;
 
-  /// Small buttons at the top, next to mute and the speaker (settings, alerts).
+  /// Small buttons at the top, next to the voice button (settings, alerts).
   final List<Widget> topRight;
   final bool showBack;
   final VoidCallback? onBack;
@@ -83,6 +86,12 @@ class VoiceScaffold extends ConsumerWidget {
 
   /// A second, smaller line under [title] (only in the [brandHeader]).
   final String? subtitle;
+
+  /// Makes the [subtitle] (the farmer's location on Home) a button: a pill with a pin and an arrow, a 56 dp touch target.
+  final VoidCallback? onSubtitleTap;
+
+  /// What a screen reader says for that button (default: the [subtitle]).
+  final String? subtitleLabel;
 
   /// Initials in a round badge before the [brandHeader] title.
   final String? avatar;
@@ -138,7 +147,14 @@ class VoiceScaffold extends ConsumerWidget {
               Column(
                 children: [
                   if (brandHeader)
-                    _BrandHeader(title: title, subtitle: subtitle, avatar: avatar, actions: topRight)
+                    _BrandHeader(
+                      title: title,
+                      subtitle: subtitle,
+                      onSubtitleTap: onSubtitleTap,
+                      subtitleLabel: subtitleLabel,
+                      avatar: avatar,
+                      actions: topRight,
+                    )
                   else
                     _TopBar(
                       title: title,
@@ -187,7 +203,7 @@ class VoiceScaffold extends ConsumerWidget {
                                   child: scrollable
                                       ? _ScrollingBody(
                                           captionRoom: !keyboardOpen,
-                                          extraRoom: floating && action != null ? actionHeight : 0,
+                                          extraRoom: floating && action != null ? actionHeight + Dimens.navRise : 0,
                                           alignTop: alignTop || brandHeader,
                                           child: body,
                                         )
@@ -202,7 +218,8 @@ class VoiceScaffold extends ConsumerWidget {
                             Positioned(
                               left: Dimens.gutter,
                               right: Dimens.gutter,
-                              bottom: captionGap,
+                              // A floating action sits above the camera circle of the bar, never under it.
+                              bottom: captionGap + (floating && action != null ? Dimens.navRise : 0),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -222,7 +239,7 @@ class VoiceScaffold extends ConsumerWidget {
                           else if (floating && action != null)
                             Positioned(
                               right: Dimens.gutter,
-                              bottom: 10,
+                              bottom: 10 + Dimens.navRise,
                               child: ConstrainedBox(
                                 constraints: BoxConstraints(maxHeight: maxAction),
                                 child: FittedBox(fit: BoxFit.scaleDown, child: action),
@@ -293,8 +310,8 @@ const _barDecoration = BoxDecoration(
 );
 const _flatDecoration = BoxDecoration(color: AppColors.paper);
 
-/// The bar on top of an ordinary screen (`.topbar`): back arrow, the name in 20 / 700, the screen's own buttons, mute
-/// and the speaker. White with a hairline below it, or [flat] on the screen's own background.
+/// The bar on top of an ordinary screen (`.topbar`): back arrow, the name in 20 / 700, the screen's own buttons and the
+/// voice button. White with a hairline below it, or [flat] on the screen's own background.
 class _TopBar extends StatelessWidget {
   const _TopBar({
     required this.title,
@@ -362,28 +379,41 @@ class _TopBar extends StatelessWidget {
         ),
       if (actions.isEmpty && !hasTitle) const Spacer(),
       if (actions.isNotEmpty) hasTitle ? Flexible(child: buttons) : Expanded(child: buttons),
-      const MuteButton(),
-      const SpeakerButton(),
+      const VoiceButton(),
     ];
   }
 }
 
-/// The deep-green Home header (`.home` header of the mockup): the initials in a glass circle, the greeting (20 / 700)
-/// and the village (14, a little transparent), the bell and the gear as glass buttons. The voice buttons (mute, speaker)
-/// have a line of their own under them, because four round buttons next to the greeting would squeeze it out.
+/// The deep-green Home header (`.home` header of the mockup): the initials in a glass circle, the greeting (20 / 700) with the
+/// farmer's place under it (14, a little transparent), and at the right, in ONE line, the bell, the gear and the voice button as
+/// small glass buttons. The buttons are drawn [Dimens.compactIbtn] wide (their tap areas stay 56 dp) so that three of them fit
+/// beside the names; on a narrow phone the initials, which only decorate, give their room to the names.
 class _BrandHeader extends StatelessWidget {
-  const _BrandHeader({required this.title, required this.subtitle, required this.avatar, required this.actions});
+  const _BrandHeader({
+    required this.title,
+    required this.subtitle,
+    required this.avatar,
+    required this.actions,
+    this.onSubtitleTap,
+    this.subtitleLabel,
+  });
 
   final String? title;
   final String? subtitle;
+  final VoidCallback? onSubtitleTap;
+  final String? subtitleLabel;
   final String? avatar;
   final List<Widget> actions;
+
+  /// Narrower than this, the initials are left out.
+  static const _avatarMinWidth = 380.0;
 
   @override
   Widget build(BuildContext context) {
     final name = title ?? '';
     final place = subtitle ?? '';
     final initials = avatar ?? '';
+    final showAvatar = initials.isNotEmpty && MediaQuery.sizeOf(context).width >= _avatarMinWidth;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: ColoredBox(
@@ -394,10 +424,10 @@ class _BrandHeader extends StatelessWidget {
             children: [
               const DemoClockBanner(),
               Padding(
-                padding: const EdgeInsets.fromLTRB(Dimens.gutter, 10, 12, 0),
+                padding: const EdgeInsets.fromLTRB(Dimens.gutter, 10, 12, 8),
                 child: Row(
                   children: [
-                    if (initials.isNotEmpty) ...[
+                    if (showAvatar) ...[
                       ExcludeSemantics(
                         child: Container(
                           width: Dimens.ibtn,
@@ -413,19 +443,17 @@ class _BrandHeader extends StatelessWidget {
                       const SizedBox(width: 12),
                     ],
                     Expanded(child: _names(name, place)),
-                    if (actions.isNotEmpty)
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Row(mainAxisSize: MainAxisSize.min, children: actions),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ...actions,
+                          const VoiceButton(onDark: true, diameter: Dimens.compactIbtn),
+                        ],
                       ),
+                    ),
                   ],
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.only(right: 12, bottom: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [MuteButton(onDark: true), SpeakerButton(onDark: true)],
                 ),
               ),
             ],
@@ -451,13 +479,93 @@ class _BrandHeader extends StatelessWidget {
           ),
         ),
       if (place.isNotEmpty)
-        Text(
-          place,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 14, color: Color(0xD9FFFFFF), height: 1.35),
-        ),
+        onSubtitleTap == null
+            ? Text(place, maxLines: 1, overflow: TextOverflow.ellipsis, style: _placeStyle)
+            : _placeButton(place),
     ],
+  );
+
+  static const _placeStyle = TextStyle(fontSize: 14, color: Color(0xD9FFFFFF), height: 1.35);
+
+  /// The location as a button: a glass pill (pin, the place, a small arrow) inside a 56 dp touch target. Touching it opens the
+  /// place picker, where the farmer searches a name, uses the phone's position or touches the map.
+  Widget _placeButton(String place) => LayoutBuilder(
+    builder: (context, constraints) =>
+        _placePill(context, place, _fitting(context, place, constraints.maxWidth - _pillChrome)),
+  );
+
+  /// What the pill takes besides its words: the padding (8 + 8), the pin (18 + 4) and the arrow (2 + 20).
+  static const _pillChrome = 60.0;
+
+  /// The most parts of [place] ("Kotgarh, Kumharsain, Shimla") that fit on one line in [maxWidth]: all of them if they fit, else
+  /// fewer, but never fewer than the first (the village), which is cut with dots only if even that does not fit.
+  static String _fitting(BuildContext context, String place, double maxWidth) {
+    final parts = place.split(',').map((p) => p.trim()).where((p) => p.isNotEmpty).toList();
+    if (parts.length < 2) return place;
+    final style = DefaultTextStyle.of(context).style.merge(_placeStyle);
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+    for (var count = parts.length; count > 1; count--) {
+      final text = parts.take(count).join(', ');
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: direction,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      final fits = painter.width <= maxWidth;
+      painter.dispose();
+      if (fits) return text;
+    }
+    return parts.first;
+  }
+
+  Widget _placePill(BuildContext context, String place, String shown) => Align(
+    alignment: AlignmentDirectional.centerStart,
+    child: Semantics(
+      button: true,
+      label: subtitleLabel ?? place,
+      excludeSemantics: true,
+      child: InkWell(
+        key: const ValueKey('home-place'),
+        borderRadius: BorderRadius.circular(Dimens.minTouch / 2),
+        onTap: () {
+          Haptics.tap();
+          onSubtitleTap!();
+        },
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: Dimens.minTouch, minWidth: Dimens.minTouch),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            widthFactor: 1,
+            child: DecoratedBox(
+              decoration: BoxDecoration(color: const Color(0x29FFFFFF), borderRadius: BorderRadius.circular(18)),
+              child: Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(8, 6, 8, 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.place_outlined, size: 18, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        shown,
+                        key: const ValueKey('home-place-text'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _placeStyle,
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.keyboard_arrow_down, size: 20, color: Colors.white),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
   );
 }
 

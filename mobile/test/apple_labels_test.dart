@@ -133,8 +133,8 @@ void main() {
         expect(find.text(label.hi), findsWidgets);
         expect(keyed('product-P007'), findsOneWidget);
         expect(env.voice.unknownIds, isEmpty);
-        expect(env.voice.spokenIds.first, 'result_intro');
-        expect(env.voice.spokenTexts, hasLength(1));
+        expect(env.voice.spokenIds, ['crop_is_apple']);
+        expect(env.voice.spokenTexts, [label.hi, startsWith('दवा: ')], reason: 'the disease and the medicine only');
       });
 
       testWidgets('${label.id}: in English', (tester) async {

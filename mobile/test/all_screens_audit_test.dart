@@ -15,18 +15,19 @@ import 'package:farmtrack/core/router/routes.dart';
 import 'package:farmtrack/features/alerts/alerts_providers.dart';
 import 'package:farmtrack/features/ask/ask_flow.dart';
 import 'package:farmtrack/features/ask/ask_suggestions.dart';
+import 'package:farmtrack/features/field/place_providers.dart';
 import 'package:farmtrack/features/scan/photo_picker.dart';
 import 'package:farmtrack/features/scan/scan_flow.dart';
 
 import 'support/finders.dart';
 import 'support/harness.dart';
+import 'support/map_fakes.dart';
 
 /// A mock server that can also hang, fail and answer with long texts, so every state of a screen can be reached.
 class _AuditApi extends MockApiClient {
   _AuditApi() : super(latency: Duration.zero);
 
   bool hangCreate = false;
-  bool hangConfirm = false;
   bool failCreate = false;
   bool hangAsk = false;
   bool longAnswer = false;
@@ -47,12 +48,6 @@ class _AuditApi extends MockApiClient {
     if (hangCreate) await Completer<void>().future;
     if (failCreate) throw const ApiException(kind: ApiErrorKind.server, code: 'boom', statusCode: 500);
     return super.createScan(photoPaths: photoPaths, idempotencyKey: idempotencyKey);
-  }
-
-  @override
-  Future<ScanOut> confirmCrop(String scanId, String cropId) async {
-    if (hangConfirm) await Completer<void>().future;
-    return super.confirmCrop(scanId, cropId);
   }
 
   @override
@@ -95,11 +90,14 @@ class _AuditApi extends MockApiClient {
 }
 
 class _Ctx {
-  _Ctx(this.container, this.env, this.api);
+  _Ctx(this.container, this.env, this.api, this.maps);
 
   final ProviderContainer container;
   final TestEnv env;
   final _AuditApi api;
+
+  /// The weather map's sources.
+  final FakeMapFeed maps;
 
   ScanFlowNotifier get flow => container.read(scanFlowProvider.notifier);
 
@@ -174,23 +172,17 @@ final List<_Case> _loggedInCases = [
         ..addPhoto('/tmp/leaf_0.jpg');
     },
   ),
-  _Case(
-    'analysing',
-    Routes.analysingFor('apple'),
-    prepare: (c) {
-      c.api.hangConfirm = true;
-      c.api.scans['scan-1'] = MockData.confirmCropScan('scan-1');
-      c.showScan(MockData.confirmCropScan('scan-1'));
-    },
-  ),
   _Case('retake, blurry', Routes.scanRetake, prepare: (c) => c.showScan(MockData.photoUnusableScan('s1'))),
   _Case(
     'retake, too dark',
     Routes.scanRetake,
     prepare: (c) => c.showScan(MockData.photoUnusableScan('s1', issue: 'too_dark')),
   ),
-  _Case('is this your crop', Routes.scanConfirm, prepare: (c) => c.showScan(MockData.confirmCropScan('s1'))),
-  _Case('choose the crop', Routes.scanCrops, prepare: (c) => c.showScan(MockData.confirmCropScan('s1'))),
+  _Case(
+    'retake, cannot identify the leaf',
+    Routes.scanRetake,
+    prepare: (c) => c.showScan(MockData.confirmCropScan('s1')),
+  ),
   _Case('advice', Routes.scanAdvice, prepare: (c) => c.showScan(MockData.okScan('scan-1'))),
   _Case('expert: needs expert', Routes.scanExpert, prepare: (c) => c.showScan(MockData.needsExpertScan('s1'))),
   _Case('expert: no approved data', Routes.scanExpert, prepare: (c) => c.showScan(MockData.noApprovedDataScan('s1'))),
@@ -222,6 +214,66 @@ final List<_Case> _loggedInCases = [
   const _Case('my field', Routes.field),
   _Case('my field, old data', Routes.field, prepare: (c) => c.api.fieldOverride = MockData.fieldStale()),
   _Case('my field, no sensor data', Routes.field, prepare: (c) => c.api.fieldOverride = MockData.fieldNoData()),
+  const _Case('place picker', Routes.fieldPlace),
+  _Case(
+    'place picker, search results',
+    Routes.fieldPlace,
+    after: (tester, c) async {
+      await tester.enterText(keyed('place-search'), 'Shimla');
+      await tapKey(tester, 'place-search-go');
+    },
+  ),
+  _Case(
+    'place picker, nothing found',
+    Routes.fieldPlace,
+    after: (tester, c) async {
+      await tester.enterText(keyed('place-search'), 'zzzz');
+      await tapKey(tester, 'place-search-go');
+    },
+  ),
+  _Case(
+    'my field, a picked place',
+    Routes.field,
+    after: (tester, c) async {
+      c.container
+          .read(pickedPlaceProvider.notifier)
+          .pick(const PickedPlace(label: 'Theog, Shimla, Himachal Pradesh', lat: 31.12, lon: 77.36));
+      await tester.pumpAndSettle();
+    },
+  ),
+  _Case(
+    'my field, a picked place that failed',
+    Routes.field,
+    prepare: (c) => c.api.failWith(const ApiException.network(), ops: {'weatherAt'}),
+    after: (tester, c) async {
+      c.container
+          .read(pickedPlaceProvider.notifier)
+          .pick(const PickedPlace(label: 'My location', lat: 31.12, lon: 77.36));
+      await tester.pumpAndSettle();
+    },
+  ),
+  const _Case('weather map', Routes.weatherMap),
+  _Case(
+    'weather map, clouds, playing',
+    Routes.weatherMap,
+    after: (tester, c) async {
+      await tapKey(tester, 'wmap-chip-clouds');
+      await tester.tap(keyed('wmap-play'));
+      await tester.pump();
+    },
+  ),
+  _Case('weather map, no internet', Routes.weatherMap, prepare: (c) => c.maps.fail = true),
+  _Case('weather map, no picture', Routes.weatherMap, prepare: (c) => c.maps.empty = true),
+  _Case(
+    'weather map, a picked place',
+    Routes.weatherMap,
+    after: (tester, c) async {
+      c.container
+          .read(pickedPlaceProvider.notifier)
+          .pick(const PickedPlace(label: 'Theog, Shimla, Himachal Pradesh', lat: 31.12, lon: 77.36));
+      await tester.pumpAndSettle();
+    },
+  ),
   const _Case('alerts', Routes.alerts),
   _Case(
     'alerts, none',
@@ -325,15 +377,17 @@ void main() {
           useSmallPhone(tester, size: size, textScale: scale);
           final semantics = tester.ensureSemantics();
           final api = _AuditApi();
+          // The weather map downloads nothing: its pictures are the phone's own clock, 7 minutes ago.
+          final maps = FakeMapFeed(newest: DateTime.now().subtract(const Duration(minutes: 7)).toUtc());
           final env = await TestEnv.create(
             language: language,
             loggedIn: true,
             api: api,
-            extraOverrides: [fixedSuggestions],
+            extraOverrides: [fixedSuggestions, ...mapOverrides(maps, [])],
           );
           final container = await pumpApp(tester, env, location: '/home');
           final router = container.read(routerProvider);
-          final ctx = _Ctx(container, env, api);
+          final ctx = _Ctx(container, env, api, maps);
           final failures = <String>[];
 
           for (final c in _loggedInCases) {
@@ -344,13 +398,16 @@ void main() {
             container.read(askFlowProvider.notifier).reset();
             api
               ..hangCreate = false
-              ..hangConfirm = false
               ..failCreate = false
               ..hangAsk = false
               ..longAnswer = false
               ..manyWarnings = false
               ..fieldOverride = null
               ..alertItems = null;
+            maps
+              ..fail = false
+              ..empty = false;
+            container.read(pickedPlaceProvider.notifier).clear();
             env.picker.script.clear();
             tester.takeException();
 

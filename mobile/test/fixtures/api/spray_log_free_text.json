@@ -39,6 +39,28 @@
         "hi": null,
         "en": null
       }
+    },
+    "product": {
+      "product_id": "P005",
+      "active_ingredient": {
+        "en": "Mancozeb",
+        "hi": "मैन्कोज़ेब"
+      },
+      "brand_examples": [
+        "Dithane M-45 / Indofil M-45"
+      ],
+      "formulation": "75 WP",
+      "category": "fungicide",
+      "frac_irac_code": "M03",
+      "dose_text": {
+        "en": "600 g in 200 litres of water",
+        "hi": "200 लीटर पानी में 600 ग्राम"
+      },
+      "dose_min": 600.0,
+      "dose_max": 600.0,
+      "dose_unit": "g/200L",
+      "waiting_period_days": null,
+      "warnings": []
     }
   }
 }

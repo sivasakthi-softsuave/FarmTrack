@@ -14,6 +14,7 @@ from app.domain.types import (
     FarmerProfile,
     Lang,
     Note,
+    Place,
     QualityResult,
     RuleInput,
     RuleOutput,
@@ -143,6 +144,25 @@ class IoTAdapter(Protocol):
 @runtime_checkable
 class WeatherAdapter(Protocol):
     def snapshot(self, station_id: str | None, lat: float | None, lon: float | None, now: datetime) -> WeatherSnapshot: ...
+
+
+@runtime_checkable
+class AirQualityAdapter(Protocol):
+    """Optional second capability of a weather source (Open-Meteo has it, the CSV demo archive does not): the US air-quality index
+    (0-500) of a place. Never raises; None when it cannot say."""
+
+    def air_quality(self, station_id: str | None, lat: float | None, lon: float | None) -> int | None: ...
+
+
+@runtime_checkable
+class PlacesAdapter(Protocol):
+    """Place-name search (app/integrations/places_nominatim.py). Raises PlacesUnavailable when it cannot answer."""
+
+    def search(self, query: str, lang: Lang, limit: int) -> list[Place]: ...
+
+    def reverse(self, lat: float, lon: float, lang: Lang) -> Place | None:
+        """The named area (village, tehsil, district, state) a point lies in; None when nothing is known there."""
+        ...
 
 
 @runtime_checkable

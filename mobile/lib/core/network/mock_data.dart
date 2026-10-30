@@ -86,6 +86,8 @@ class MockData {
     supportedLanguages: ['hi', 'en'],
     supportedCrops: supportedCrops,
     providers: {'llm': 'mock', 'vision': 'mock', 'tts': 'mock'},
+    placeWeatherEnabled: true,
+    placesSearchEnabled: true,
   );
 
   // ------------------------------------------------------------------ scans
@@ -336,6 +338,9 @@ class MockData {
     return log.adviceId != null && typed.isEmpty ? 'P007' : null;
   }
 
+  /// The medicine of a diary entry with its dose, as the real server sends it (only the mock's own Score).
+  static ProductOut? sprayProduct(String? productId) => productId == 'P007' ? scabAdvice('x').products.single : null;
+
   static String? sprayProductName(SprayLogIn log) => switch (sprayProductId(log)) {
     'P007' => 'Difenoconazole (Score)',
     'P006' => 'Propineb',
@@ -419,11 +424,48 @@ class MockData {
 
   // ------------------------------------------------------------------ field, alerts, ask
 
+  /// The next 12 hours from [now]: clouds coming in, rain by the evening. UTC, like the server's.
+  static List<HourOut> hours({double start = 17.5}) => [
+    for (var i = 0; i < 12; i++)
+      HourOut(
+        time: DateTime.utc(now.year, now.month, now.day, now.hour + i),
+        tempC: start + (i < 6 ? i * 0.4 : 2.4 - (i - 6) * 0.8),
+        sky: i < 4 ? 'partly_cloudy' : (i < 8 ? 'cloudy' : 'rain'),
+        isDay: now.hour + i < 14,
+        rainChancePct: const [0, 0, 10, 10, 20, 30, 40, 60, 60, 50, 30, 20][i],
+        rainMm: i >= 7 && i <= 9 ? 0.8 : 0,
+        windKmh: 8,
+      ),
+  ];
+
+  /// "Good time to spray": calm, dry for six hours, not hot.
+  static const sprayGo = SprayOut(
+    state: SprayStatus.ok,
+    wind: SprayCheckOut(value: 8),
+    rain: SprayCheckOut(value: 0, hours: 6),
+    heat: SprayCheckOut(value: 17.5),
+  );
+
   static FieldOut field() => FieldOut(
     stationId: 'ST08',
     village: 'Kotgarh',
     asOf: now,
     readings: const ReadingsOut(tempC: 17.5, rhPct: 82, rain24hMm: 6.5, leafWetnessMin: 340, soilMoisturePct: 31),
+    conditions: ConditionsOut(
+      sky: 'partly_cloudy',
+      isDay: true,
+      feelsLikeC: 16,
+      windKmh: 8,
+      visibilityKm: 6,
+      pressureHpa: 1012,
+      dewPointC: 14,
+      aqi: 64,
+      uvIndex: 7,
+      sunrise: DateTime.utc(2026, 5, 12, 0, 10),
+      sunset: DateTime.utc(2026, 5, 12, 13, 40),
+    ),
+    hours: hours(),
+    spray: sprayGo,
     forecast: [
       for (var i = 0; i < 7; i++)
         ForecastDayOut(
@@ -453,6 +495,68 @@ class MockData {
   );
 
   /// The sensor is offline: the answer is old and the server says so in its spoken text.
+  /// The weather of a place the farmer picked: warmth, air, rain and the week; no sensor and no risks.
+  static FieldOut placeWeather() => FieldOut(
+    asOf: now,
+    readings: const ReadingsOut(tempC: 12, rhPct: 58, rain24hMm: 0.4),
+    conditions: ConditionsOut(
+      sky: 'mostly_clear',
+      isDay: true,
+      feelsLikeC: 10,
+      windKmh: 11,
+      visibilityKm: 24,
+      pressureHpa: 1018,
+      dewPointC: 4,
+      aqi: 32,
+      uvIndex: 5,
+      sunrise: DateTime.utc(2026, 5, 12, 0, 10),
+      sunset: DateTime.utc(2026, 5, 12, 13, 40),
+    ),
+    hours: hours(start: 12),
+    spray: sprayGo,
+    forecast: field().forecast,
+    spoken: SpokenOut(
+      text: LocalizedText.pair(
+        en: 'It is cool there. No rain is expected in the next two days.',
+        hi: 'वहाँ ठंडा है। अगले दो दिन बारिश की उम्मीद नहीं है।',
+      ),
+    ),
+  );
+
+  static const _places = [
+    PlaceOut(name: 'Theog', label: 'Theog, Shimla, Himachal Pradesh', lat: 31.11989, lon: 77.36362, kind: 'tehsil'),
+    PlaceOut(name: 'Shimla', label: 'Shimla, Himachal Pradesh', lat: 31.10404, lon: 77.17079, kind: 'town'),
+    PlaceOut(name: 'Kullu', label: 'Kullu, Himachal Pradesh', lat: 31.9579, lon: 77.10892, kind: 'town'),
+    PlaceOut(
+      name: 'Kotgarh',
+      label: 'Kotgarh, Shimla, Himachal Pradesh',
+      lat: 31.31101,
+      lon: 77.47707,
+      kind: 'village',
+    ),
+    PlaceOut(name: 'Himachal Pradesh', label: 'Himachal Pradesh', lat: 31.92924, lon: 77.18285, kind: 'state'),
+  ];
+
+  /// The canned places whose label contains [query] (no case): what the mock place search finds.
+  static PlaceSearchOut placeSearch(String query, {int limit = 5}) {
+    final q = query.trim().toLowerCase();
+    return PlaceSearchOut(
+      items: [
+        for (final p in _places)
+          if (p.label.toLowerCase().contains(q)) p,
+      ].take(limit).toList(),
+    );
+  }
+
+  /// The named area of any point, for the mock server: always the same village (the point asked about is kept).
+  static PlaceOut reverse(double lat, double lon) => PlaceOut(
+    name: 'Kotgarh',
+    label: 'Kotgarh, Kumharsain, Shimla, Himachal Pradesh',
+    kind: 'village',
+    lat: lat,
+    lon: lon,
+  );
+
   static FieldOut fieldStale() {
     final base = field();
     return FieldOut(

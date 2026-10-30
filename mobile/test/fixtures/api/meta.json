@@ -35,6 +35,8 @@
       "weather": "csv",
       "push": "log"
     },
-    "weather_enabled": true
+    "weather_enabled": true,
+    "place_weather_enabled": false,
+    "places_search_enabled": false
   }
 }

@@ -18,8 +18,13 @@ class BigIconButton extends StatelessWidget {
     this.size = Dimens.primary,
     this.label,
     this.ringColor,
+    this.diameter,
   }) : assert(size >= Dimens.minTouch, 'touch targets must be at least 56 dp'),
-       assert(ringColor == null || size == Dimens.minTouch, 'only the small button has a ring');
+       assert(ringColor == null || size == Dimens.minTouch, 'only the small button has a ring'),
+       assert(
+         diameter == null || (diameter <= Dimens.ibtn && size == Dimens.minTouch),
+         'only the small button can be drawn smaller',
+       );
 
   final IconData icon;
   final VoidCallback? onPressed;
@@ -34,10 +39,13 @@ class BigIconButton extends StatelessWidget {
   /// A 2 px ring around the circle (the speaker while it is speaking), drawn inside the 56 dp tap area.
   final Color? ringColor;
 
+  /// How wide the small button's circle is drawn (default [Dimens.ibtn]); the tap area is still [Dimens.minTouch].
+  final double? diameter;
+
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
-    final visual = size <= Dimens.minTouch ? Dimens.ibtn : size;
+    final visual = size <= Dimens.minTouch ? (diameter ?? Dimens.ibtn) : size;
     // Only the big coloured buttons glow (the mockup's camera circle); the small ones sit flat.
     final glow = enabled && size > Dimens.minTouch && color.a == 1 && color.computeLuminance() < 0.5;
     final circle = Container(

@@ -122,6 +122,7 @@ class DiaryEntry {
     required this.date,
     this.warnings = const [],
     this.pending = false,
+    this.product,
   });
 
   final String id;
@@ -134,6 +135,9 @@ class DiaryEntry {
 
   /// Saved on the phone, not sent yet.
   final bool pending;
+
+  /// The medicine with its dose and waiting period, when the server knows it (shown when the entry is opened).
+  final ProductOut? product;
 
   /// The most serious warning level, or null without warnings.
   Severity? get worst {
@@ -154,6 +158,7 @@ List<DiaryEntry> mergeDiaryEntries(List<SprayLogOut> server, List<PendingSpray> 
         name: (s.productName ?? s.productId ?? '').trim(),
         date: s.sprayedAt ?? now,
         warnings: s.warnings,
+        product: s.product,
       ),
   ];
   // Stable sort: equal days keep the order above.

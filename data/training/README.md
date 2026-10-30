@@ -110,3 +110,16 @@ DISEASE_MODEL_DIR=D:\FarmTracker\FarmTrack\data	raining\outputarmtrack_leaf_v2
 The backend uses it for every crop it has classes of; other crops still use model A. **Read `output/farmtrack_leaf_v2/model_card.md`
 first:** near-perfect on lab-like photos, about 2 in 3 right on field photos (PlantDoc test), about 1 in 2 on the Kashmir orchard photos;
 part of the training data has unclear licence terms (internal demo only).
+
+## v3: v2 plus Tomato-Village (29 Oct 2026, Kaggle GPU)
+
+`train_leaf_v3_kaggle.py` = the v2 script plus 391 original photos of `mamtag/tomato-village` (early blight, late blight, healthy; leaf on a
+plain sheet, phone photos; **not** field photos; licence "unknown": demo only). Same 29 classes, same settings, four attached datasets.
+Run it from a terminal with the Kaggle CLI (`kaggle auth login` once; the account must be **phone-verified**, or Kaggle silently runs the
+notebook without GPU and internet): copy the script and a `kernel-metadata.json` (kernel_type `script`, `enable_gpu`, `enable_internet`,
+`is_private`, the four `dataset_sources`) into a folder, then `kaggle kernels push -p <folder>`, `kaggle kernels status <owner>/<slug>`,
+`kaggle kernels output <owner>/<slug> -p <folder>`. About 50 minutes on a T4. Output: `output/farmtrack_leaf_v3/` (weights not committed).
+
+**Result: field accuracy did not change** (PlantDoc test 0.65, Kashmir 0.53, the same as v2); Tomato-Village test 0.93 on 59 photos, which says
+nothing about plants in a field. Read `output/farmtrack_leaf_v3/model_card.md`. Datasets of lab-style or leaf-on-a-sheet photos cannot close
+the field gap; photos from fields and orchards can.

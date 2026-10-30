@@ -18,6 +18,7 @@ from app.domain.types import (
     FarmerProfile,
     LocalizedText,
     Note,
+    Place,
     ProductChoice,
     QualityIssue,
     QualityResult,
@@ -284,6 +285,46 @@ class FakeWeather:
         return self.snapshot_value
 
 
+class FakeAirQualityWeather(FakeWeather):
+    """A weather source with the optional second capability (Open-Meteo has it, the CSV demo archive and plain FakeWeather do not)."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.aqi: int | None = 55
+        self.air_calls: list[tuple] = []
+
+    def air_quality(self, station_id: str | None, lat: float | None, lon: float | None) -> int | None:
+        self.air_calls.append((station_id, lat, lon))
+        return self.aqi
+
+
+class FakePlaces:
+    """The place-name search: returns `results` (the first `limit` of them) and records what it was asked."""
+
+    def __init__(self) -> None:
+        self.results = [
+            Place(name="Theog", label="Theog, Shimla, Himachal Pradesh", kind="town", lat=31.12, lon=77.35),
+            Place(name="Theog", label="Theog, Hamirpur, Himachal Pradesh", kind="village", lat=31.7, lon=76.5),
+        ]
+        self.raises: Exception | None = None
+        self.calls: list[tuple[str, str, int]] = []
+        self.reverse_result: Place | None = Place(name="Kotgarh", label="Kotgarh, Kumharsain, Shimla, Himachal Pradesh", kind="village",
+                                                  lat=31.31, lon=77.48)
+        self.reverse_calls: list[tuple[float, float, str]] = []
+
+    def reverse(self, lat: float, lon: float, lang: str) -> Place | None:
+        self.reverse_calls.append((lat, lon, lang))
+        if self.raises:
+            raise self.raises
+        return self.reverse_result
+
+    def search(self, query: str, lang: str, limit: int) -> list[Place]:
+        self.calls.append((query, lang, limit))
+        if self.raises:
+            raise self.raises
+        return self.results[:limit]
+
+
 class FakePush:
     def __init__(self) -> None:
         self.sent: list[tuple[str, str, str, dict | None]] = []
@@ -306,5 +347,6 @@ def make_container(settings: Settings, **overrides: Any) -> Container:
     parts: dict[str, Any] = dict(
         settings=settings, clock=Clock(NOW), rules=FakeRules(), quality=FakeQuality(), crop_identifier=FakeCropIdentifier(),
         disease_classifier=FakeDiseaseClassifier(), llm=FakeLLM(), composer=FakeComposer(), audio=FakeAudio(), kb=FakeKB(),
-        ask_service=FakeAsk(), zoho=FakeZoho(), iot=FakeIoT(), weather=FakeWeather(), push=FakePush())
+        ask_service=FakeAsk(), zoho=FakeZoho(), iot=FakeIoT(), weather=FakeWeather(), push=FakePush(),
+        place_weather=FakeWeather(), places=FakePlaces())
     return Container(**{**parts, **overrides})

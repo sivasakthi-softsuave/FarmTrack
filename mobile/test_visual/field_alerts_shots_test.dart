@@ -116,7 +116,7 @@ Future<void> _setAlerts(ProviderContainer c, MockApiClient api, List<AlertOut> i
   await c.read(alertsProvider.future);
 }
 
-FieldOut _field({List<RiskOut>? risks, bool stale = false}) {
+FieldOut _field({bool stale = false}) {
   final base = MockData.field();
   return FieldOut(
     stationId: base.stationId,
@@ -124,8 +124,9 @@ FieldOut _field({List<RiskOut>? risks, bool stale = false}) {
     asOf: DateTime.now(),
     stale: stale,
     readings: const ReadingsOut(tempC: 18, rhPct: 82, rain24hMm: 3, leafWetnessMin: 360, soilMoisturePct: 31),
+    conditions: base.conditions,
     forecast: base.forecast,
-    risks: risks ?? base.risks,
+    risks: base.risks,
     spoken: base.spoken,
   );
 }
@@ -133,21 +134,6 @@ FieldOut _field({List<RiskOut>? risks, bool stale = false}) {
 void main() {
   final shots = <_Shot>[
     _Shot('field', Routes.field, prepare: (c, api) => api.fieldOverride = _field()),
-    _Shot(
-      'field-red-and-yellow',
-      Routes.field,
-      prepare: (c, api) => api.fieldOverride = _field(
-        risks: [
-          RiskOut(
-            id: 'rain_wash',
-            level: Severity.red,
-            title: LocalizedText.pair(en: 'Rain washed your spray', hi: 'बारिश ने छिड़काव धो दिया'),
-            text: LocalizedText.pair(en: 'Spray again within seven days.', hi: 'सात दिन के अंदर दोबारा छिड़काव कीजिए।'),
-          ),
-          ...MockData.field().risks,
-        ],
-      ),
-    ),
     _Shot('field-old', Routes.field, prepare: (c, api) => api.fieldOverride = MockData.fieldStale()),
     _Shot('field-no-data', Routes.field, prepare: (c, api) => api.fieldOverride = MockData.fieldNoData()),
     _Shot('field-weather-off', Routes.field, weatherOn: false, prepare: (c, api) => api.fieldOverride = _field()),

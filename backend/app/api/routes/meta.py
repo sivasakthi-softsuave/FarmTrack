@@ -38,4 +38,6 @@ def meta(container: Container = Depends(get_container)) -> MetaOut:
         demo_clock=container.clock.now() if container.clock.is_fixed else None,
         supported_languages=list(get_args(Lang)), supported_crops=container.rules.supported_crops(),
         providers={name.removesuffix("_provider"): getattr(settings, name) for name in _PROVIDER_SETTINGS},
-        weather_enabled=settings.weather_enabled)
+        weather_enabled=settings.weather_enabled,
+        place_weather_enabled=settings.place_weather_provider.strip().lower() != "none" and container.place_weather is not None,
+        places_search_enabled=settings.places_provider.strip().lower() != "none" and container.places is not None)

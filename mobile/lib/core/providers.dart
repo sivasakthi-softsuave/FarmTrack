@@ -73,6 +73,7 @@ class SettingsNotifier extends Notifier<AppSettings> {
   Future<void> markOnboardingDone() => _set(state.copyWith(onboardingDone: true));
   Future<void> markHomeTourDone() => _set(state.copyWith(homeTourDone: true));
   Future<void> markCameraExplained() => _set(state.copyWith(cameraExplained: true));
+  Future<void> setCaptureDesign(CaptureDesign design) => _set(state.copyWith(captureDesign: design));
 }
 
 /// The farmer's language code (the default language until one is chosen).

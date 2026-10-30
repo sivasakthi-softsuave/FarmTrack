@@ -183,3 +183,25 @@ def test_advice_row_is_untouched_by_logging(api_client, auth):
     log_spray(api_client, auth, advice_id=advice_id)
     with session_scope() as db:
         assert db.get(AdviceRow, advice_id).farmer_id == "F001"
+
+
+# ------------------------------------------------------------------------------------------------ the medicine's usage
+def test_an_entry_from_an_advice_carries_the_advice_dose_for_the_diary(api_client, auth):
+    advice = api_client.post("/v1/scans", files=photo_files(1), headers=auth).json()["advice"]
+    body = log_spray(api_client, auth, advice_id=advice["id"]).json()
+    assert body["product"] == next(p for p in advice["products"] if p["product_id"] == body["product_id"])
+    assert body["product"]["dose_unit"] and body["product"]["dose_text"]["en"]
+    listed = api_client.get("/v1/spray-logs", headers=auth).json()
+    assert listed[0]["product"] == body["product"]
+
+
+def test_a_catalogue_medicine_without_an_advice_gets_its_dose_from_the_product_list(api_client, auth):
+    body = log_spray(api_client, auth, product_id="P001").json()               # Captan, 600 g in 200 litres of water
+    assert body["product"]["product_id"] == "P001" and body["product"]["active_ingredient"]["en"] == "Captan"
+    assert (body["product"]["dose_min"], body["product"]["dose_unit"]) == (600.0, "g/200L")
+    assert body["product"]["dose_text"]["en"] == "600 g in 200 litres of water"
+
+
+def test_a_typed_name_that_is_not_in_the_catalogue_has_no_usage(api_client, auth):
+    body = log_spray(api_client, auth, free_text="Local mix").json()
+    assert body["product"] is None

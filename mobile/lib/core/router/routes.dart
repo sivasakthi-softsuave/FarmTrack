@@ -9,10 +9,7 @@ abstract final class Routes {
   static const scan = '/scan';
   static const scanReview = '/scan/review';
   static const scanUploading = '/scan/uploading';
-  static const scanAnalysing = '/scan/analysing';
   static const scanRetake = '/scan/retake';
-  static const scanConfirm = '/scan/confirm';
-  static const scanCrops = '/scan/crops';
   static const scanAdvice = '/scan/advice';
   static const scanExpert = '/scan/expert';
 
@@ -22,6 +19,12 @@ abstract final class Routes {
   static const diary = '/diary';
   static const diaryAdd = '/diary/add';
   static const field = '/field';
+
+  /// "Choose a place" on My field: search by name, the phone's position, or a touch on the map.
+  static const fieldPlace = '/field/place';
+
+  /// "Weather map" on My field: rain radar, clouds and rain amount laid over a free map, with a play button for the last hours.
+  static const weatherMap = '/field/map';
   static const alerts = '/alerts';
   static const alertDetail = '/alerts/detail';
   static const ask = '/ask';
@@ -41,9 +44,6 @@ abstract final class Routes {
 
   /// One alert, opened from the alert list or from a push message.
   static String alertDetailFor(String alertId) => Uri(path: alertDetail, queryParameters: {'id': alertId}).toString();
-
-  /// `/analysing` after the farmer confirmed or chose [cropId].
-  static String analysingFor(String cropId) => Uri(path: scanAnalysing, queryParameters: {'crop': cropId}).toString();
 
   /// Home after a fresh login (it greets with `login_ok` first).
   static const homeFresh = '$home?fresh=1';

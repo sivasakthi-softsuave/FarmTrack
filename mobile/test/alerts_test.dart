@@ -226,8 +226,7 @@ void main() {
       await openAlerts(tester, env);
       expect(find.text('Alerts'), findsOneWidget);
       expect(find.byIcon(AppIcons.back), findsOneWidget);
-      expect(keyed('mute-button'), findsOneWidget);
-      expect(keyed('speaker-button'), findsOneWidget);
+      expect(keyed('voice-button'), findsOneWidget, reason: 'one button, for the voice on and off');
       // The cards start 16 dp under the bar, 16 dp from the sides, 12 dp apart.
       final bar = tester.getBottomLeft(find.byIcon(AppIcons.back)).dy;
       final card = tester.getRect(keyed('alert-alert-1'));
@@ -355,7 +354,7 @@ void main() {
       final first = List.of(env.voice.log);
       expect(first, hasLength(1));
       env.voice.clear();
-      await tapKey(tester, 'speaker-button');
+      await replayVoice(tester);
       expect(env.voice.log, first);
     });
 
@@ -402,7 +401,7 @@ void main() {
       expect(keyed('severity-yellow'), findsOneWidget);
       expect(keyed('product-P007'), findsOneWidget);
       expect(keyed('i-sprayed'), findsOneWidget);
-      expect(env.voice.spokenIds.first, 'result_intro');
+      expect(env.voice.spokenIds.first, 'crop_is_apple');
 
       // "I sprayed" works from here: the diary knows the medicine.
       env.voice.clear();

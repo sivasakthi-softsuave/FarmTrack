@@ -10,4 +10,5 @@ export 'field.dart';
 export 'json_utils.dart' show Json, JsonReader, WireEnum;
 export 'localized.dart';
 export 'meta.dart';
+export 'place.dart';
 export 'scan.dart';

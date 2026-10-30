@@ -33,8 +33,8 @@ void main() {
       ),
     );
     await tester.pump();
-    final speaker = tester.getRect(keyed('speaker-button'));
-    expect(speaker.top, lessThan(12), reason: 'the speaker sits in the top bar');
+    final speaker = tester.getRect(keyed('voice-button'));
+    expect(speaker.top, lessThan(12), reason: 'the voice button sits in the top bar');
     expect(speaker.bottom, lessThan(80));
     // Everything under the bar is content: nothing reserved at the bottom (no action here).
     final content = tester.getRect(keyed('content'));
@@ -106,18 +106,17 @@ void main() {
     expect(tick.bottom, lessThanOrEqualTo(small.height));
     expect(tick.height, greaterThanOrEqualTo(56));
     expect(keyed('severity-yellow'), findsOneWidget);
-    expect(tester.getRect(keyed('severity-yellow')).top, lessThan(120), reason: 'the band starts right under the bar');
-    expect(keyed('advice-more'), findsOneWidget, reason: 'the safety notes and steps wait behind "More"');
     expect(
-      keyed('advice-summary'),
-      findsOneWidget,
-      reason: 'the explanation sits in the severity card, as in the mockup',
+      tester.getRect(keyed('advice-crop-card')).top,
+      lessThan(120),
+      reason: 'the crop card starts right under the bar',
     );
-    final yellowBefore = tester.getRect(keyed('severity-yellow')).height;
+    expect(keyed('advice-more'), findsOneWidget, reason: 'the long safety notes wait behind "More"');
+    expect(keyed('advice-summary'), findsNothing, reason: 'no explanation text any more');
+    final cropBefore = tester.getRect(keyed('advice-crop-card')).height;
     await tapKey(tester, 'advice-more');
     expect(tester.takeException(), isNull);
-    expect(keyed('advice-summary'), findsOneWidget);
-    expect(tester.getRect(keyed('severity-yellow')).height, yellowBefore, reason: 'More adds cards below, not above');
+    expect(tester.getRect(keyed('advice-crop-card')).height, cropBefore, reason: 'More adds lines below, not above');
   });
 }
 

@@ -11,14 +11,14 @@ import '../../features/ask/ask_type_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/diary/diary_screen.dart';
 import '../../features/field/field_screen.dart';
+import '../../features/field/place_picker_screen.dart';
+import '../../features/field/weather_map_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/offline/saved_offline_screen.dart';
 import '../../features/onboarding/language_screen.dart';
 import '../../features/onboarding/welcome_screen.dart';
 import '../../features/result/advice_screen.dart';
 import '../../features/result/expert_screen.dart';
-import '../../features/scan/crop_choose_screen.dart';
-import '../../features/scan/crop_confirm_screen.dart';
 import '../../features/scan/photo_review_screen.dart';
 import '../../features/scan/processing_screen.dart';
 import '../../features/scan/retake_screen.dart';
@@ -91,10 +91,7 @@ List<RouteBase> _buildRoutes() => [
   _route(Routes.scan, (_) => const ScanCaptureScreen()),
   _route(Routes.scanReview, (_) => const PhotoReviewScreen()),
   _route(Routes.scanUploading, (_) => const ProcessingScreen()),
-  _route(Routes.scanAnalysing, (s) => ProcessingScreen(confirmCropId: s.uri.queryParameters['crop'])),
   _route(Routes.scanRetake, (_) => const RetakeScreen()),
-  _route(Routes.scanConfirm, (_) => const CropConfirmScreen()),
-  _route(Routes.scanCrops, (_) => const CropChooseScreen()),
   _route(Routes.scanAdvice, (_) => const AdviceScreen()),
   _route(Routes.scanExpert, (_) => const ExpertScreen()),
   _route(Routes.scanSaved, (_) => const SavedOfflineScreen()),
@@ -108,6 +105,8 @@ List<RouteBase> _buildRoutes() => [
   ),
   _route(Routes.diaryAdd, (_) => const DiaryAddScreen()),
   _route(Routes.field, (_) => const FieldScreen()),
+  _route(Routes.fieldPlace, (_) => const PlacePickerScreen()),
+  _route(Routes.weatherMap, (_) => const WeatherMapScreen()),
   _route(Routes.alerts, (_) => const AlertsAutoRefresh(child: AlertsScreen())),
   _route(Routes.alertDetail, (s) => AlertDetailScreen(alertId: s.uri.queryParameters['id'])),
   _route(Routes.ask, (_) => const AskScreen()),

@@ -21,6 +21,8 @@ class MetaOut {
     this.supportedCrops = const [],
     this.providers = const {},
     this.weatherEnabled = true,
+    this.placeWeatherEnabled = false,
+    this.placesSearchEnabled = false,
   });
 
   factory MetaOut.fromJson(Json json) {
@@ -41,6 +43,9 @@ class MetaOut {
       providers: providers,
       // An older server has no such field: weather is then on.
       weatherEnabled: json.boolOr('weather_enabled', true),
+      // An older server has no such fields: it cannot give the weather of a chosen place or search for one.
+      placeWeatherEnabled: json.boolOr('place_weather_enabled'),
+      placesSearchEnabled: json.boolOr('places_search_enabled'),
     );
   }
 
@@ -54,6 +59,12 @@ class MetaOut {
   /// `weather_enabled` of `/v1/meta`: false when the operator switched weather off (then the app shows no weather).
   final bool weatherEnabled;
 
+  /// `place_weather_enabled`: `GET /v1/weather` works, so the field screen offers "choose a place".
+  final bool placeWeatherEnabled;
+
+  /// `places_search_enabled`: `GET /v1/places/search` works, so the place picker shows its search box.
+  final bool placesSearchEnabled;
+
   Json toJson() => {
     'app_version': appVersion,
     'env': env,
@@ -62,6 +73,8 @@ class MetaOut {
     'supported_crops': supportedCrops,
     'providers': providers,
     'weather_enabled': weatherEnabled,
+    'place_weather_enabled': placeWeatherEnabled,
+    'places_search_enabled': placesSearchEnabled,
   };
 }
 

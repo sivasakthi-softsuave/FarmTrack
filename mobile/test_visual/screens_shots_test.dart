@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:farmtrack/core/models/models.dart';
+import 'package:farmtrack/core/network/api_client.dart';
 import 'package:farmtrack/core/network/mock_api_client.dart';
 import 'package:farmtrack/core/network/mock_data.dart';
 import 'package:farmtrack/core/router/app_router.dart';
@@ -32,12 +33,24 @@ const _shotDir = String.fromEnvironment('SHOT_DIR');
 
 class _Api extends MockApiClient {
   _Api() : super(latency: Duration.zero);
-  bool hangConfirm = false;
+
+  /// The photos never finish going up: the "Looking at your leaf" screen stays.
+  bool hangCreate = false;
 
   @override
-  Future<ScanOut> confirmCrop(String scanId, String cropId) async {
-    if (hangConfirm) await Completer<void>().future;
-    return super.confirmCrop(scanId, cropId);
+  Future<ScanOut> createScan({
+    required List<String> photoPaths,
+    String? clientCrop,
+    double? clientConfidence,
+    DateTime? takenAt,
+    double? lat,
+    double? lon,
+    String? idempotencyKey,
+    UploadProgressCallback? onProgress,
+    CancelHandle? cancel,
+  }) async {
+    if (hangCreate) await Completer<void>().future;
+    return super.createScan(photoPaths: photoPaths, idempotencyKey: idempotencyKey);
   }
 }
 
@@ -119,22 +132,18 @@ void main() {
     ),
     _Shot(
       'analysing',
-      Routes.analysingFor('apple'),
+      Routes.scanUploading,
       prepare: (c, api, flow) {
-        api.hangConfirm = true;
-        api.scans['scan-1'] = MockData.confirmCropScan('scan-1');
-        flow.showResult(MockData.confirmCropScan('scan-1'));
+        api.hangCreate = true;
+        flow
+          ..reset()
+          ..addPhoto('/tmp/leaf_0.jpg');
       },
     ),
     _Shot('retake', Routes.scanRetake, prepare: (c, api, flow) => flow.showResult(MockData.photoUnusableScan('s1'))),
     _Shot(
-      'is-this-your-crop',
-      Routes.scanConfirm,
-      prepare: (c, api, flow) => flow.showResult(MockData.confirmCropScan('s1')),
-    ),
-    _Shot(
-      'choose-the-crop',
-      Routes.scanCrops,
+      'cannot-identify-the-leaf',
+      Routes.scanRetake,
       prepare: (c, api, flow) => flow.showResult(MockData.confirmCropScan('s1')),
     ),
     _Shot('advice', Routes.scanAdvice, prepare: (c, api, flow) => flow.showResult(MockData.okScan('scan-1'))),
@@ -214,7 +223,7 @@ void main() {
         await _settle(tester);
         flow.reset();
         container.read(askFlowProvider.notifier).reset();
-        api.hangConfirm = false;
+        api.hangCreate = false;
         tester.takeException();
         await shot.prepare?.call(container, api, flow);
         router.go(shot.route);

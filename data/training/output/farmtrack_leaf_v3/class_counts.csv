@@ -1,0 +1,68 @@
+source,label,licence,train,val,test
+appleleaf9,Apple___Alternaria_leaf_spot,CC BY 4.0,354,63,0
+appleleaf9,Apple___Apple_scab,CC BY 4.0,303,54,0
+appleleaf9,Apple___Black_rot,CC BY 4.0,167,29,0
+appleleaf9,Apple___Cedar_apple_rust,CC BY 4.0,76,14,0
+appleleaf9,Apple___Gray_spot,CC BY 4.0,283,50,0
+appleleaf9,Apple___Marssonina_blotch,CC BY 4.0,349,62,0
+appleleaf9,Apple___Powdery_mildew,CC BY 4.0,51,9,0
+appleleaf9,Apple___healthy,CC BY 4.0,31,5,0
+fgvc7,Apple___Apple_scab,Kaggle competition data (terms to check),503,89,0
+fgvc7,Apple___Cedar_apple_rust,Kaggle competition data (terms to check),529,93,0
+fgvc7,Apple___healthy,Kaggle competition data (terms to check),439,77,0
+fgvc8,Apple___Apple_scab,Kaggle competition data (terms to check),1275,225,0
+fgvc8,Apple___Black_rot,Kaggle competition data (terms to check),1275,225,0
+fgvc8,Apple___Cedar_apple_rust,Kaggle competition data (terms to check),1246,220,0
+fgvc8,Apple___Powdery_mildew,Kaggle competition data (terms to check),1080,191,0
+fgvc8,Apple___healthy,Kaggle competition data (terms to check),1275,225,0
+kashmir,Apple___Alternaria_leaf_spot,CC BY 4.0,94,17,0
+kashmir,Apple___Apple_scab,CC BY 4.0,135,24,0
+kashmir,Apple___Black_rot,CC BY 4.0,76,14,0
+kashmir,Apple___healthy,CC BY 4.0,39,7,0
+merged,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,"mixed open sets, mostly PlantVillage (licence ambiguous)",436,77,0
+merged,Corn_(maize)___Common_rust_,"mixed open sets, mostly PlantVillage (licence ambiguous)",1013,179,0
+merged,Corn_(maize)___Northern_Leaf_Blight,"mixed open sets, mostly PlantVillage (licence ambiguous)",837,148,0
+merged,Corn_(maize)___healthy,"mixed open sets, mostly PlantVillage (licence ambiguous)",988,174,0
+merged,Grape___Black_rot,"mixed open sets, mostly PlantVillage (licence ambiguous)",1275,225,0
+merged,Grape___Esca_(Black_Measles),"mixed open sets, mostly PlantVillage (licence ambiguous)",1275,225,0
+merged,Grape___Leaf_blight_(Isariopsis_Leaf_Spot),"mixed open sets, mostly PlantVillage (licence ambiguous)",915,161,0
+merged,Grape___healthy,"mixed open sets, mostly PlantVillage (licence ambiguous)",1275,225,0
+merged,Potato___Early_blight,"mixed open sets, mostly PlantVillage (licence ambiguous)",1275,225,0
+merged,Potato___Late_blight,"mixed open sets, mostly PlantVillage (licence ambiguous)",1275,225,0
+merged,Potato___healthy,"mixed open sets, mostly PlantVillage (licence ambiguous)",1275,225,0
+merged,Tomato___Bacterial_spot,"mixed open sets, mostly PlantVillage (licence ambiguous)",1275,225,0
+merged,Tomato___Early_blight,"mixed open sets, mostly PlantVillage (licence ambiguous)",850,150,0
+merged,Tomato___Late_blight,"mixed open sets, mostly PlantVillage (licence ambiguous)",1275,225,0
+merged,Tomato___Leaf_Mold,"mixed open sets, mostly PlantVillage (licence ambiguous)",809,143,0
+merged,Tomato___Septoria_leaf_spot,"mixed open sets, mostly PlantVillage (licence ambiguous)",1275,225,0
+merged,Tomato___Spider_mites Two-spotted_spider_mite,"mixed open sets, mostly PlantVillage (licence ambiguous)",1275,225,0
+merged,Tomato___Target_Spot,"mixed open sets, mostly PlantVillage (licence ambiguous)",1193,211,0
+merged,Tomato___Tomato_Yellow_Leaf_Curl_Virus,"mixed open sets, mostly PlantVillage (licence ambiguous)",1275,225,0
+merged,Tomato___Tomato_mosaic_virus,"mixed open sets, mostly PlantVillage (licence ambiguous)",317,56,0
+merged,Tomato___healthy,"mixed open sets, mostly PlantVillage (licence ambiguous)",1275,225,0
+plantdoc,Apple___Apple_scab,CC BY 4.0,71,12,10
+plantdoc,Apple___Cedar_apple_rust,CC BY 4.0,82,14,10
+plantdoc,Apple___healthy,CC BY 4.0,67,12,9
+plantdoc,Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot,CC BY 4.0,54,9,4
+plantdoc,Corn_(maize)___Common_rust_,CC BY 4.0,91,16,10
+plantdoc,Corn_(maize)___Northern_Leaf_Blight,CC BY 4.0,155,27,12
+plantdoc,Grape___Black_rot,CC BY 4.0,60,11,8
+plantdoc,Grape___healthy,CC BY 4.0,54,9,12
+plantdoc,Potato___Early_blight,CC BY 4.0,133,24,14
+plantdoc,Potato___Late_blight,CC BY 4.0,170,30,8
+plantdoc,Tomato___Bacterial_spot,CC BY 4.0,86,15,9
+plantdoc,Tomato___Early_blight,CC BY 4.0,67,12,9
+plantdoc,Tomato___Late_blight,CC BY 4.0,86,15,10
+plantdoc,Tomato___Leaf_Mold,CC BY 4.0,72,13,6
+plantdoc,Tomato___Septoria_leaf_spot,CC BY 4.0,123,22,12
+plantdoc,Tomato___Spider_mites Two-spotted_spider_mite,CC BY 4.0,2,0,0
+plantdoc,Tomato___Tomato_Yellow_Leaf_Curl_Virus,CC BY 4.0,190,33,15
+plantdoc,Tomato___Tomato_mosaic_virus,CC BY 4.0,37,7,10
+plantdoc,Tomato___healthy,CC BY 4.0,37,7,8
+plantvillage,Apple___Apple_scab,PlantVillage (licence ambiguous),1275,225,0
+plantvillage,Apple___Black_rot,PlantVillage (licence ambiguous),1275,225,0
+plantvillage,Apple___Cedar_apple_rust,PlantVillage (licence ambiguous),1275,225,0
+plantvillage,Apple___healthy,PlantVillage (licence ambiguous),1275,225,0
+tomato_village,Tomato___Early_blight,"Kaggle licence ""unknown"" (cite Gehlot et al. 2023): internal demo only",44,8,10
+tomato_village,Tomato___Late_blight,"Kaggle licence ""unknown"" (cite Gehlot et al. 2023): internal demo only",80,15,18
+tomato_village,Tomato___healthy,"Kaggle licence ""unknown"" (cite Gehlot et al. 2023): internal demo only",152,33,31

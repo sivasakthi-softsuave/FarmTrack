@@ -33,6 +33,7 @@ class SprayLogOut {
     this.warnings = const [],
     this.syncedToZoho = false,
     this.spoken,
+    this.product,
   });
 
   factory SprayLogOut.fromJson(Json json) => SprayLogOut(
@@ -45,6 +46,7 @@ class SprayLogOut {
     warnings: json.list('warnings', WarningOut.fromJson),
     syncedToZoho: json.boolOr('synced_to_zoho'),
     spoken: json['spoken'] is Map ? SpokenOut.fromJson(json['spoken']) : null,
+    product: json.obj('product', ProductOut.fromJson),
   );
 
   final String id;
@@ -57,6 +59,9 @@ class SprayLogOut {
   final bool syncedToZoho;
   final SpokenOut? spoken;
 
+  /// The medicine with its dose and waiting period (null for a typed name that is not in the approved list).
+  final ProductOut? product;
+
   Json toJson() => {
     'id': id,
     'crop_id': cropId,
@@ -67,5 +72,6 @@ class SprayLogOut {
     'warnings': [for (final w in warnings) w.toJson()],
     'synced_to_zoho': syncedToZoho,
     'spoken': spoken?.toJson(),
+    'product': product?.toJson(),
   };
 }

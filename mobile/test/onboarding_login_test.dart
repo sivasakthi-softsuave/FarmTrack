@@ -320,10 +320,10 @@ void main() {
       expect(editable(tester, 'login-password').controller.text, isEmpty);
     });
 
-    testWidgets('the speaker button says the whole login script again', (tester) async {
+    testWidgets('turning the voice off and on again says the whole login script again', (tester) async {
       final env = await TestEnv.create(onboardingDone: true);
       await openLogin(tester, env);
-      await tester.tap(find.byIcon(AppIcons.speaker));
+      await replayVoice(tester);
       await tester.pumpAndSettle();
       expect(env.voice.spokenIds, loginScript);
     });

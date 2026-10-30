@@ -92,6 +92,16 @@ class MockApiClient implements ApiClient {
   /// Scenario hooks (null = the canned answer): what `field()` and `listAlerts()` return next.
   FieldOut? fieldOverride;
   List<AlertOut>? alertItems;
+
+  /// The place picker (null = the canned answer): what `weatherAt()` and `searchPlaces()` return next, and what they were asked.
+  FieldOut? placeWeatherOverride;
+  PlaceSearchOut? placeSearchOverride;
+  final List<({double lat, double lon})> weatherAtCalls = [];
+  final List<({String query, String lang, int limit})> placeQueries = [];
+
+  /// What `reversePlace()` returns next (null = the canned village), and the points it was asked about.
+  PlaceOut? reverseOverride;
+  final List<({double lat, double lon, String lang})> reverseCalls = [];
   final Set<String> _readAlertIds = {};
 
   /// Idempotency keys received, in order (null entries are calls without a key). A repeated key returns the first answer.
@@ -301,6 +311,7 @@ class MockApiClient implements ApiClient {
       warnings: warnings,
       syncedToZoho: true,
       spoken: MockData.sprayLogSpoken(warnings),
+      product: MockData.sprayProduct(MockData.sprayProductId(log)),
     );
     _sprayLogs.insert(0, out);
     if (idempotencyKey != null) _sprayLogsByKey[idempotencyKey] = out;
@@ -319,6 +330,30 @@ class MockApiClient implements ApiClient {
     await _enter('field');
     _requireLogin();
     return fieldOverride ?? MockData.field();
+  }
+
+  @override
+  Future<FieldOut> weatherAt(double lat, double lon) async {
+    await _enter('weatherAt');
+    _requireLogin();
+    weatherAtCalls.add((lat: lat, lon: lon));
+    return placeWeatherOverride ?? MockData.placeWeather();
+  }
+
+  @override
+  Future<PlaceSearchOut> searchPlaces(String query, {String lang = 'en', int limit = 5}) async {
+    await _enter('searchPlaces');
+    _requireLogin();
+    placeQueries.add((query: query, lang: lang, limit: limit));
+    return placeSearchOverride ?? MockData.placeSearch(query, limit: limit);
+  }
+
+  @override
+  Future<PlaceOut> reversePlace(double lat, double lon, {String lang = 'en'}) async {
+    await _enter('reversePlace');
+    _requireLogin();
+    reverseCalls.add((lat: lat, lon: lon, lang: lang));
+    return reverseOverride ?? MockData.reverse(lat, lon);
   }
 
   List<AlertOut> _alerts() => [

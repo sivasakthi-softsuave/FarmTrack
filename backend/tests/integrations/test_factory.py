@@ -7,6 +7,7 @@ from app.domain.types import SprayRecord
 from app.integrations.errors import NotConfigured
 from app.integrations.factory import build_iot, build_push, build_weather, build_zoho
 from app.integrations.iot_mock import MockIoTAdapter
+from app.integrations.iot_none import NoSensorAdapter
 from app.integrations.push import LogPushProvider
 from app.integrations.weather_csv import CsvWeatherAdapter
 from app.integrations.weather_openmeteo import OpenMeteoAdapter
@@ -49,6 +50,14 @@ def test_real_zoho_without_credentials_fails_fast(tmp_path, monkeypatch):
 def test_fcm_without_credentials_file_fails_fast(tmp_path):
     with pytest.raises(NotConfigured):
         build_push(make_settings(tmp_path, push_provider="fcm"))
+
+
+def test_no_sensor_is_selectable_and_never_reports(tmp_path):
+    iot = build_iot(make_settings(tmp_path, iot_provider="none"))
+    now = datetime(2026, 5, 12, tzinfo=IST)
+    assert isinstance(iot, NoSensorAdapter) and isinstance(iot, IoTAdapter)
+    assert iot.latest("ST01", now) is None
+    assert iot.is_stale("ST01", now) is False, "no sensor is not a quiet sensor"
 
 
 def test_real_iot_is_not_available_yet(tmp_path):

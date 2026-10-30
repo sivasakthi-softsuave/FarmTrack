@@ -32,6 +32,40 @@
         "hi": null,
         "en": null
       }
+    },
+    "product": {
+      "product_id": "P011",
+      "active_ingredient": {
+        "en": "Hexaconazole",
+        "hi": "हेक्साकोनाज़ोल"
+      },
+      "brand_examples": [
+        "Contaf",
+        "Envil",
+        "Glow",
+        "Hexcon"
+      ],
+      "formulation": "5 EC",
+      "category": "fungicide",
+      "frac_irac_code": "3",
+      "dose_text": {
+        "en": "100 ml in 200 litres of water",
+        "hi": "200 लीटर पानी में 100 मिलीलीटर"
+      },
+      "dose_min": 100.0,
+      "dose_max": 100.0,
+      "dose_unit": "ml/200L",
+      "waiting_period_days": 30,
+      "warnings": [
+        {
+          "code": "DOSE_PER_200L",
+          "level": "green",
+          "text": {
+            "en": "The dose is for 200 litres of water.",
+            "hi": "यह मात्रा 200 लीटर पानी के लिए है।"
+          }
+        }
+      ]
     }
   }
 }

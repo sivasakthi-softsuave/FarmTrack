@@ -11,6 +11,7 @@ import 'package:farmtrack/features/diary/date_words.dart';
 import 'package:farmtrack/features/field/field_providers.dart';
 import 'package:farmtrack/features/field/field_words.dart';
 import 'package:farmtrack/core/theme/app_theme.dart';
+import 'package:farmtrack/features/field/weather_glyph.dart';
 import 'package:farmtrack/core/widgets/design.dart';
 
 import 'support/feature_fakes.dart';
@@ -61,6 +62,14 @@ FieldOut fieldWith({
 
 void main() {
   group('My field', () {
+    test('leaf wetness is written in whole hours from an hour on, else in minutes', () {
+      expect(leafDuration(0), (number: '0', unitKey: 'field_unit_min'));
+      expect(leafDuration(45), (number: '45', unitKey: 'field_unit_min'));
+      expect(leafDuration(60), (number: '1', unitKey: 'field_unit_hour'));
+      expect(leafDuration(340), (number: '6', unitKey: 'field_unit_hours'));
+      expect(leafDuration(1500), (number: '25', unitKey: 'field_unit_hours'));
+    });
+
     testWidgets('readings are big tiles with a word; the numbers are small and never spoken', (tester) async {
       final env = await fieldEnv();
       await openField(tester, env);
@@ -73,9 +82,9 @@ void main() {
       expect(find.descendant(of: keyed('reading-soil'), matching: find.text('ठीक')), findsOneWidget);
       expect(tester.widget<Text>(keyed('reading-digits-temp')).data, '18 °C');
       expect(tester.widget<Text>(keyed('reading-digits-rain')).data, '6.5 mm');
+      expect(tester.widget<Text>(keyed('reading-digits-leaf')).data, '6 घंटे', reason: '340 minutes, written in hours');
       // The warmth tile has the sun (the forecast has suns too, so look inside the tile).
       expect(find.descendant(of: keyed('reading-temp'), matching: find.byIcon(AppIcons.sun)), findsOneWidget);
-      expect(keyed('field-village'), findsOneWidget);
 
       // Speech: the intro and the server's summary. No digits anywhere.
       expect(env.voice.spokenIds, ['field_intro']);
@@ -131,9 +140,7 @@ void main() {
       expect(keyed('reading-soil'), findsNothing);
     });
 
-    testWidgets('risk cards: scab first, then red, yellow, green; each with colour, picture, words and a speaker', (
-      tester,
-    ) async {
+    testWidgets('no village line and no danger cards on this page, whatever risks the server sends', (tester) async {
       final api = MockApiClient(latency: Duration.zero)
         ..fieldOverride = fieldWith(
           readings: const ReadingsOut(tempC: 20),
@@ -144,40 +151,17 @@ void main() {
             risk('scab_infection', Severity.yellow),
           ],
         );
-      final env = await fieldEnv(api: api);
+      final env = await fieldEnv(api: api, language: 'en');
       await openField(tester, env);
 
-      final order = ['scab_infection', 'rain_wash', 'late_blight', 'fine_one'];
-      final tops = [for (final id in order) tester.getTopLeft(keyed('risk-$id')).dy];
-      expect(tops, [...tops]..sort());
-
-      // The level is the card's colour and picture (as the mockup draws it); its word is in the semantics.
-      final semantics = tester.ensureSemantics();
-      final red = keyed('risk-rain_wash');
-      expect(find.descendant(of: red, matching: find.byIcon(AppIcons.danger)), findsOneWidget);
-      expect(find.descendant(of: red, matching: find.bySemanticsLabel('गंभीर')), findsOneWidget);
-      expect(find.descendant(of: red, matching: find.text('शीर्षक rain_wash')), findsOneWidget);
-      expect(find.descendant(of: red, matching: find.text('लिखा rain_wash।')), findsOneWidget);
-      final yellow = keyed('risk-late_blight');
-      expect(find.descendant(of: yellow, matching: find.byIcon(AppIcons.warning)), findsOneWidget);
-      expect(find.descendant(of: yellow, matching: find.bySemanticsLabel('सावधान')), findsOneWidget);
-      final green = keyed('risk-fine_one');
-      expect(find.descendant(of: green, matching: find.byIcon(AppIcons.tick)), findsOneWidget);
-      expect(find.descendant(of: green, matching: find.bySemanticsLabel('ठीक')), findsOneWidget);
-      // Tinted flat cards with a thin line: red-soft / red line for serious, amber-soft / amber line for "be careful".
-      BoxDecoration decorationOf(Finder card) =>
-          tester.widget<DecoratedBox>(find.descendant(of: card, matching: find.byType(DecoratedBox)).first).decoration
-              as BoxDecoration;
-      expect(decorationOf(red).color, AppColors.redSoft);
-      expect(decorationOf(red).border!.top.color, AppColors.redLine);
-      expect(decorationOf(red).boxShadow, isNull);
-      expect(decorationOf(yellow).color, AppColors.amberSoft);
-      expect(decorationOf(yellow).border!.top.color, AppColors.amberLine);
-      semantics.dispose();
-
-      env.voice.clear();
-      await tapKey(tester, 'risk-speak-rain_wash');
-      expect(env.voice.spokenTexts, ['शीर्षक rain_wash. लिखा rain_wash।']);
+      for (final id in ['fine_one', 'late_blight', 'rain_wash', 'scab_infection']) {
+        expect(keyed('risk-$id'), findsNothing, reason: id);
+      }
+      expect(find.text('Title rain_wash'), findsNothing);
+      expect(find.textContaining('Kotgarh'), findsNothing);
+      expect(keyed('field-village'), findsNothing);
+      expect(keyed('forecast-strip'), findsOneWidget);
+      expect(keyed('reading-temp'), findsOneWidget);
       expectBigTouchTargets(tester);
     });
 
@@ -192,10 +176,11 @@ void main() {
       expect(find.descendant(of: keyed('forecast-2026-05-13'), matching: find.text('बुध')), findsOneWidget);
       // Rain on the 14th and 15th (12 mm): the rain cloud and "heavy rain" (in the semantics: the week card is pictures
       // and numbers only, as in the mockup); the 12th is dry: the sun.
-      expect(find.descendant(of: keyed('forecast-2026-05-14'), matching: find.byIcon(AppIcons.rain)), findsOneWidget);
+      WeatherKind kindOf(String day) => tester.widget<WeatherGlyph>(keyed('forecast-glyph-$day')).kind;
+      expect(kindOf('2026-05-14'), WeatherKind.heavyRain, reason: 'the rain cloud');
       final semantics = tester.ensureSemantics();
       expect(tester.getSemantics(keyed('forecast-2026-05-14')).label, 'गुरु, तेज़ बारिश');
-      expect(find.descendant(of: keyed('forecast-2026-05-12'), matching: find.byIcon(AppIcons.sun)), findsOneWidget);
+      expect(kindOf('2026-05-12'), WeatherKind.sun, reason: 'the sun');
       semantics.dispose();
     });
 
@@ -213,19 +198,47 @@ void main() {
         expect(columns[i].top, closeTo(columns[0].top, 0.5));
       }
       expect(card.contains(columns.first.topLeft) && card.contains(columns.last.bottomRight), isTrue);
-      // Mon..Sun style names in bold, the picture blue and 24, the low in grey.
+
+      // The style of a weather strip: the name on top in grey, the coloured picture, the high in bold, the low in grey.
       final day = keyed('forecast-2026-05-13');
       final name = tester.widget<Text>(find.descendant(of: day, matching: find.text('Wed')));
-      expect(name.style!.fontWeight, FontWeight.w700);
-      final icon = tester.widget<Icon>(find.descendant(of: day, matching: find.byType(Icon)));
-      expect(icon.size, 24);
-      expect(icon.color, AppColors.blue);
+      expect(name.style!.color, AppColors.inkSoft);
+      expect(name.style!.fontWeight, FontWeight.w600);
+      final glyph = tester.widget<WeatherGlyph>(keyed('forecast-glyph-2026-05-13'));
+      expect(glyph.size, 32);
+      final high = tester.widget<Text>(find.descendant(of: day, matching: find.text('19°')));
+      expect(high.style!.fontWeight, FontWeight.w700);
+      expect(high.style!.color, AppColors.ink);
       final low = tester.widget<Text>(find.descendant(of: day, matching: find.text('9°')));
       expect(low.style!.color, AppColors.inkSoft);
-      // One day in the mock is dry (sun), the 14th and 15th are rain; a light day shows the cloud.
-      expect(forecastIcon(0), AppIcons.sun);
-      expect(forecastIcon(3), AppIcons.cloud);
-      expect(forecastIcon(12), AppIcons.rain);
+      // Top to bottom: name, picture, high, low.
+      final nameTop = tester.getTopLeft(find.descendant(of: day, matching: find.text('Wed'))).dy;
+      final glyphTop = tester.getTopLeft(keyed('forecast-glyph-2026-05-13')).dy;
+      final highTop = tester.getTopLeft(find.descendant(of: day, matching: find.text('19°'))).dy;
+      final lowTop = tester.getTopLeft(find.descendant(of: day, matching: find.text('9°'))).dy;
+      expect(nameTop, lessThan(glyphTop));
+      expect(glyphTop, lessThan(highTop));
+      expect(highTop, lessThan(lowTop));
+
+      // Today is in bold ink and stands on a soft panel; the other days have no panel.
+      final today = tester.widget<Text>(
+        find.descendant(of: keyed('forecast-2026-05-12'), matching: find.text('Today')),
+      );
+      expect(today.style!.fontWeight, FontWeight.w800);
+      expect(today.style!.color, AppColors.ink);
+      BoxDecoration? panel(String id) => tester
+          .widgetList<DecoratedBox>(find.ancestor(of: keyed('forecast-$id'), matching: find.byType(DecoratedBox)))
+          .map((box) => box.decoration)
+          .whereType<BoxDecoration>()
+          .where((decoration) => decoration.borderRadius != null)
+          .firstOrNull;
+      expect(panel('2026-05-12')?.color, AppColors.paper, reason: 'today');
+      expect(panel('2026-05-13')?.color, isNull, reason: 'another day');
+
+      // The picture follows the rain: dry = sun, a little rain = cloud with a few drops, a lot = cloud with many.
+      expect(weatherKindOfRain(0), WeatherKind.sun);
+      expect(weatherKindOfRain(3), WeatherKind.lightRain);
+      expect(weatherKindOfRain(12), WeatherKind.heavyRain);
     });
 
     testWidgets('a main page of the bottom bar: "My field", no back arrow, the refresh and the speaker', (
@@ -236,19 +249,17 @@ void main() {
       expect(find.text('My field'), findsOneWidget);
       expect(find.byIcon(AppIcons.back), findsNothing);
       expect(keyed('field-reload'), findsOneWidget);
-      expect(keyed('speaker-button'), findsOneWidget);
-      expect(keyed('mute-button'), findsOneWidget);
+      expect(keyed('voice-button'), findsOneWidget);
       // The page is the bottom bar's second tab.
       expect(keyed('nav-home'), findsOneWidget);
-      // "Village · today, 12:00" in one grey line, the mockup's order: line, danger, readings, week.
-      expect(tester.widget<Text>(keyed('field-village')).data, 'Kotgarh · ');
+      // The owner's order: the week first, then the readings of now.
       expect(find.text('NOW IN YOUR FIELD'), findsOneWidget);
       expect(find.text('NEXT SEVEN DAYS'), findsOneWidget);
       final order = [
-        tester.getTopLeft(keyed('field-village')).dy,
-        tester.getTopLeft(keyed('risk-scab_infection')).dy,
-        tester.getTopLeft(keyed('reading-temp')).dy,
+        tester.getTopLeft(find.text('NEXT SEVEN DAYS')).dy,
         tester.getTopLeft(keyed('forecast-strip')).dy,
+        tester.getTopLeft(find.text('NOW IN YOUR FIELD')).dy,
+        tester.getTopLeft(keyed('reading-temp')).dy,
       ];
       expect(order, [...order]..sort());
     });
@@ -317,8 +328,8 @@ void main() {
       );
       final dot = tester.widget<IconDot>(find.descendant(of: keyed('field-old'), matching: find.byType(IconDot)));
       expect((dot.background, dot.foreground, dot.round), (AppColors.amber, AppColors.ink, true));
-      // The header line says when the old information is from (9 May), not "today".
-      expect(tester.widget<Text>(keyed('field-as-of')).data, startsWith('9 मई, '));
+      // The banner says when the old information is from (9 May).
+      expect(find.descendant(of: keyed('field-old'), matching: find.text('9 मई')), findsOneWidget);
       // The spoken text starts with the stale sentence already: only the intro and that text.
       expect(env.voice.spokenIds, ['field_intro']);
       expect(env.voice.spokenTexts.single, startsWith('यह जानकारी पुरानी है।'));
@@ -576,15 +587,6 @@ void main() {
           }
         }
       }
-    });
-
-    test('sorted risks keep the server order inside a group', () {
-      final sorted = sortedRisks([
-        risk('b', Severity.yellow),
-        risk('a', Severity.yellow),
-        risk('scab_late', Severity.green),
-      ]);
-      expect([for (final r in sorted) r.id], ['scab_late', 'b', 'a']);
     });
 
     test('the cache keeps one answer per farmer', () async {

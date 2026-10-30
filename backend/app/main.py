@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.admin.router import router as admin_router
 from app.alerts.scheduler import start_scheduler, stop_scheduler
-from app.api.routes import alerts, ask, auth, devices, field, me, meta, scans, spray, voice
+from app.api.routes import alerts, ask, auth, devices, field, me, meta, places, scans, spray, voice
 from app.config import Settings, get_settings
 from app.db.migrate import ensure_schema
 from app.db.seed import seed_if_enabled
@@ -103,8 +103,8 @@ def create_app(settings: Settings | None = None, container_factory: ContainerFac
     app.add_middleware(AccessLogMiddleware)
     app.add_middleware(RequestIdMiddleware)
     app.add_middleware(SecurityHeadersMiddleware, hsts=settings.is_prod)
-    for r in (meta.router, auth.router, me.router, scans.router, spray.router, field.router, alerts.router, devices.router,
-              ask.router, voice.router, admin_router):
+    for r in (meta.router, auth.router, me.router, scans.router, spray.router, field.router, places.router, alerts.router,
+              devices.router, ask.router, voice.router, admin_router):
         app.include_router(r)
     return app
 

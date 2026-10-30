@@ -68,6 +68,7 @@ class ReadingTile {
     required this.labelKey,
     required this.wordKey,
     required this.digits,
+    this.unitKey,
   });
 
   final String id;
@@ -80,6 +81,16 @@ class ReadingTile {
 
   /// The measured value, written small ("17 °C"). Never spoken.
   final String digits;
+
+  /// Interface string key of a unit that is a word and so must be translated ("hours"); null when [digits] is complete.
+  final String? unitKey;
+}
+
+/// Leaf wetness written like the mockup, "6 hours": whole hours from an hour on, else minutes.
+({String number, String unitKey}) leafDuration(int minutes) {
+  if (minutes < 60) return (number: '$minutes', unitKey: 'field_unit_min');
+  final hours = (minutes / 60).round();
+  return (number: '$hours', unitKey: hours == 1 ? 'field_unit_hour' : 'field_unit_hours');
 }
 
 String _number(double value) {
@@ -144,7 +155,8 @@ List<ReadingTile> _allReadingTiles(ReadingsOut? readings) {
         color: AppColors.blue,
         labelKey: 'field_label_leaf',
         wordKey: 'field_leaf_${leafBand(leaf).name}',
-        digits: '$leaf min',
+        digits: leafDuration(leaf).number,
+        unitKey: leafDuration(leaf).unitKey,
       ),
     if (soil != null)
       ReadingTile(
@@ -158,32 +170,5 @@ List<ReadingTile> _allReadingTiles(ReadingsOut? readings) {
   ];
 }
 
-/// The picture of a forecast day, from its rain: sun, cloud, rain cloud (the mockup's three weather pictures).
-IconData forecastIcon(double rainMm) => switch (rainBand(rainMm)) {
-  RainBand.none => AppIcons.sun,
-  RainBand.light => AppIcons.cloud,
-  RainBand.heavy => AppIcons.rain,
-};
-
-/// Every picture of the mockup's week card is blue (information); the word for the rain is in the semantics label.
-Color forecastColor(double rainMm) => AppColors.blue;
-
 /// The words of a forecast day's rain (a string key).
 String forecastWordKey(double rainMm) => 'field_rain_${rainBand(rainMm).name}';
-
-/// Risks in the order a farmer needs them: scab first (the one disease the app advises on), then red, yellow, green.
-List<RiskOut> sortedRisks(List<RiskOut> risks) {
-  int rank(RiskOut r) => switch (r.level) {
-    Severity.red => 0,
-    Severity.yellow => 1,
-    Severity.green => 2,
-  };
-  final indexed = [for (var i = 0; i < risks.length; i++) (i, risks[i])];
-  indexed.sort((a, b) {
-    final scab = (b.$2.id.contains('scab') ? 1 : 0).compareTo(a.$2.id.contains('scab') ? 1 : 0);
-    if (scab != 0) return scab;
-    final level = rank(a.$2).compareTo(rank(b.$2));
-    return level != 0 ? level : a.$1.compareTo(b.$1);
-  });
-  return [for (final e in indexed) e.$2];
-}

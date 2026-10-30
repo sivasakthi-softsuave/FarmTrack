@@ -25,6 +25,7 @@ import 'package:farmtrack/core/storage/token_store.dart';
 import 'package:farmtrack/core/voice/prompt_catalogue.dart';
 import 'package:farmtrack/core/voice/utterance.dart';
 import 'package:farmtrack/core/widgets/status_views.dart' show errorPromptFor;
+import 'package:farmtrack/features/result/advice_result.dart' show DoseSteps;
 import 'package:farmtrack/features/scan/result_prompts.dart';
 import 'package:farmtrack/features/scan/scan_flow.dart';
 
@@ -301,12 +302,11 @@ Set<String> _wires(Iterable<WireEnum> values) => {for (final v in values) v.wire
 
 // ------------------------------------------------------------------------------------------------ the journey under test
 
-/// A mock server that answers the scan upload and the crop confirmation with recorded real answers.
+/// A mock server that answers the scan upload with a recorded real answer.
 class _RealAnswersApi extends MockApiClient {
-  _RealAnswersApi(this.scan, {this.afterConfirm}) : super(latency: Duration.zero);
+  _RealAnswersApi(this.scan) : super(latency: Duration.zero);
 
   final ScanOut scan;
-  final ScanOut? afterConfirm;
 
   @override
   Future<ScanOut> createScan({
@@ -324,28 +324,11 @@ class _RealAnswersApi extends MockApiClient {
     scans[scan.id] = scan;
     return scan;
   }
-
-  @override
-  Future<ScanOut> confirmCrop(String scanId, String cropId) async {
-    calls.add('confirmCrop');
-    confirmedCrops.add(cropId);
-    return afterConfirm ?? (throw StateError('no recorded answer for confirmCrop'));
-  }
 }
 
 /// Opens the camera, takes one photo and sends it; returns with the result screen showing.
-Future<TestEnv> openResult(
-  WidgetTester tester,
-  ScanOut scan, {
-  ScanOut? afterConfirm,
-  String language = 'hi',
-  double textScale = 1.0,
-}) async {
-  final env = await TestEnv.create(
-    loggedIn: true,
-    language: language,
-    api: _RealAnswersApi(scan, afterConfirm: afterConfirm),
-  );
+Future<TestEnv> openResult(WidgetTester tester, ScanOut scan, {String language = 'hi', double textScale = 1.0}) async {
+  final env = await TestEnv.create(loggedIn: true, language: language, api: _RealAnswersApi(scan));
   useSmallPhone(tester, textScale: textScale);
   env.picker.queuePhotos(1);
   await pumpApp(tester, env, location: '/home');
@@ -354,6 +337,17 @@ Future<TestEnv> openResult(
   await tapKey(tester, 'send-photos');
   env.voice.keepLastCall();
   return env;
+}
+
+/// What the advice screen says by itself: the crop, the disease, the names of the medicines (nothing else).
+List<String> _threeSaid(ScanOut scan, String lang) {
+  final disease = (scan.disease?.name?.forLang(lang) ?? '').trim();
+  final names = [for (final p in scan.advice!.products) p.activeIngredient.forLang(lang)];
+  return [
+    'crop_is_${scan.advice!.cropId.toLowerCase()}@$lang',
+    if (disease.isNotEmpty) '$disease@$lang',
+    '${lang == 'hi' ? 'दवा' : 'Medicine'}: ${names.join(', ')}${lang == 'hi' ? '।' : '.'}@$lang',
+  ];
 }
 
 // ------------------------------------------------------------------------------------------------ the tests
@@ -1215,13 +1209,13 @@ void main() {
       'scan_photo_unusable_dark': Routes.scanRetake,
       'scan_photo_unusable_blurry': Routes.scanRetake,
       'scan_photo_unusable_bright': Routes.scanRetake,
-      'scan_confirm_crop': Routes.scanConfirm,
-      'scan_confirm_crop_pea': Routes.scanConfirm,
+      'scan_confirm_crop': Routes.scanRetake,
+      'scan_confirm_crop_pea': Routes.scanRetake,
       'scan_needs_expert_marssonina': Routes.scanExpert,
       'scan_needs_expert_alternaria': Routes.scanExpert,
       'scan_needs_expert_low_confidence': Routes.scanExpert,
       'scan_needs_expert_no_disease_result': Routes.scanExpert,
-      'scan_needs_expert_crop_unknown': Routes.scanExpert,
+      'scan_needs_expert_crop_unknown': Routes.scanRetake,
       'scan_not_a_disease': Routes.scanExpert,
       'crop_confirm': Routes.scanAdvice,
       'crop_confirm_no_approved_data': Routes.scanExpert,
@@ -1242,7 +1236,7 @@ void main() {
             ),
           ),
       };
-      expect(routed.values.toSet(), {Routes.scanAdvice, Routes.scanConfirm, Routes.scanRetake, Routes.scanExpert});
+      expect(routed.values.toSet(), {Routes.scanAdvice, Routes.scanRetake, Routes.scanExpert});
     });
 
     test('server-chosen prompt ids are the ones the screens pick', () {
@@ -1431,16 +1425,29 @@ void main() {
   });
 
   group('the real answers through the real screens', () {
-    testWidgets('ok: advice screen shows severity, medicine, dose and speaks the server text', (tester) async {
+    testWidgets('ok: advice screen shows crop, disease, medicines and the card of advice; says only the three', (
+      tester,
+    ) async {
       final scan = scanOf('scan_ok_scab');
       final env = await openResult(tester, scan);
       expect(keyed('severity-${scan.advice!.severity.wire}'), findsOneWidget);
+      expect(keyed('advice-crop-card'), findsOneWidget);
       expect(keyed('advice-headline'), findsOneWidget);
+      expect(keyed('advice-notes'), findsOneWidget);
       for (final p in scan.advice!.products) {
         expect(keyed('product-${p.productId}'), findsOneWidget, reason: p.productId);
-        expect(find.text(p.doseText.hi), findsWidgets, reason: 'the dose sentence of ${p.productId}');
+        final steps = DoseSteps.of(p);
+        if (steps == null) {
+          expect(find.text(p.doseText.hi), findsWidgets, reason: 'the dose sentence of ${p.productId}');
+        } else {
+          expect(
+            find.text(steps.mix((key, {args = const {}}) => resources.t(key, 'hi', args: args))),
+            findsWidgets,
+            reason: 'the second step',
+          );
+        }
       }
-      expect(env.voice.log, ['result_intro@hi', '${scan.advice!.spoken.text.hi}@hi', 'diary_tick_sprayed@hi']);
+      expect(env.voice.log, _threeSaid(scan, 'hi'));
       expect(env.voice.unknownIds, isEmpty);
     });
 
@@ -1463,7 +1470,7 @@ void main() {
     testWidgets('ok in English speaks the English text', (tester) async {
       final scan = scanOf('scan_ok_scab');
       final env = await openResult(tester, scan, language: 'en');
-      expect(env.voice.log, ['result_intro@en', '${scan.advice!.spoken.text.en}@en', 'diary_tick_sprayed@en']);
+      expect(env.voice.log, _threeSaid(scan, 'en'));
       expect(env.voice.unknownIds, isEmpty);
     });
 
@@ -1483,7 +1490,6 @@ void main() {
       'scan_needs_expert_alternaria',
       'scan_needs_expert_low_confidence',
       'scan_needs_expert_no_disease_result',
-      'scan_needs_expert_crop_unknown',
     ]) {
       testWidgets('$name: expert screen, asks the expert with the scan id, shows no medicine', (tester) async {
         final scan = scanOf(name);
@@ -1503,6 +1509,18 @@ void main() {
       });
     }
 
+    testWidgets('scan_needs_expert_crop_unknown: "I cannot identify this leaf", another photo, no expert button', (
+      tester,
+    ) async {
+      final env = await openResult(tester, scanOf('scan_needs_expert_crop_unknown'));
+      expect(keyed('retake-title'), findsOneWidget);
+      expect(keyed('retake-camera'), findsOneWidget);
+      expect(keyed('ask-expert'), findsNothing);
+      expect(env.voice.spokenIds, ['scan_retake_tap']);
+      expect(env.voice.spokenTexts.single, startsWith('इस पत्ती की पहचान नहीं हो पाई।'));
+      expect(env.voice.unknownIds, isEmpty);
+    });
+
     testWidgets('no_approved_data: expert screen in its own variant', (tester) async {
       final env = await openResult(tester, scanOf('crop_confirm_no_approved_data'));
       expect(keyed('expert-icon-no_approved_data'), findsOneWidget);
@@ -1518,23 +1536,17 @@ void main() {
       expect(env.voice.unknownIds, isEmpty);
     });
 
-    testWidgets('confirm_crop: tick sends the crop and shows the advice', (tester) async {
-      final env = await openResult(tester, scanOf('scan_confirm_crop'), afterConfirm: scanOf('crop_confirm'));
-      expect(keyed('crop-name'), findsOneWidget);
-      expect(env.voice.unknownIds, isEmpty);
-      await tapKey(tester, 'crop-yes');
-      expect(env.api.confirmedCrops, ['Apple']);
-      expect(keyed('severity-${scanOf('crop_confirm').advice!.severity.wire}'), findsOneWidget);
-    });
-
-    knownMismatchWidgets(
-      'confirm_crop: the screen asks the question "is this the right crop?" (crop_confirm_prompt)',
-      '#1 next_steps[confirm_crop].prompt_id is crop_tap_yes, so the question is never spoken',
-      (tester) async {
-        final env = await openResult(tester, scanOf('scan_confirm_crop'));
-        expect(env.voice.spokenIds, ['crop_is_apple', 'crop_confirm_prompt', 'crop_tap_yes', 'crop_tap_no']);
-      },
-    );
+    for (final name in ['scan_confirm_crop', 'scan_confirm_crop_pea']) {
+      testWidgets('$name: no question, no crop grid: "I cannot identify this leaf", another photo', (tester) async {
+        final env = await openResult(tester, scanOf(name));
+        expect(keyed('retake-title'), findsOneWidget);
+        expect(keyed('retake-camera'), findsOneWidget);
+        expect(keyed('crop-yes'), findsNothing);
+        expect(keyed('crop-no'), findsNothing);
+        expect(env.voice.spokenIds, ['scan_retake_tap']);
+        expect(env.voice.unknownIds, isEmpty);
+      });
+    }
 
     knownMismatchWidgets(
       'not_a_disease: the first thing spoken is that no disease was seen (result_not_disease)',
@@ -1544,13 +1556,6 @@ void main() {
         expect(env.voice.spokenIds.first, 'result_not_disease');
       },
     );
-
-    testWidgets('confirm_crop for a crop without a recorded picture group still shows (Pea)', (tester) async {
-      final env = await openResult(tester, scanOf('scan_confirm_crop_pea'));
-      expect(keyed('crop-name'), findsOneWidget);
-      expect(env.voice.spokenIds.first, 'crop_is_pea');
-      expect(env.voice.unknownIds, isEmpty);
-    });
   });
 
   group('crop ids: the server writes Apple, the app tables are lower case', () {

@@ -86,14 +86,9 @@ void main() {
     );
   });
 
-  test('the forecast and reading-tile pictures are readable (3:1 graphics) on the white cards they sit on', () {
-    for (final mm in [0.0, 5.0, 20.0]) {
-      expect(
-        contrast(forecastColor(mm), AppColors.card),
-        greaterThanOrEqualTo(aaGraphics),
-        reason: 'forecast colour for $mm mm',
-      );
-    }
+  // The weather pictures of the week card are drawn in the weather's own colours and are decorative: the shapes differ (sun, cloud,
+  // cloud with rain) and the word for the rain is in the day's semantics label, so no colour carries the meaning by itself.
+  test('the reading-tile pictures are readable (3:1 graphics) on the white cards they sit on', () {
     final tiles = readingTiles(
       const ReadingsOut(tempC: 20, rhPct: 60, rain24hMm: 2, leafWetnessMin: 100, soilMoisturePct: 30),
     );

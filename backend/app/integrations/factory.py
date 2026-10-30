@@ -1,6 +1,6 @@
 """Provider builders used by app.services.container.build_container (the factory contract).
 
-Selection comes from Settings: zoho_provider (mock|real), iot_provider (mock), weather_provider (csv|openmeteo),
+Selection comes from Settings: zoho_provider (mock|real), iot_provider (mock|none), weather_provider (csv|openmeteo),
 push_provider (log|fcm). Choosing a real provider whose credentials are missing raises NotConfigured at start-up (fail fast).
 """
 from __future__ import annotations
@@ -12,12 +12,14 @@ from app.config import Settings
 from app.domain.types import WeatherSnapshot
 from app.integrations.errors import NotConfigured, WeatherUnavailable
 from app.integrations.iot_mock import MockIoTAdapter
+from app.integrations.iot_none import NoSensorAdapter
+from app.integrations.places_nominatim import DisabledPlaces, NominatimPlaces
 from app.integrations.push import FcmPushProvider, LogPushProvider
 from app.integrations.weather_csv import CsvWeatherAdapter
 from app.integrations.weather_openmeteo import OpenMeteoAdapter
 from app.integrations.zoho_mock import MockZohoAdapter
 from app.integrations.zoho_real import RealZohoAdapter, ZohoConfig
-from app.interfaces import IoTAdapter, PushProvider, WeatherAdapter, ZohoAdapter
+from app.interfaces import IoTAdapter, PlacesAdapter, PushProvider, WeatherAdapter, ZohoAdapter
 
 log = logging.getLogger(__name__)
 
@@ -39,9 +41,11 @@ def build_iot(settings: Settings) -> IoTAdapter:
     provider = settings.iot_provider.lower()
     if provider == "mock":
         return MockIoTAdapter(settings.data_dir)
+    if provider == "none":
+        return NoSensorAdapter()
     if provider == "real":
         raise NotConfigured("there is no real IoT adapter yet: the client's sensor platform is not known")
-    raise _unknown("iot", provider, "mock")
+    raise _unknown("iot", provider, "mock, none")
 
 
 class DisabledWeatherAdapter:
@@ -62,6 +66,29 @@ def build_weather(settings: Settings) -> WeatherAdapter:
             log.warning("the free Open-Meteo endpoint is non-commercial; set OPEN_METEO_API_KEY (paid plan) for production use")
         return OpenMeteoAdapter(settings.data_dir, api_key=settings.open_meteo_api_key)
     raise _unknown("weather", provider, "csv, openmeteo")
+
+
+def build_place_weather(settings: Settings) -> WeatherAdapter:
+    """Live weather for a place the farmer picks (its own adapter: its own cache and its own hourly call budget)."""
+    provider = settings.place_weather_provider.lower()
+    if provider == "none":
+        return DisabledWeatherAdapter()
+    if provider == "openmeteo":
+        if settings.is_prod and not settings.open_meteo_api_key:
+            log.warning("the free Open-Meteo endpoint is non-commercial; set OPEN_METEO_API_KEY (paid plan) for production use")
+        return OpenMeteoAdapter(settings.data_dir, api_key=settings.open_meteo_api_key)
+    raise _unknown("place weather", provider, "none, openmeteo")
+
+
+def build_places(settings: Settings) -> PlacesAdapter:
+    provider = settings.places_provider.lower()
+    if provider == "none":
+        return DisabledPlaces()
+    if provider == "nominatim":
+        if settings.is_prod and "set PLACES_USER_AGENT" in settings.places_user_agent:
+            log.warning("PLACES_USER_AGENT is still the placeholder: the Nominatim policy needs your real contact")
+        return NominatimPlaces(settings.places_user_agent, settings.places_url)
+    raise _unknown("places", provider, "none, nominatim")
 
 
 def build_push(settings: Settings) -> PushProvider:

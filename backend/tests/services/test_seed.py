@@ -37,7 +37,7 @@ def test_all_fifty_demo_farmers_are_loaded(seeded):
 
 def test_fields_are_mapped_from_the_csv(seeded):
     f = farmer("F001")
-    assert f.name == "Dinesh Sharma" and f.phone == "+910000000001" and f.language == "hi"
+    assert f.name == "Shahzad Sharma" and f.phone == "+910000000001" and f.language == "hi"
     assert f.district == "Shimla" and f.village == "Theog" and f.station_id == "ST01"
     assert f.elevation_m == 2117 and f.phenology_band == "B3" and f.primary_crop == "Apple" and f.primary_variety == "Royal_Delicious"
     assert f.zoho_contact_id == "9990000000000000001"

@@ -1192,6 +1192,357 @@
         ]
       }
     },
+    "/v1/weather": {
+      "get": {
+        "tags": [
+          "places"
+        ],
+        "summary": "Get Place Weather",
+        "description": "Live weather (now, the last 24 h of rain, 7 days) for the point the farmer picked: lat and lon in India, both required.",
+        "operationId": "get_place_weather_v1_weather_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lat"
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lon"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/places/search": {
+      "get": {
+        "tags": [
+          "places"
+        ],
+        "summary": "Search Places",
+        "description": "Find a state, district, town or village by name (Hindi or English), at most 8 results. Call it when the farmer SUBMITS the\nsearch, not on every key press (the public OpenStreetMap search forbids that).",
+        "operationId": "search_places_v1_places_search_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "en",
+              "title": "Lang"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 5,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceSearchOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/places/reverse": {
+      "get": {
+        "tags": [
+          "places"
+        ],
+        "summary": "Reverse Place",
+        "description": "The named area a point lies in (the nearest village, its tehsil, district and state), so that a touch on the map or the phone's\nposition is shown as \"Kotgarh, Kumharsain, Shimla, Himachal Pradesh\" and not as \"a point\". 404 when nothing is known there.",
+        "operationId": "reverse_place_v1_places_reverse_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lat"
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lon"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "en",
+              "title": "Lang"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaceOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/alerts": {
       "get": {
         "tags": [
@@ -3228,6 +3579,136 @@
         ],
         "title": "CitationOut"
       },
+      "ConditionsOut": {
+        "properties": {
+          "sky": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sky"
+          },
+          "is_day": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Day"
+          },
+          "feels_like_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feels Like C"
+          },
+          "wind_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Kmh"
+          },
+          "visibility_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visibility Km"
+          },
+          "pressure_hpa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pressure Hpa"
+          },
+          "dew_point_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dew Point C"
+          },
+          "aqi": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aqi"
+          },
+          "uv_index": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uv Index"
+          },
+          "sunrise": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sunrise"
+          },
+          "sunset": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sunset"
+          }
+        },
+        "type": "object",
+        "title": "ConditionsOut",
+        "description": "\"Current weather\" of the hour: what a weather app shows besides the temperature. Every field is optional: None = this source\ndoes not know it (the demo CSV archive knows none of it; the air quality can fail on its own). The humidity is `readings.rh_pct`."
+      },
       "CropCandidateOut": {
         "properties": {
           "crop_id": {
@@ -3531,6 +4012,17 @@
               }
             ],
             "title": "Farmer Name"
+          },
+          "farmer_phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Farmer Phone"
           },
           "crop": {
             "anyOf": [
@@ -4074,6 +4566,33 @@
               }
             ]
           },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConditionsOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "hours": {
+            "items": {
+              "$ref": "#/components/schemas/HourOut"
+            },
+            "type": "array",
+            "title": "Hours"
+          },
+          "spray": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SprayOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "forecast": {
             "items": {
               "$ref": "#/components/schemas/ForecastDayOut"
@@ -4161,6 +4680,87 @@
           "db"
         ],
         "title": "HealthOut"
+      },
+      "HourOut": {
+        "properties": {
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Time"
+          },
+          "temp_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temp C"
+          },
+          "sky": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sky"
+          },
+          "is_day": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Day"
+          },
+          "rain_chance_pct": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rain Chance Pct"
+          },
+          "rain_mm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rain Mm"
+          },
+          "wind_kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wind Kmh"
+          }
+        },
+        "type": "object",
+        "required": [
+          "time"
+        ],
+        "title": "HourOut",
+        "description": "One hour of the next hours (`FieldOut.hours`). `time` is UTC; every other field may be unknown (null)."
       },
       "LocalizedText": {
         "properties": {
@@ -4264,6 +4864,16 @@
             "type": "boolean",
             "title": "Weather Enabled",
             "default": true
+          },
+          "place_weather_enabled": {
+            "type": "boolean",
+            "title": "Place Weather Enabled",
+            "default": false
+          },
+          "places_search_enabled": {
+            "type": "boolean",
+            "title": "Places Search Enabled",
+            "default": false
           }
         },
         "type": "object",
@@ -4378,6 +4988,61 @@
           "otp"
         ],
         "title": "OtpVerifyIn"
+      },
+      "PlaceOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "state",
+              "district",
+              "tehsil",
+              "town",
+              "village",
+              "place"
+            ],
+            "title": "Kind",
+            "default": "place"
+          },
+          "lat": {
+            "type": "number",
+            "title": "Lat"
+          },
+          "lon": {
+            "type": "number",
+            "title": "Lon"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "lat",
+          "lon"
+        ],
+        "title": "PlaceOut",
+        "description": "One result of the place search: what the farmer reads (`label`) and the point the map flies to."
+      },
+      "PlaceSearchOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PlaceOut"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "title": "PlaceSearchOut"
       },
       "ProductAdminOut": {
         "properties": {
@@ -5073,6 +5738,35 @@
         ],
         "title": "SpokenOut"
       },
+      "SprayHeatOut": {
+        "properties": {
+          "temp_c": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temp C"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "care",
+              "stop"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "SprayHeatOut"
+      },
       "SprayLogIn": {
         "properties": {
           "crop_id": {
@@ -5216,6 +5910,16 @@
                 "type": "null"
               }
             ]
+          },
+          "product": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -5227,6 +5931,112 @@
           "sprayed_at"
         ],
         "title": "SprayLogOut"
+      },
+      "SprayOut": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "go",
+              "care",
+              "stop"
+            ],
+            "title": "State"
+          },
+          "headline": {
+            "type": "string",
+            "enum": [
+              "calm_dry",
+              "windy",
+              "hot",
+              "rain_soon",
+              "raining"
+            ],
+            "title": "Headline"
+          },
+          "wind": {
+            "$ref": "#/components/schemas/SprayWindOut"
+          },
+          "rain": {
+            "$ref": "#/components/schemas/SprayRainOut"
+          },
+          "heat": {
+            "$ref": "#/components/schemas/SprayHeatOut"
+          }
+        },
+        "type": "object",
+        "required": [
+          "state",
+          "headline",
+          "wind",
+          "rain",
+          "heat"
+        ],
+        "title": "SprayOut",
+        "description": "\"Can I spray today?\", the weather part only (wind, rain, heat of the next hours). DRAFT limits: see app/services/spray_weather.py."
+      },
+      "SprayRainOut": {
+        "properties": {
+          "dry_hours": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dry Hours"
+          },
+          "mm_next_3h": {
+            "type": "number",
+            "title": "Mm Next 3H",
+            "default": 0.0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "care",
+              "stop"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "SprayRainOut"
+      },
+      "SprayWindOut": {
+        "properties": {
+          "kmh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kmh"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "care",
+              "stop"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "SprayWindOut"
       },
       "TimingOut": {
         "properties": {

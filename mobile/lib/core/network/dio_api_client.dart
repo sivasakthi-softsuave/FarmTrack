@@ -270,6 +270,22 @@ class DioApiClient implements ApiClient {
   Future<FieldOut> field() => _call(() => _dio.get<Object?>('/v1/field'), FieldOut.fromJson);
 
   @override
+  Future<FieldOut> weatherAt(double lat, double lon) =>
+      _call(() => _dio.get<Object?>('/v1/weather', queryParameters: {'lat': lat, 'lon': lon}), FieldOut.fromJson);
+
+  @override
+  Future<PlaceSearchOut> searchPlaces(String query, {String lang = 'en', int limit = 5}) => _call(
+    () => _dio.get<Object?>('/v1/places/search', queryParameters: {'q': query, 'lang': lang, 'limit': limit}),
+    PlaceSearchOut.fromJson,
+  );
+
+  @override
+  Future<PlaceOut> reversePlace(double lat, double lon, {String lang = 'en'}) => _call(
+    () => _dio.get<Object?>('/v1/places/reverse', queryParameters: {'lat': lat, 'lon': lon, 'lang': lang}),
+    PlaceOut.fromJson,
+  );
+
+  @override
   Future<AlertListOut> listAlerts({int limit = 30}) =>
       _call(() => _dio.get<Object?>('/v1/alerts', queryParameters: {'limit': limit}), AlertListOut.fromJson);
 

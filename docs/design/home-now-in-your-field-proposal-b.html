@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FarmTrack Home: option B, weather first (proposal)</title>
+<style>
+  @font-face { font-family: "Noto Sans"; font-weight: 400; src: url("../../mobile/assets/fonts/NotoSans-Regular.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 500; src: url("../../mobile/assets/fonts/NotoSans-Medium.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 600; src: url("../../mobile/assets/fonts/NotoSans-SemiBold.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 700; src: url("../../mobile/assets/fonts/NotoSans-Bold.ttf"); }
+  @font-face { font-family: "Noto Sans"; font-weight: 800; src: url("../../mobile/assets/fonts/NotoSans-ExtraBold.ttf"); }
+
+  :root {
+    --ground: #F3F6F1; --card: #FFFFFF; --ink: #17201A; --ink2: #4F5B52; --line: #E1E7DE; --neutral: #EEF2EC;
+    --brand: #14532D; --green: #1B7F3A; --green-soft: #E3F2E7; --blue: #1F5FA8; --blue-soft: #E3EDF8;
+    --amber: #F2A900; --amber-soft: #FFF3D1; --amber-dark: #8A5A00; --amber-line: #EFD891; --red: #C62828; --red-soft: #FCE4E2; --red-line: #F2C2BE;
+    --shadow: 0 1px 2px rgba(16, 40, 24, .06), 0 6px 18px rgba(16, 40, 24, .07);
+    --page: #E6EAE4;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font-family: "Noto Sans", system-ui, sans-serif; width: 1900px; }
+  svg.i { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  svg.i.sm { width: 20px; height: 20px; } svg.i.xs { width: 16px; height: 16px; } svg.i.lg { width: 30px; height: 30px; } svg.i.xl { width: 38px; height: 38px; }
+
+  .board { padding: 34px 40px 44px; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  .lead { font-size: 16px; color: #3E4A41; margin: 0 0 22px; max-width: 1250px; line-height: 1.5; }
+  .stage { display: flex; gap: 40px; align-items: flex-start; }
+  figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  figcaption { font-weight: 700; font-size: 15px; text-align: center; }
+  figcaption span { display: block; font-weight: 400; font-size: 13px; color: #4F5B52; max-width: 380px; margin-top: 2px; }
+
+  .phone { width: 390px; height: 844px; background: var(--ground); border-radius: 44px; overflow: hidden; position: relative;
+    box-shadow: 0 0 0 10px #1C221E, 0 0 0 11px #3A433D, 0 24px 60px rgba(0, 0, 0, .28); }
+  .scroller { position: absolute; inset: 0 0 80px 0; overflow: hidden; }
+  .status { position: absolute; z-index: 5; top: 0; left: 0; right: 0; height: 30px; display: flex; justify-content: space-between; align-items: center; padding: 0 22px; font-size: 13px; font-weight: 600; color: #fff; }
+  .status.dark { color: var(--ink); background: var(--ground); box-shadow: 0 1px 0 var(--line); }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .grow { flex: 1; min-width: 0; }
+  .muted { color: var(--ink2); }
+  .card { background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 16px; }
+  .dot { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; flex: none; }
+  .round { border-radius: 50%; }
+  .h-name { font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .h-meta { font-size: 14px; color: var(--ink2); line-height: 1.35; }
+  .label { font-size: 13px; font-weight: 700; color: var(--ink2); letter-spacing: .04em; text-transform: uppercase; margin: 6px 4px -2px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .label .more { color: var(--green); letter-spacing: 0; text-transform: none; font-size: 14px; display: flex; align-items: center; gap: 2px; }
+  .label .more svg { width: 16px; height: 16px; stroke-width: 2.4; }
+  .pad { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .srv { font-size: 10.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: #8A4A00; background: #FFE9C7; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+
+  .glass { width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, .16); color: #fff; display: grid; place-items: center; flex: none; }
+  .glass.mute { background: #fff; color: var(--red); }
+  .place { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px 0 10px; border-radius: 999px; background: rgba(255, 255, 255, .16); font-size: 16px; font-weight: 500; }
+
+  .nav { position: absolute; left: 0; right: 0; bottom: 0; height: 80px; background: var(--card); border-top: 1px solid var(--line); display: flex; align-items: flex-start; justify-content: space-around; padding-top: 8px; }
+  .nav a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 600; color: var(--ink2); width: 64px; }
+  .nav a .pl { width: 56px; height: 32px; border-radius: 16px; display: grid; place-items: center; }
+  .nav a.on { color: var(--green); font-weight: 700; } .nav a.on .pl { background: var(--green-soft); }
+  .nav a.scan { margin-top: -34px; color: var(--ink); font-weight: 700; }
+  .nav a.scan .fab { width: 68px; height: 68px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; border: 5px solid #fff; box-shadow: 0 6px 16px rgba(27, 127, 58, .35); }
+
+  /* ---------- the weather hero ---------- */
+  .hero { position: relative; border-radius: 26px; padding: 14px 14px 14px; color: #fff; overflow: hidden; box-shadow: 0 2px 4px rgba(16, 40, 24, .12), 0 10px 22px rgba(16, 40, 24, .16); }
+  .hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 88% -8%, var(--glow, rgba(255, 214, 120, .55)), rgba(255, 255, 255, 0) 52%); pointer-events: none; }
+  .hero > * { position: relative; }
+  .hero .main { display: flex; align-items: center; gap: 10px; }
+  .hero .gl { width: 74px; height: 74px; flex: none; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .22)); }
+  .hero .temp { font-size: 56px; font-weight: 800; line-height: 1; letter-spacing: -.02em; }
+  .hero .temp small { font-size: 22px; font-weight: 700; vertical-align: top; margin-left: 2px; position: relative; top: 4px; }
+  .hero .info { margin-left: auto; text-align: right; font-size: 13.5px; line-height: 1.4; font-weight: 500; }
+  .hero .info .sky { font-size: 18px; font-weight: 800; line-height: 1.25; }
+  .hero .row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+  .hero .gc { background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .26); border-radius: 16px; padding: 8px 10px; }
+  .hero .gc .k { display: flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 600; }
+  .hero .gc .k svg { width: 16px; height: 16px; stroke-width: 2.2; }
+  .hero .gc b { display: block; font-size: 19px; font-weight: 800; line-height: 1.25; margin-top: 1px; }
+  .hero .gc .w { font-size: 12.5px; font-weight: 600; opacity: .95; }
+  .sky-sunny { background: linear-gradient(160deg, #165DA9 0%, #2A7BC8 100%); --glow: rgba(255, 207, 110, .6); }
+  .sky-hot { background: linear-gradient(160deg, #9E3F0E 0%, #C45F1B 100%); --glow: rgba(255, 224, 140, .6); }
+  .sky-cloud { background: linear-gradient(160deg, #33506F 0%, #52729A 100%); --glow: rgba(255, 255, 255, .28); }
+  .sky-rain { background: linear-gradient(160deg, #26356F 0%, #3F559A 100%); --glow: rgba(160, 190, 255, .32); }
+  .sky-night { background: linear-gradient(160deg, #0C1D3F 0%, #1D3768 100%); --glow: rgba(190, 210, 255, .30); }
+  .hero .chip { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 10px 0 8px; border-radius: 999px; background: rgba(255, 255, 255, .16); font-size: 12.5px; font-weight: 600; margin-bottom: 8px; }
+
+  /* ---------- next hours ---------- */
+  .hours { display: flex; gap: 0; padding: 12px 6px; overflow: hidden; }
+  .hours .h { flex: 0 0 56px; text-align: center; }
+  .hours .t { font-size: 12.5px; font-weight: 600; color: var(--ink2); }
+  .hours .h.now .t { color: var(--ink); font-weight: 800; }
+  .hours svg.g { width: 32px; height: 32px; margin: 4px 0 2px; }
+  .hours .v { font-size: 16px; font-weight: 700; }
+  .hours .p { font-size: 12px; font-weight: 700; color: var(--blue); margin-top: 1px; }
+  .hours .p.z { color: #7C8A80; font-weight: 500; }
+
+  /* ---------- spray weather ---------- */
+  .spray { border-radius: 22px; padding: 14px 14px 12px; border: 1.5px solid var(--line); box-shadow: var(--shadow); background: #fff; }
+  .spray.go { background: linear-gradient(160deg, #E8F6EC 0%, #CBEAD4 100%); border-color: #A9D3B4; }
+  .spray.care { background: linear-gradient(160deg, #FFF6DC 0%, #FDE5A6 100%); border-color: var(--amber-line); }
+  .spray.stop { background: linear-gradient(160deg, #FDECEA 0%, #F7C9C4 100%); border-color: var(--red-line); }
+  .spray .hd { display: flex; align-items: center; gap: 12px; }
+  .spray .ic { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: #fff; flex: none; }
+  .spray.go .ic { background: var(--green); } .spray.care .ic { background: var(--amber); color: #3A2A00; } .spray.stop .ic { background: var(--red); }
+  .spray .tt { font-size: 18px; font-weight: 800; line-height: 1.25; }
+  .spray .ss { font-size: 13.5px; line-height: 1.35; color: #34403A; margin-top: 1px; }
+  .spray .checks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+  .spray .ck { background: rgba(255, 255, 255, .62); border-radius: 12px; padding: 6px 8px; font-size: 12.5px; font-weight: 600; line-height: 1.3; }
+  .spray .ck b { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+  .spray .ck b svg { width: 15px; height: 15px; stroke-width: 3; }
+  .spray.go .ck b svg { color: var(--green); } .spray.care .ck b svg { color: var(--amber-dark); } .spray.stop .ck b svg { color: var(--red); }
+
+  /* ---------- rain this week ---------- */
+  .bars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; align-items: end; padding: 4px 4px 0; height: 118px; }
+  .bars .c { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 3px; }
+  .bars .mm { font-size: 12px; font-weight: 700; color: var(--blue); }
+  .bars .mm.z { color: #7C8A80; font-weight: 500; }
+  .bars .b { width: 70%; border-radius: 8px 8px 3px 3px; background: linear-gradient(180deg, #8FBFF2 0%, #3B82D4 100%); min-height: 4px; }
+  .bars .b.z { background: #D8E1D9; }
+  .bars .d { font-size: 12.5px; font-weight: 600; color: var(--ink2); }
+  .bars .c.today .d { color: var(--ink); font-weight: 800; }
+  .sumline { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 14px; font-weight: 500; }
+  .sumline .sp { width: 32px; height: 32px; border-radius: 50%; background: var(--blue-soft); color: var(--blue); display: grid; place-items: center; flex: none; }
+
+  /* ---------- details grid ---------- */
+  .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .dt { border-radius: 18px; padding: 11px 12px; box-shadow: 0 1px 2px rgba(16, 40, 24, .06), 0 4px 10px rgba(16, 40, 24, .06); }
+  .dt .k { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: rgba(23, 32, 26, .78); }
+  .dt .k svg { width: 18px; height: 18px; stroke-width: 2.2; }
+  .dt .v { font-size: 22px; font-weight: 800; line-height: 1.2; margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+  .dt .s { font-size: 12.5px; line-height: 1.3; color: rgba(23, 32, 26, .78); margin-top: 1px; }
+  .dt.aq { background: linear-gradient(155deg, #FFF3D6, #FCDD9A); } .dt.aq .k svg { color: #8A5A00; }
+  .dt.vis { background: linear-gradient(155deg, #E5F0FB, #BCD8F3); } .dt.vis .k svg { color: #1F5FA8; }
+  .dt.dew { background: linear-gradient(155deg, #E3F4F5, #B4DEE3); } .dt.dew .k svg { color: #136C77; }
+  .dt.prs { background: linear-gradient(155deg, #ECEEF8, #CDD3EE); } .dt.prs .k svg { color: #3B4A9B; }
+  .dt.sun { background: linear-gradient(155deg, #FFF0D2, #FFD79A); } .dt.sun .k svg { color: #A24F00; }
+  .dt.uv { background: linear-gradient(155deg, #FBE6DD, #F2B9A3); } .dt.uv .k svg { color: #A52F12; }
+  .aqi-dot { width: 12px; height: 12px; border-radius: 50%; background: #F2A900; display: inline-block; }
+
+  /* ---------- bottom boards ---------- */
+  .wide { background: #fff; border-radius: 22px; padding: 18px 22px 22px; box-shadow: var(--shadow); margin-top: 30px; }
+  .wide h3 { margin: 0 0 2px; font-size: 18px; }
+  .wide p { margin: 2px 0 12px; font-size: 14px; color: #3E4A41; max-width: 1200px; line-height: 1.45; }
+  .heroes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; align-items: start; }
+  .heroes .cap { font-size: 13px; font-weight: 700; margin-bottom: 6px; } .heroes .cap span { font-weight: 400; color: var(--ink2); }
+  .sprays { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .side { width: 440px; display: flex; flex-direction: column; gap: 16px; }
+  .panel { background: #fff; border-radius: 20px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .panel h3 { margin: 0 0 4px; font-size: 16px; }
+  .panel p, .panel li { font-size: 13.5px; color: #3E4A41; line-height: 1.45; margin: 2px 0; }
+  .panel ul { margin: 6px 0 0; padding-left: 18px; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--green-soft); color: var(--green); }
+  .tag.new { background: #FFE9C7; color: #8A4A00; }
+  .tag.opt { background: #E6E9F8; color: #3B4A9B; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol>
+  <symbol id="i-field" viewBox="0 0 24 24"><path d="M12 21V11"/><path d="M12 11c0-4 3-6 7-6 0 4-3 6-7 6z"/><path d="M12 14c0-3-2.5-5-6-5 0 3 2.5 5 6 5z"/><path d="M4 21h16"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6z"/><path d="M6 3v18"/><path d="M10 8h5M10 12h5"/></symbol>
+  <symbol id="i-ask" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.8 9.5a2.3 2.3 0 0 1 4.4.8c0 1.5-2.2 2-2.2 3.2"/><path d="M12 16.5h.01"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></symbol>
+  <symbol id="i-rain" viewBox="0 0 24 24"><path d="M16 13H8a4 4 0 1 1 .8-7.9A5 5 0 0 1 18 7a3 3 0 0 1-2 6z"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/></symbol>
+  <symbol id="i-wind" viewBox="0 0 24 24"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-air" viewBox="0 0 24 24"><path d="M4 9h9a3 3 0 1 0-3-3"/><path d="M3 14h15a3 3 0 1 1-3 3"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M12 14l4-5"/><path d="M4.5 18a9 9 0 1 1 15 0"/></symbol>
+  <symbol id="i-sunrise" viewBox="0 0 24 24"><path d="M12 3v4M5 12h2M17 12h2M6.3 6.3l1.4 1.4M17.7 6.3l-1.4 1.4"/><path d="M7 16a5 5 0 0 1 10 0"/><path d="M3 20h18"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/></symbol>
+  <symbol id="i-thermo" viewBox="0 0 24 24"><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/></symbol>
+
+  <defs>
+    <radialGradient id="gs" cx=".35" cy=".35" r=".8"><stop offset="0" stop-color="#FFE082"/><stop offset="1" stop-color="#FF9800"/></radialGradient>
+    <linearGradient id="gc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F8FC"/><stop offset="1" stop-color="#B7C6D8"/></linearGradient>
+    <linearGradient id="gm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFF6D0"/><stop offset="1" stop-color="#F2C14E"/></linearGradient>
+  </defs>
+  <!-- big drawn pictures of the sky -->
+  <symbol id="g-partly" viewBox="0 0 64 64"><circle cx="24" cy="24" r="19" fill="#FFB300" opacity=".25"/><circle cx="24" cy="24" r="13" fill="url(#gs)"/><path d="M20 50a9 9 0 0 1 1.6-17.8A13 13 0 0 1 46.6 35 8.2 8.2 0 0 1 48 50z" fill="url(#gc)" stroke="#8FA3BB" stroke-width="1.3"/></symbol>
+  <symbol id="g-sunbig" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="#FFB300" opacity=".25"/><circle cx="32" cy="32" r="17" fill="url(#gs)"/></symbol>
+  <symbol id="g-cloudbig" viewBox="0 0 64 64"><path d="M16 46a10 10 0 0 1 1.8-19.8A15 15 0 0 1 46.5 29 9.2 9.2 0 0 1 48 46z" fill="url(#gc)" stroke="#8FA3BB" stroke-width="1.3"/><path d="M26 22a9 9 0 0 1 15-5" fill="none" stroke="#C8D4E2" stroke-width="3" stroke-linecap="round" opacity=".0"/></symbol>
+  <symbol id="g-rainbig" viewBox="0 0 64 64"><path d="M15 38a9.5 9.5 0 0 1 1.7-18.8A14 14 0 0 1 44 22.5 8.7 8.7 0 0 1 46 38z" fill="url(#gc)" stroke="#8FA3BB" stroke-width="1.3"/><path d="M21 43l-3 9M31 43l-3 9M41 43l-3 9" stroke="#7FB4FF" stroke-width="4" stroke-linecap="round"/></symbol>
+  <symbol id="g-moonbig" viewBox="0 0 64 64"><path d="M40 10a22 22 0 1 0 14 38A18 18 0 0 1 40 10z" fill="url(#gm)"/><path d="M34 52a8 8 0 0 1 1.4-15.8A11.5 11.5 0 0 1 57 39 7.4 7.4 0 0 1 56 52z" fill="url(#gc)" stroke="#8FA3BB" stroke-width="1.2" opacity=".95"/></symbol>
+  <!-- small ones for the hours -->
+  <symbol id="g-sun" viewBox="0 0 48 48"><circle cx="24" cy="24" r="15" fill="#FF9800" opacity=".18"/><circle cx="24" cy="24" r="10.5" fill="url(#gs)"/></symbol>
+  <symbol id="g-part" viewBox="0 0 48 48"><circle cx="18" cy="18" r="9" fill="url(#gs)"/><path d="M14 38a6.5 6.5 0 0 1 1.2-12.9A9.5 9.5 0 0 1 33.6 27 6 6 0 0 1 35 38z" fill="url(#gc)" stroke="#8FA3BB" stroke-width="1.2"/></symbol>
+  <symbol id="g-cloud" viewBox="0 0 48 48"><path d="M11 33a7 7 0 0 1 1.3-13.9A10 10 0 0 1 31.5 21 6.5 6.5 0 0 1 33 33z" fill="url(#gc)" stroke="#8FA3BB" stroke-width="1.2"/></symbol>
+  <symbol id="g-rain" viewBox="0 0 48 48"><path d="M12 28a6.5 6.5 0 0 1 1.2-12.9A9.5 9.5 0 0 1 31.6 17 6 6 0 0 1 33 28z" fill="url(#gc)" stroke="#8FA3BB" stroke-width="1.2"/><path d="M16 32l-2 6M24 32l-2 6M32 32l-2 6" stroke="#2F7BD9" stroke-width="3" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="board">
+  <h1>Home, option B: weather first, with more information <span class="tag opt">proposal, nothing changed in the app</span></h1>
+  <p class="lead">Option A (the three coloured cards) stays as it is. Option B has another style: one big weather card whose colour follows the sky, then the next hours, a "can I spray today?" check, the rain of the week as a chart, and more details. Header, camera card and background are unchanged; "Last advice" moves under the weather. Pieces marked <span class="srv">needs server</span> need new data from the server (see the notes on the right).</p>
+
+  <div class="stage">
+    <div id="p1"></div><div id="p2"></div><div id="p3"></div>
+    <div class="side" id="side"></div>
+  </div>
+
+  <div class="wide">
+    <h3>The big weather card changes with the weather</h3>
+    <p>The colour and the picture follow the sky, so the farmer reads the day before reading a word. White text on every one of them (the blues and browns are dark enough to read in sun).</p>
+    <div class="heroes" id="heroes"></div>
+  </div>
+  <div class="wide">
+    <h3>The spray check has three states</h3>
+    <p>Green = yes, amber = be careful, red = not now, the same colour meanings as everywhere in the app. It tells the weather part only; the medicine and dose still come from the advice screen.</p>
+    <div class="sprays" id="sprays"></div>
+  </div>
+</div>
+
+<script>
+  const I = (n, c = '') => `<svg class="i ${c}"><use href="#i-${n}"/></svg>`;
+  const G = n => `<svg class="g"><use href="#g-${n}"/></svg>`;
+  const BIG = n => `<svg class="gl"><use href="#g-${n}"/></svg>`;
+
+  const hero = (sky, glyph, temp, word, feels, range, place, air, rain, wind, chips = true) => `
+    <div class="hero ${sky}">
+      <div class="chip">${I('pin', 'xs')}${place}</div>
+      <div class="main">
+        ${BIG(glyph)}
+        <div class="temp">${temp}<small>°C</small></div>
+        <div class="info"><div class="sky">${word}</div><div>Feels like ${feels}°</div><div>Day ${range}</div></div>
+      </div>
+      ${chips ? `<div class="row3">
+        <div class="gc"><div class="k">${I('drop')}Air</div><b>${air[0]}</b><div class="w">${air[1]}</div></div>
+        <div class="gc"><div class="k">${I('rain')}Rain</div><b>${rain[0]}</b><div class="w">${rain[1]}</div></div>
+        <div class="gc"><div class="k">${I('wind')}Wind</div><b>${wind[0]}</b><div class="w">${wind[1]}</div></div>
+      </div>` : ''}
+    </div>`;
+
+  const heroMain = hero('sky-sunny', 'partly', '27', 'Partly cloudy', '32', '24° – 33°', 'Navalur · 2:40 pm', ['72 %', 'Normal'], ['0 mm', 'No rain'], ['4 km/h', 'Light breeze']);
+
+  const hours = [['Now', 'part', '27°', '0'], ['3 pm', 'part', '28°', '0'], ['4 pm', 'part', '28°', '10'], ['5 pm', 'cloud', '27°', '10'], ['6 pm', 'cloud', '25°', '20'], ['7 pm', 'cloud', '24°', '30'], ['8 pm', 'rain', '24°', '60']];
+  const hoursHTML = hours.map(([t, g, v, p], i) => `<div class="h ${i === 0 ? 'now' : ''}"><div class="t">${t}</div>${G(g)}<div class="v">${v}</div><div class="p ${p === '0' ? 'z' : ''}">${p === '0' ? '–' : p + ' %'}</div></div>`).join('');
+
+  const spray = (cls, icon, title, sub, c1, c2, c3) => `
+    <div class="spray ${cls}">
+      <div class="hd"><div class="ic">${I(icon, 'lg')}</div><div class="grow"><div class="tt">${title}</div><div class="ss">${sub}</div></div></div>
+      <div class="checks">
+        <div class="ck"><b>${I(c1[0])}${c1[1]}</b>${c1[2]}</div>
+        <div class="ck"><b>${I(c2[0])}${c2[1]}</b>${c2[2]}</div>
+        <div class="ck"><b>${I(c3[0])}${c3[1]}</b>${c3[2]}</div>
+      </div>
+    </div>`;
+  const sprayGo = spray('go', 'check', 'Good time to spray', 'Calm and dry until 7 pm. Rain is expected after 8 pm.', ['check', 'Wind', '4 km/h, calm'], ['check', 'Rain', 'none for 5 hours'], ['check', 'Heat', '27°, not too hot']);
+
+  const days = [['Today', 0], ['Fri', 0], ['Sat', 0], ['Sun', 4], ['Mon', 2], ['Tue', 0], ['Wed', 3]];
+  const barsHTML = days.map(([d, mm], i) => `<div class="c ${i === 0 ? 'today' : ''}"><div class="mm ${mm ? '' : 'z'}">${mm ? mm : '0'}</div><div class="b ${mm ? '' : 'z'}" style="height:${mm ? 14 + mm * 14 : 4}px"></div><div class="d">${d}</div></div>`).join('');
+
+  const page = () => `
+    <div style="background:var(--brand);color:#fff;padding:44px 16px 84px;border-radius:0 0 28px 28px">
+      <div class="row">
+        <div class="grow">
+          <div style="font-size:21px;font-weight:700;margin-bottom:8px">Namaste, Shahzad</div>
+          <span class="place">${I('pin', 'sm')}Navalur ${I('down', 'sm')}</span>
+        </div>
+        <div class="row" style="gap:8px"><div class="glass">${I('bell', 'sm')}</div><div class="glass">${I('gear', 'sm')}</div><div class="glass mute">${I('mute', 'sm')}</div></div>
+      </div>
+    </div>
+    <div class="pad" style="margin-top:-62px">
+      <div class="card" style="padding:16px 18px;border-radius:24px">
+        <div class="row" style="gap:16px">
+          <div class="dot round" style="width:76px;height:76px;background:var(--green);color:#fff;box-shadow:0 6px 16px rgba(27,127,58,.3)">${I('camera', 'xl')}</div>
+          <div class="grow"><div style="font-size:22px;font-weight:800;line-height:1.2">Scan a leaf</div><div class="muted" style="font-size:15px;margin-top:2px">Take a photo, hear the advice</div></div>
+          <div class="dot round" style="width:40px;height:40px;background:var(--green-soft);color:var(--green)">${I('next')}</div>
+        </div>
+      </div>
+      <div class="row" style="background:#E3F2E7;border:1px solid #A9D3B4;border-radius:18px;padding:12px 14px;gap:12px">
+        <div class="dot" style="width:44px;height:44px;background:var(--green);color:#fff;border-radius:12px">${I('check')}</div>
+        <div class="grow" style="font-size:17px;font-weight:800">Result ready: tap to see</div>${I('chev')}
+      </div>
+
+      <div class="label"><span>Now at this place</span><span class="more">Open my field ${I('chev')}</span></div>
+      ${heroMain}
+
+      <div class="label a-hours"><span>Next hours</span><span class="srv">needs server</span></div>
+      <div class="card hours">${hoursHTML}</div>
+
+      <div class="label"><span>Can I spray today?</span><span class="srv">needs server</span></div>
+      ${sprayGo}
+
+      <div class="label"><span>Rain in the next days</span><span class="more">See all ${I('chev')}</span></div>
+      <div class="card">
+        <div class="bars">${barsHTML}</div>
+        <div class="sumline"><div class="sp">${I('speaker', 'sm')}</div><div>Next rain on Sunday. About 9 mm in the week.</div></div>
+      </div>
+
+      <div class="label a-more"><span>More about the air</span></div>
+      <div class="grid2">
+        <div class="dt aq"><div class="k">${I('air')}Air quality</div><div class="v"><span class="aqi-dot"></span>141</div><div class="s">Unhealthy for some</div></div>
+        <div class="dt vis"><div class="k">${I('eye')}Visibility</div><div class="v">17.7 km</div><div class="s">Clear view</div></div>
+        <div class="dt dew"><div class="k">${I('drop')}Dew point</div><div class="v">22°</div><div class="s">Dew forms when it gets this cold</div></div>
+        <div class="dt prs"><div class="k">${I('gauge')}Pressure</div><div class="v">1012 mb</div><div class="s">Sea level</div></div>
+        <div class="dt sun"><div class="k">${I('sunrise')}Sun <span class="srv" style="margin-left:auto">server</span></div><div class="v" style="font-size:18px">6:01 am</div><div class="s">Sets at 5:48 pm</div></div>
+        <div class="dt uv"><div class="k">${I('sun')}Strong sun <span class="srv" style="margin-left:auto">server</span></div><div class="v">8</div><div class="s">Very high: wear a hat</div></div>
+      </div>
+
+      <div class="label a-last"><span>Last advice</span></div>
+      <div class="card row">
+        <div class="dot" style="background:var(--amber-soft);color:var(--amber-dark)">${I('warn')}</div>
+        <div class="grow"><div class="h-name">Apple scab: your next step</div><div class="h-meta">Be careful · 29 October</div></div>${I('chev')}
+      </div>
+    </div>`;
+
+  const nav = `<nav class="nav">
+      <a class="on"><span class="pl">${I('home')}</span>Home</a><a><span class="pl">${I('field')}</span>Field</a>
+      <a class="scan"><span class="fab">${I('camera', 'lg')}</span>Scan</a>
+      <a><span class="pl">${I('book')}</span>Diary</a><a><span class="pl">${I('ask')}</span>Ask</a></nav>`;
+
+  const phone = (id, dark, cap, sub) => `<figure>
+    <div class="phone"><div class="status ${dark ? 'dark' : ''}"><span>2:42</span><span>▮▮▮ 100%</span></div>
+      <div class="scroller"><div id="${id}-page">${page()}</div></div>${nav}</div>
+    <figcaption>${cap}<span>${sub}</span></figcaption></figure>`;
+
+  document.getElementById('p1').innerHTML = phone('p1', false, '1. First screen: weather comes first', 'Header and camera unchanged. The big weather card shows the day at once, with air, rain and wind inside it.');
+  document.getElementById('p2').innerHTML = phone('p2', true, '2. Scroll: hours, spray check, rain of the week', 'The three things a farmer plans the day with: what the next hours bring, whether spraying makes sense, and when it rains.');
+  document.getElementById('p3').innerHTML = phone('p3', true, '3. End of the page: more details and last advice', 'The detail tiles of a weather app, each with its own colour; "Last advice" sits at the end.');
+
+  // scroll the second phone so that "Next hours" is at the top, the third to the end of the page
+  document.fonts.ready.then(() => {
+    const top = (id, cls) => document.querySelector(`#${id}-page .${cls}`).getBoundingClientRect().top - document.getElementById(`${id}-page`).getBoundingClientRect().top;
+    document.getElementById('p2-page').style.transform = `translateY(-${top('p2', 'a-hours') - 40}px)`;
+    const el = document.getElementById('p3-page');
+    el.style.transform = `translateY(-${Math.max(0, el.offsetHeight - (844 - 80))}px)`;
+  });
+
+  // heroes of other weather
+  const mini = (cap, sub, ...args) => `<div><div class="cap">${cap} <span>${sub}</span></div>${hero(...args)}</div>`;
+  document.getElementById('heroes').innerHTML =
+    mini('Sunny, warm', '27 °C', 'sky-sunny', 'sunbig', '27', 'Sunny', '29', '22° – 30°', 'Navalur · 2:40 pm', ['55 %', 'Normal'], ['0 mm', 'No rain'], ['6 km/h', 'Light breeze']) +
+    mini('Hot and dry', '36 °C', 'sky-hot', 'sunbig', '36', 'Hot and sunny', '37', '22° – 37°', 'Kotgarh · 1:10 pm', ['28 %', 'Dry'], ['0 mm', 'No rain'], ['12 km/h', 'Breeze']) +
+    mini('Heavy rain', '14 °C', 'sky-rain', 'rainbig', '14', 'Heavy rain', '12', '11° – 16°', 'Kotgarh · 11:20 am', ['95 %', 'Very damp'], ['24 mm', 'Heavy rain'], ['9 km/h', 'Breeze']) +
+    mini('Clear night', '9 °C', 'sky-night', 'moonbig', '9', 'Clear night', '7', '5° – 14°', 'Kotgarh · 9:30 pm', ['70 %', 'Normal'], ['0 mm', 'No rain'], ['3 km/h', 'Calm']);
+
+  document.getElementById('sprays').innerHTML =
+    spray('go', 'check', 'Good time to spray', 'Calm and dry until 7 pm. Rain is expected after 8 pm.', ['check', 'Wind', '4 km/h, calm'], ['check', 'Rain', 'none for 5 hours'], ['check', 'Heat', '27°, not too hot']) +
+    spray('care', 'warn', 'Be careful', 'It is windy now. Spray can drift to the next field. Wait for calmer air.', ['warn', 'Wind', '22 km/h, strong'], ['check', 'Rain', 'none for 6 hours'], ['check', 'Heat', '24°, fine']) +
+    spray('stop', 'x', 'Not now', 'Rain is coming within 3 hours. A spray would be washed off.', ['check', 'Wind', '5 km/h, calm'], ['x', 'Rain', '8 mm in 3 hours'], ['check', 'Heat', '19°, fine']);
+
+  document.getElementById('side').innerHTML = `
+    <div class="panel">
+      <h3>Option B in one line</h3>
+      <p>One big weather card, then what the weather means for the day's work. Compared with option A it shows <b>more</b> and is <b>one strong picture</b> instead of three small ones.</p>
+      <ul>
+        <li><b>A:</b> three colourful cards, a sentence, details, five days.</li>
+        <li><b>B:</b> one sky-coloured card, hours, spray check, rain chart, details.</li>
+        <li>You can also <b>mix</b>: A's three cards with B's hours and spray check.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>What it needs</h3>
+      <p><span class="tag">today's data</span> temperature, feels like, day low and high, sky, humidity, rain, wind, air quality, visibility, dew point, pressure, the rain of seven days, the server's spoken sentence.</p>
+      <p style="margin-top:8px"><span class="tag new">new server data</span></p>
+      <ul>
+        <li><b>Next hours:</b> hourly temperature, sky and rain chance (the weather source has it; the server does not pass it on yet).</li>
+        <li><b>Sunrise, sunset, strong sun:</b> also in the weather source, not passed on yet.</li>
+        <li><b>Spray check:</b> a rule from wind, rain and heat. The thresholds (for example wind above 15 km/h, rain within hours of spraying) need an agronomist's approval before it speaks to farmers.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Things I noticed</h3>
+      <ul>
+        <li>The place on Home follows the header, as in option A.</li>
+        <li>The leaf-wetness reading stays on My field.</li>
+        <li>Spoken text: the voice still says the server's short summary, never digits.</li>
+        <li>Amber is used only for "be careful" on the spray check, as everywhere else in the app.</li>
+      </ul>
+    </div>`;
+</script>
+</body>
+</html>

@@ -32,7 +32,7 @@ def test_login_returns_the_same_token_shape_as_the_otp_login(api_client):
     body = response.json()
     assert set(body) == {"access_token", "refresh_token", "token_type", "expires_in", "farmer"}
     assert body["token_type"] == "bearer" and body["expires_in"] == 3600
-    assert body["farmer"]["id"] == "F001" and body["farmer"]["name"] == "Dinesh Sharma"
+    assert body["farmer"]["id"] == "F001" and body["farmer"]["name"] == "Shahzad Sharma"
     assert body["farmer"]["phone_masked"] == "+91******0001"
     otp = api_client.post("/v1/auth/otp/request", json={"phone": "+910000000001"}).json()
     verified = api_client.post("/v1/auth/otp/verify", json={"request_id": otp["request_id"], "otp": otp["dev_otp"]}).json()

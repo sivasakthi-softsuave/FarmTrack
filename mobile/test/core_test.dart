@@ -39,7 +39,6 @@ void main() {
         '/diary?advice=a1&crop=apple&product=P007',
       );
       expect(Routes.diaryFor(), '/diary');
-      expect(Routes.analysingFor('apple'), '/scan/analysing?crop=apple');
     });
   });
 

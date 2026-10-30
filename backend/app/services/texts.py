@@ -44,6 +44,14 @@ FIELD_TEMPERATURE = {
     "warm": L(en="It is warm in your field now.", hi="आपके खेत में अभी गर्मी है।"),
     "hot": L(en="It is very hot in your field now.", hi="आपके खेत में अभी बहुत गर्मी है।"),
 }
+# The same words for a place the farmer picked on the map ("there", not "in your field"). Hindi is a draft for a native speaker.
+PLACE_TEMPERATURE = {
+    "cold": L(en="It is cold there now.", hi="वहाँ अभी ठंड है।"),
+    "cool": L(en="It is cool there now.", hi="वहाँ अभी मौसम ठंडा है।"),
+    "mild": L(en="The weather there is pleasant now.", hi="वहाँ अभी मौसम अच्छा है।"),
+    "warm": L(en="It is warm there now.", hi="वहाँ अभी गर्मी है।"),
+    "hot": L(en="It is very hot there now.", hi="वहाँ अभी बहुत गर्मी है।"),
+}
 FIELD_RAIN = {
     "none": L(en="No rain is expected in the next two days.", hi="अगले दो दिन बारिश की उम्मीद नहीं है।"),
     "light": L(en="Some light rain is expected in the next two days.", hi="अगले दो दिन में हल्की बारिश हो सकती है।"),

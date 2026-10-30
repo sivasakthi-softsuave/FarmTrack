@@ -101,7 +101,7 @@ void main() {
       await tapKey(tester, 'last-result-card');
       expect(keyed('severity-yellow'), findsOneWidget);
       expect(find.text('सेब का स्कैब (पपड़ी रोग)'), findsWidgets);
-      expect(env.voice.spokenIds, contains('result_intro'));
+      expect(env.voice.spokenIds, contains('crop_is_apple'));
       expect(env.voice.spokenTexts, isNotEmpty, reason: 'the advice is spoken again');
     });
 

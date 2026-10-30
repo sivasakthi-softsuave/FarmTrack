@@ -25,6 +25,7 @@ void main() {
         cameraExplained: false,
         scanScript: [
           MockScanScenario.confirmCrop,
+          MockScanScenario.ok,
           MockScanScenario.photoBlurry,
           MockScanScenario.needsExpert,
           MockScanScenario.noApprovedData,
@@ -61,8 +62,8 @@ void main() {
         await goBack(tester); // Field, Diary and Ask are main pages: no back arrow, the bottom bar leads home
       }
 
-      // scan: camera, two photos, confirm crop -> grid -> advice
-      env.picker.queuePhotos(3);
+      // scan: camera, two photos, the leaf is not identified -> a new photo -> advice
+      env.picker.queuePhotos(4);
       await tapKey(tester, 'home-scan');
       targets();
       await tapKey(tester, 'camera-button');
@@ -72,12 +73,10 @@ void main() {
       targets();
       await tapKey(tester, 'send-photos');
       targets();
-      await tapKey(tester, 'crop-no');
-      targets();
-      await tapKey(tester, 'crops-next');
-      targets();
-      await tapKey(tester, 'crops-prev');
-      await tapKey(tester, 'crop-apple');
+      expect(keyed('retake-title'), findsOneWidget);
+      await tapKey(tester, 'retake-camera');
+      await tapKey(tester, 'camera-button');
+      await tapKey(tester, 'send-photos');
       expect(keyed('severity-yellow'), findsOneWidget);
       targets();
       await tester.tap(find.byIcon(AppIcons.back));

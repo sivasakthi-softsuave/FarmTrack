@@ -131,32 +131,32 @@ void main() {
     expect(caption, findsNothing, reason: 'nothing stays under the content once it has been said');
   });
 
-  testWidgets('the speaker button is the right-most button of the slim top bar and replays the screen speech', (
-    tester,
-  ) async {
-    useSmallPhone(tester);
-    final env = await TestEnv.create();
-    await tester.pumpWidget(
-      env.wrap(
-        VoiceScaffold(
-          script: promptList(const ['welcome']),
-          replayScript: promptList(const ['welcome', 'scan_send']),
-          body: const Text('body'),
+  testWidgets(
+    'the voice button is the right-most button of the slim top bar; turning the voice back on plays the screen speech',
+    (tester) async {
+      useSmallPhone(tester);
+      final env = await TestEnv.create();
+      await tester.pumpWidget(
+        env.wrap(
+          VoiceScaffold(
+            script: promptList(const ['welcome']),
+            replayScript: promptList(const ['welcome', 'scan_send']),
+            body: const Text('body'),
+          ),
         ),
-      ),
-    );
-    await tester.pump();
-    expect(env.voice.spokenIds, ['welcome']);
+      );
+      await tester.pump();
+      expect(env.voice.spokenIds, ['welcome']);
 
-    final box = tester.getRect(keyed('speaker-button'));
-    expect(box.right, greaterThan(360 - 40), reason: 'top-right');
-    expect(box.top, lessThan(40), reason: 'in the slim top bar, not in a footer');
-    expect(box.width, greaterThanOrEqualTo(56));
+      final box = tester.getRect(keyed('voice-button'));
+      expect(box.right, greaterThan(360 - 40), reason: 'top-right');
+      expect(box.top, lessThan(40), reason: 'in the slim top bar, not in a footer');
+      expect(box.width, greaterThanOrEqualTo(56));
 
-    await tester.tap(keyed('speaker-button'));
-    await tester.pump();
-    expect(env.voice.spokenIds, ['welcome', 'welcome', 'scan_send']);
-  });
+      await replayVoice(tester);
+      expect(env.voice.spokenIds, ['welcome', 'welcome', 'scan_send']);
+    },
+  );
 
   testWidgets('a screen that speaks in answer to a tap uses its own owner, so the caption shows', (tester) async {
     final env = await TestEnv.create();

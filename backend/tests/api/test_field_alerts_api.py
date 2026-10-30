@@ -38,6 +38,17 @@ def test_field_passes_the_demo_clock_station_and_history_to_the_providers(api_cl
     assert fake_container.zoho.history_calls == [NOW]
 
 
+def test_no_sensor_takes_the_readings_from_the_weather_and_is_not_old(api_client, auth, fake_container):
+    """IOT_PROVIDER=none: warmth, air and rain are the weather's; soil and leaf wetness need a sensor, so they are absent."""
+    fake_container.iot.reading = None
+    fake_container.weather.snapshot_value.rain_last_24h_mm = 2.0
+    body = api_client.get("/v1/field", headers=auth).json()
+    assert body["readings"] == {"temp_c": 14.0, "rh_pct": 80.0, "rain_24h_mm": 2.0, "leaf_wetness_min": None, "soil_moisture_pct": None}
+    assert body["stale"] is False
+    assert body["as_of"] == "2026-05-12T08:00:00+05:30"                          # the weather's time
+    assert not body["spoken"]["text"]["en"].startswith("This information is old.")
+
+
 def test_stale_sensor_sets_the_flag_and_speaks_the_warning(api_client, auth, fake_container):
     fake_container.iot.stale = True
     fake_container.iot.reading = fake_container.iot.reading.model_copy(update={"time": NOW - timedelta(days=4)})

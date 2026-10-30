@@ -113,14 +113,14 @@ void main() {
 
     await tapKey(tester, 'offline-result-card');
     expect(keyed('severity-yellow'), findsOneWidget, reason: 'the existing advice screen shows the queued scan');
-    expect(env.voice.spokenIds, contains('result_intro'));
+    expect(env.voice.spokenIds, contains('crop_is_apple'));
 
     await tester.tap(find.byIcon(AppIcons.back));
     await tester.pumpAndSettle();
     expect(keyed('offline-result-card'), findsNothing, reason: 'the card goes away once the result was opened');
   });
 
-  testWidgets('a result that needs the crop confirmed opens the confirm screen as usual', (tester) async {
+  testWidgets('a result whose leaf was not identified opens "I cannot identify this leaf"', (tester) async {
     useSmallPhone(tester);
     final env = await makeEnv(script: [MockScanScenario.confirmCrop]);
     env.api.failWith(const ApiException.network(), ops: {'createScan'});
@@ -131,10 +131,9 @@ void main() {
     await goOnline(tester, env);
 
     await tapKey(tester, 'offline-result-card');
-    expect(keyed('crop-yes'), findsOneWidget);
-    await tapKey(tester, 'crop-yes');
-    expect(keyed('severity-yellow'), findsOneWidget, reason: 'confirming the crop works on a queued scan');
-    expect(env.api.confirmedCrops, ['apple']);
+    expect(keyed('retake-title'), findsOneWidget);
+    expect(keyed('crop-yes'), findsNothing);
+    expect(keyed('retake-camera'), findsOneWidget);
   });
 
   testWidgets('the answer of the first request is lost: the queued retry does not make a second scan', (tester) async {

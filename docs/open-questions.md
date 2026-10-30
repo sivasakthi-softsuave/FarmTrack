@@ -258,3 +258,110 @@ it has two or more classes of (crop mask as for model A), not only apple; `apple
   Marssonina comes from one source only.
 - **Not done:** the model was not loaded in the backend on this PC (torch not installed here); the weights' tensor names and shapes
   and the labels were checked. Not run on `data/images/testset_v1` (not in this checkout). Not published as a Kaggle Model.
+
+## K. Place picker on My field: free map, location choice, free weather (28 Oct 2026, owner request)
+Built: `GET /v1/weather?lat=&lon=` and `GET /v1/places/search`, both off by default, reported by `/v1/meta`; in the app a "place bar" on My field opens
+`/field/place` (search a name, "My location", a touch on the free map). Details: `backend/README.md` and `mobile/README.md` ("Place picker").
+- **Free is not the same as allowed for a product:** Open-Meteo's free endpoint is non-commercial (paid plan for production: `OPEN_METEO_API_KEY`);
+  OpenStreetMap's public tile server is best effort and not for production use (a tile provider is needed: `MAP_TILE_URL`, `MAP_ATTRIBUTION`);
+  the public Nominatim allows 1 request a second for the whole app and forbids search-as-you-type (hence: search on submit, cache, spacing, per-farmer
+  limit; self-host for many users). **Decision needed before real farmers:** which tile provider, which weather plan, a Nominatim of our own.
+- **Placeholder contact:** `PLACES_USER_AGENT` must carry a real contact (e-mail) of the operator; the demo script has a placeholder. I did not put anyone's address in.
+- **Live weather uses the real date, not the demo clock** (the forecast API only serves about 14 days back, 7 ahead): the farmer's own field and the
+  advice keep the demo clock, so on the demo server "My field" weather (if `WEATHER_PROVIDER=openmeteo`) and the demo clock can disagree. Not changed here.
+- **Not built:** cadastral (plot) boundaries (no public API found for Himachal's Bhu-Naksha; needs the Revenue Department / NIC), a satellite layer, offline map
+  tiles, saving the chosen place, the credit's link to openstreetmap.org/copyright (needs `url_launcher`), iOS location text in `Info.plist`.
+- **Hindi is a draft** for the new words (`field_place_*`, `place_*` in `strings.json`) until a native speaker reviews them. Place names come from OpenStreetMap in the app's language when it has them.
+- **Checked live (28 Oct 2026):** Open-Meteo through the adapter for Theog, Kullu, Kalpa, Dharamshala, Rohru (about 150 ms, cached 1 ms); Nominatim for Theog,
+  Kullu, Himachal Pradesh, Shimla in Hindi, Kotgarh, Rohru, Manali (Theog comes back as a "county" = tehsil, so the app has a `tehsil` kind).
+  Not checked: a real phone, the GPS permission dialog, real tile loading, heavy use.
+- **Home location button and real names (28 Oct 2026, after the first phone test):** the location line of Home opens the picker; the choice is kept on the phone
+  per farmer. A point touched on the map and the phone's position were first shown as "A point on the map" / "My location": they are now named by their
+  area through `GET /v1/places/reverse` (Nominatim reverse, zoom 13, e.g. "Janog, Theog, Shimla, Himachal Pradesh"; checked live on Theog, Kotgarh, Kullu, Kinnaur).
+  Doubts: (1) the nearest named village is OpenStreetMap's, not always the village the farmer would say; (2) in Hindi, a village without a Hindi name stays in
+  English and the district can appear in both scripts ("Kullu, कुल्लू"); (3) the pick (with its coordinates, also GPS ones) is stored in the phone's plain
+  preferences; (4) the public Nominatim limit (1 request a second for the whole app) is shared by search and reverse: self-host before many farmers use it.
+
+## L. "Current weather" details: feels like, wind, visibility, pressure, dew point, air quality (29 Oct 2026, owner request)
+The owner showed Microsoft Weather's "current weather" card and asked for the same kind of details. Backend: `conditions` on `GET /v1/field` and
+`GET /v1/weather` (see `backend/README.md`); the app side is a separate change.
+- **Checked live (29 Oct 2026, Kotgarh 31.30, 77.47):** the forecast call with the extra hourly variables answers 200 and the adapter gave
+  `{"sky":"clear","is_day":true,"feels_like_c":16.7,"wind_kmh":0.4,"visibility_km":10.7,"pressure_hpa":1017.7,"dew_point_c":10.1,"aqi":47}`; the
+  air-quality API answered `current.us_aqi: 47`. The commercial host `customer-air-quality-api.open-meteo.com` exists (401 "API key required"
+  without a key) but was NOT tried with a key.
+- **Doubts:** (1) pressure is mean-sea-level, like a weather app; at a Himachal field at 1700 m the real surface pressure is about 200 hPa lower
+  (`surface_pressure` is available if wanted). (2) The AQI is the US scale (0-500) taken from a modelled grid (CAMS), not from a sensor; Himachal
+  valleys can differ from the grid. A farmer-friendly word (Good / Moderate / ...) and its colours are the app's job, the server sends only the number.
+  (3) Wind speed is the 10 m wind, no direction and no gusts yet. (4) Same non-commercial licence as the rest of Open-Meteo, and CAMS asks for
+  attribution where its data is shown (the app has no such credit line yet). (5) One more outbound request per place per 30 minutes (the field
+  screen only, same 600-calls-an-hour budget); a slow air-quality API cannot delay the page by more than 3 s, and a failure is not retried for
+  5 minutes. (6) WMO code 97 ("heavy thunderstorm", in Open-Meteo's table) is mapped to `thunderstorm` although it was not in the agreed list; the
+  sky word is a coarse mapping (e.g. freezing drizzle is "drizzle", snow grains are "snow"), not a forecast text. (7) "Feels like" is Open-Meteo's
+  apparent temperature (wind, humidity and sun included), not a measurement.
+
+## M. Weather map: radar, clouds, rain amount (29 Oct 2026, owner request: "a map like zoom.earth, free and open source")
+Built in the app only (`/field/map`, see `mobile/README.md`). Zoom.earth itself is not open source and no open clone exists; the layers come from
+three free sources that need no key. Checked live on 29 Oct 2026: RainViewer's list and a radar tile (200), its coverage mask at Shimla, Kotgarh,
+Kullu, Dharamshala and Kalpa (inside a radar circle), NASA GIBS tiles for `Himawari_AHI_Band13_Clean_Infrared` and `IMERG_Precipitation_Rate_30min`
+(200; a moment that does not exist yet is 404; HEAD works), a storm over Delhi and Jaipur visible in both. Not checked: a real phone, heavy use.
+- **Licences (decision needed before real farmers):** RainViewer's free tier is "personal, educational and small-scale community use", no SLA,
+  not for high-volume commercial apps (since 1 Jan 2026: past radar only, zoom 7, 100 requests per IP per minute; satellite and forecast frames are
+  gone, the live list shows them empty). NASA data is open, but I did not read GIBS's terms page and Himawari is originally the Japan Meteorological
+  Agency's. OpenStreetMap's tile server is the same as for the place picker (section K). A paid RainViewer plan or another radar is the
+  production route.
+- **Doubts:** (1) Radar in the hills: coverage circles do not mean valley coverage (beam blocking); the farmer sees "no rain" where radar is blind.
+  (2) Himawari looks at India from the edge of its view, so clouds over Himachal are stretched; I did not judge the picture over Himachal, and the
+  infrared picture is a grey wash that needs the legend (white / blue = thick or tall cloud). (3) The rain amount picture is about six hours old (IMERG
+  early run) and is labelled with its age; it says "measured from space", not forecast. (4) No forecast layer at all (no source found that is free
+  and keyless; Open-Meteo has no raster tiles). (5) No wind, temperature or pressure layers: OpenWeatherMap's tiles do those but need a key and
+  its free-plan limits and commercial terms were not confirmed. (6) The phone reaches these servers directly, so each farmer's phone address and
+  the area looked at are visible to them; the server API is not involved. (7) Each source's credit is drawn as one line on the map; there is no link
+  to the licences (no `url_launcher` yet). (8) Needs internet; offline it shows the message and an empty map (the app has no offline map tiles).
+- **Hindi is a draft** for the new words (`weather_map_*` in `strings.json`), including "पूर्वाह्न / अपराह्न" for am / pm: a native speaker should choose
+  what farmers say.
+
+## N. Home, weather first ("option B", 29 Oct 2026, owner request: "use this design")
+The owner chose option B of the two pictures in `docs/design/` (`home-now-in-your-field-proposal-b.html`, with `.png`). Home now shows, under the
+camera card: one big weather card (the colour follows the sky), the next hours, "Can I spray today?", the rain of the week as a chart, and the
+details of the air and the sun; "Last advice" moved below the weather. Pictures: `docs/app-screenshots/real-app/home-weather-*.png`. Code:
+`mobile/lib/features/home/home_weather.dart`; server: `hours`, `spray` and the sun / UV fields of `conditions` (`backend/README.md`).
+- **Decisions to veto:** (1) **Home follows the header place**: with a chosen place the weather, the heading ("Now at this place") and the new
+  blocks are that place's (before, Home always showed the own field's numbers whatever the header said). (2) The leaf-wetness reading is no longer on
+  Home (it stays on My field); with weather off, or an answer without a temperature, the old white card of sensor readings (soil) is shown instead.
+  (3) The glass boxes inside the big card are DARK glass (black at 14 percent), not white as in the picture: white glass made the white words fall
+  below 4.5 to 1 on the lighter blue. The bottoms of the five sky gradients were darkened a little for the same reason (`test/home_weather_test.dart`
+  checks every one). (4) The hours strip drops hours that are over, and the spray check is never shown for an answer kept on the phone (it would say
+  "good time" about weather that has gone). (5) A touch on the spray card and on the rain sentence makes the voice say the answer in words without digits.
+- **The spray check is a draft rule, not agronomy:** the thresholds (wind 15 and 30 km/h, heat 32 and 40 degrees, rain 0.5 mm within 3 hours "not now",
+  within 6 hours "be careful") are the server's defaults, configurable (`SPRAY_*`), and the check is OFF unless `SPRAY_WEATHER_ENABLED=true` (the phone demo
+  script turns it on). **An agronomist must approve the thresholds and the words before real farmers see it.** It tells the weather part only; it does not know the
+  product (for example dodine above 30 degrees is a product rule, not part of this check), the stage of the crop or the waiting periods.
+- **Real data:** the hours, UV, sunrise and sunset come from the same Open-Meteo call as the rest (free endpoint, non-commercial, see K and L); the rain chance is
+  the model's probability, not a measurement. The sunrise and sunset are at the place of the weather, shown on the phone's clock.
+- **Hindi is a draft** for about 60 new words (`home_*`, `spray_*`), including "पूर्वाह्न / अपराह्न" in the hours strip (long for a narrow column: a native
+  speaker may prefer "सुबह / शाम").
+- **Not verified on a phone with real farmers:** the card colours in strong sun, the size of the text in the hours strip for older eyes, whether the spray words
+  are understood.
+- **Checked live (29 Oct 2026, 22:15, phone build v14):** the demo server (restarted with the new code and `SPRAY_WEATHER_ENABLED=true`) answered `/v1/field` (own field, Kotgarh: night, 9 degrees, `spray` go) and `/v1/weather` for a point near Chennai (`spray` care, windy 15.2 km/h); the phone showed both on Home (`docs/app-screenshots/real-app/phone-home-weather-*.png`). The hours are whole hours of the Indian clock, so in UTC they end in :30 (22:00 in India is 16:30Z); the app shows them on the phone's clock. Backend tests 3298 passed, 12 skipped; app tests 937 passed.
+
+## O. Diary: crop circles, this week, timeline (30 Oct 2026, owner request: "use the second design")
+The owner chose design 2 of `docs/design/diary-combined-proposals.html` (with `.png`; the first board is `diary-proposals.html`): the diary page is no longer a plain
+list. From the top: **crop circles** (All, then one round photo for each crop in the diary; a touch shows only that crop and says its name; shown only when there
+is more than one crop), **"This week"** (the last seven days, a dot for each spray, today in solid green; the whole card is a button that opens the month),
+a **month sheet** (a calendar with a dot on each day sprayed, "Sprays / Crops / Last", arrows to earlier months as far back as the first entry, a speaker that
+says the count in words, "Done"), and the **timeline** (a thread, a big circle for each day, a card for each spray). Code: `mobile/lib/features/diary/diary_timeline.dart`
+and the new `DiaryEntryCard` in `diary_widgets.dart`; tests `mobile/test/diary_timeline_test.dart` and `diary_list_test.dart`; pictures
+`mobile/test_visual/diary_timeline_shots_test.dart`. No server change: everything comes from what the diary already has.
+- **Decisions to veto:** (1) **The days of the strip and of the month calendar are not touch targets** (seven columns cannot be 56 dp wide; the app's rule is
+  56 dp for everything that is touched), so a touch on the strip opens the month and a touch on a calendar day does nothing. The design's "touch a day to jump to it"
+  was left out for that reason; the timeline is right below. (2) **The warnings of an entry are always on its card** (before, they were inside until it was opened);
+  the brand and the steps (take, mix in water) still open on a touch. (3) **The "wait" tag is grey, not amber** (amber stays for warnings); an entry whose medicine has
+  no waiting days has no such tag, and the app never says a crop is "safe to pick" (the "Can I pick?" card of design 2 of the first board was not chosen).
+  (4) The crop circles keep the order "crop sprayed last first"; with one crop there are no circles. (5) The old "Today / Yesterday" capital headings are now a bold word
+  and the weekday or date beside it ("Today Tuesday", "Friday 8 May").
+- **Limits:** the page and the counters cover the last 50 entries (what the diary asks the server for); an older month shows no dots. The type tag
+  (Fungicide, Insecticide, Mite killer, Bacteria killer, Oil spray) is shown only for the five categories the server uses; any other category has no tag.
+- **Hindi is a draft** for 24 new words (`diary_*`, `advice_dose_chip`): "This week", "Month", the counters, the spoken month sentences ("You sprayed four times in May"),
+  the five kinds of medicine ("माइट नाशक", "जीवाणुनाशक", "तेल वाला छिड़काव" are the least certain) and "saved" ("लिखा गया"). A native speaker should read them.
+- **Also in this change:** on Home the heading row shows the **short name of the place** (the first part: "Navalur" of "Navalur, Thiruporur"; "…" when it does not fit)
+  where the green "Open my field" link used to be; the big weather card still opens My field. The word `home_open_field` was removed.

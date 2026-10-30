@@ -56,25 +56,23 @@ void main() {
       expect(keyed('reading-leaf'), findsNothing);
       expect(keyed('reading-soil'), findsOneWidget);
       expect(keyed('forecast-strip'), findsNothing);
+      expect(keyed('weather-card'), findsNothing, reason: 'the weather card is weather too');
       expect(env.prefs.getBool('weather_enabled'), isFalse, reason: 'remembered for the next time offline');
     });
 
-    testWidgets('the soil tile stays in the same blue card language, under its label, with the danger card above', (
-      tester,
-    ) async {
+    testWidgets('the soil tile stays in the same blue card language, under its label', (tester) async {
       final api = _MetaApi(weatherEnabled: false);
       final env = await _env(api);
       await _openField(tester, env);
       expect(find.text('अभी आपके खेत में'), findsOneWidget, reason: 'the label of the tiles');
       expect(find.text('अगले सात दिन'), findsNothing, reason: 'no week card without weather');
-      expect(keyed('risk-scab_infection'), findsOneWidget);
       final soil = tester.getRect(keyed('reading-soil'));
-      final card = tester.getRect(keyed('risk-scab_infection'));
-      expect(soil.top, greaterThan(card.bottom));
       expect(soil.width, closeTo((360 - 32 - 10) / 2, 0.5), reason: 'half the width, like every tile');
     });
 
-    testWidgets('with no soil reading either, there is no empty "Now in your field" label', (tester) async {
+    testWidgets('with no soil reading either, there is no empty "Now in your field" label: the no-data card shows', (
+      tester,
+    ) async {
       final api = _MetaApi(weatherEnabled: false)
         ..fieldOverride = FieldOut(
           village: 'Kotgarh',
@@ -83,9 +81,28 @@ void main() {
         );
       final env = await _env(api);
       await _openField(tester, env);
-      expect(keyed('field-village'), findsOneWidget);
       expect(keyed('reading-temp'), findsNothing);
       expect(find.text('अभी आपके खेत में'), findsNothing);
+      expect(keyed('field-no-data'), findsOneWidget, reason: 'never a blank page');
+    });
+
+    testWidgets('the round arrow asks the server again: weather switched on meanwhile shows the weather', (
+      tester,
+    ) async {
+      final api = _MetaApi(weatherEnabled: false);
+      final env = await _env(api);
+      await _openField(tester, env);
+      expect(keyed('reading-temp'), findsNothing);
+      expect(keyed('forecast-strip'), findsNothing);
+      expect(keyed('weather-card'), findsNothing, reason: 'the weather card is weather too');
+
+      api.weatherEnabled = true;
+      await tapKey(tester, 'field-reload');
+      expect(keyed('reading-temp'), findsOneWidget);
+      expect(keyed('reading-leaf'), findsOneWidget);
+      expect(keyed('forecast-strip'), findsOneWidget);
+      expect(keyed('weather-card'), findsOneWidget);
+      expect(env.prefs.getBool('weather_enabled'), isTrue);
     });
 
     testWidgets('weather on (or a server that does not know the field) shows everything', (tester) async {
@@ -95,6 +112,7 @@ void main() {
         expect(keyed('reading-temp'), findsOneWidget, reason: 'weather_enabled=$enabled');
         expect(keyed('reading-rain'), findsOneWidget);
         expect(keyed('forecast-strip'), findsOneWidget);
+        expect(keyed('weather-card'), findsOneWidget);
         await tester.pumpWidget(const SizedBox());
       }
     });

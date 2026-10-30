@@ -10,10 +10,10 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.schemas import SprayLogIn, SprayLogOut, WarningOut
+from app.api.schemas import ProductOut, SprayLogIn, SprayLogOut, WarningOut
 from app.db.models import AdviceRow, SprayLogRow
 from app.db.repo import sortable_id
-from app.domain.types import FarmerProfile, Severity, SprayRecord
+from app.domain.types import FarmerProfile, ProductChoice, Severity, SprayRecord
 from app.integrations.reference import load_product_master
 from app.integrations.zoho_rows import build_record, is_nutrient_text
 from app.security.errors import ApiError
@@ -21,7 +21,7 @@ from app.services import texts
 from app.services.catalogue import load_catalogue
 from app.services.container import Container
 from app.services.history import merged_history
-from app.services.presenters import ist, warning_out
+from app.services.presenters import ist, product_out, warning_out
 from app.services.product_match import ProductMatcher
 from app.services.prompts import PromptBook
 from app.services.speech import speak, without_typed_text
@@ -196,4 +196,28 @@ class SprayService:
             spoken = speak(self.c.audio, text)
         return SprayLogOut(id=row.id, crop_id=row.crop_id, product_id=row.product_id, product_name=row.product_name,
                            sprayed_at=ist(row.sprayed_at), advice_id=row.advice_id, warnings=warnings,
-                           synced_to_zoho=row.synced_to_zoho, spoken=spoken)
+                           synced_to_zoho=row.synced_to_zoho, spoken=spoken, product=self._usage(row))
+
+    def _usage(self, row: SprayLogRow) -> ProductOut | None:
+        """The medicine of an entry with its dose: the advice's own product when the entry came from an advice (the dose the
+        farmer was told), else the approved product list. Never raises: an entry without usage is still a good entry."""
+        if not row.product_id:
+            return None
+        try:
+            advice = self.db.get(AdviceRow, row.advice_id) if row.advice_id else None
+            for payload in (advice.payload.get("products") or []) if advice is not None else []:
+                if payload.get("product_id") == row.product_id:
+                    return ProductOut.model_validate(payload)
+            ref = load_product_master(self.c.settings.data_dir).get(row.product_id)
+            if ref is None:
+                return None
+            choice = ProductChoice(
+                product_id=ref.product_id, crop=ref.crop, active_ingredient=ref.active_ingredient,
+                active_ingredient_hi=ref.active_ingredient_hi, formulation=ref.formulation,
+                brand_examples=[ref.brand_example] if ref.brand_example else [], category=ref.category,
+                frac_irac_code=ref.frac_irac_code, dose_min=ref.dose_min, dose_max=ref.dose_max, dose_unit=ref.dose_unit,
+                waiting_period_days=ref.waiting_period_days)
+            return product_out(choice)
+        except Exception:
+            logger.exception("diary entry usage unavailable row=%s", row.id)
+            return None

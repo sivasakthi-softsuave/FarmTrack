@@ -174,7 +174,7 @@ void main() {
 
     testWidgets('the mute button of the top bar and the switch show the same state', (tester) async {
       await openSettings(tester);
-      await tester.tap(keyed('mute-button'));
+      await tester.tap(keyed('voice-button'));
       await tester.pumpAndSettle();
       expect(tester.widget<AppSwitch>(keyed('settings-voice')).value, isFalse);
       await tapKey(tester, 'settings-voice');

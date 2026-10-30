@@ -15,6 +15,16 @@ Future<void> tapKey(WidgetTester tester, String key) async {
   await tester.pumpAndSettle();
 }
 
+/// Plays the screen's speech again. The one voice button mutes and unmutes, and turning the voice on speaks the screen, so
+/// hearing it again is two taps: off, then on.
+Future<void> replayVoice(WidgetTester tester) async {
+  expect(keyed('voice-button'), findsOneWidget);
+  await tester.tap(keyed('voice-button'));
+  await tester.pump();
+  await tester.tap(keyed('voice-button'));
+  await tester.pump();
+}
+
 /// Leaves a screen to the one before it: the back arrow where the screen has one, else the Home button of the bottom bar
 /// (the main pages Field, Diary and Ask have no back arrow in the mockup).
 Future<void> goBack(WidgetTester tester) async {

@@ -40,7 +40,7 @@ void main() {
     final env = await TestEnv.create(loggedIn: true);
     final container = await pumpApp(tester, env, location: '/home');
     final router = container.read(routerProvider);
-    for (final route in ['/scan/analysing?crop=apple', '/scan/confirm', '/scan/advice', '/scan/expert']) {
+    for (final route in ['/scan/advice', '/scan/expert']) {
       router.go('/scan/review'); // somewhere that is not home
       await tester.pumpAndSettle();
       router.go(route);

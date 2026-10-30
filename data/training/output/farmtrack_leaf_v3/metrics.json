@@ -1,0 +1,679 @@
+{
+  "best_val_top1": 0.9731833910034602,
+  "classes": [
+    "Apple___Alternaria_leaf_spot",
+    "Apple___Apple_scab",
+    "Apple___Black_rot",
+    "Apple___Cedar_apple_rust",
+    "Apple___Gray_spot",
+    "Apple___Marssonina_blotch",
+    "Apple___Powdery_mildew",
+    "Apple___healthy",
+    "Tomato___Bacterial_spot",
+    "Tomato___Early_blight",
+    "Tomato___Late_blight",
+    "Tomato___Leaf_Mold",
+    "Tomato___Septoria_leaf_spot",
+    "Tomato___Spider_mites Two-spotted_spider_mite",
+    "Tomato___Target_Spot",
+    "Tomato___Tomato_Yellow_Leaf_Curl_Virus",
+    "Tomato___Tomato_mosaic_virus",
+    "Tomato___healthy",
+    "Potato___Early_blight",
+    "Potato___Late_blight",
+    "Potato___healthy",
+    "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot",
+    "Corn_(maize)___Common_rust_",
+    "Corn_(maize)___Northern_Leaf_Blight",
+    "Corn_(maize)___healthy",
+    "Grape___Black_rot",
+    "Grape___Esca_(Black_Measles)",
+    "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)",
+    "Grape___healthy"
+  ],
+  "val_by_source": {
+    "appleleaf9": {
+      "n": 286,
+      "top1": 0.9790209790209791,
+      "crop_acc": 1.0,
+      "disease_acc_within_true_crop": 0.9790209790209791,
+      "confidence_bins": {
+        "0.0-0.5": {
+          "n": 5,
+          "acc": 1.0
+        },
+        "0.5-0.7": {
+          "n": 5,
+          "acc": 0.6
+        },
+        "0.7-0.9": {
+          "n": 50,
+          "acc": 0.94
+        },
+        "0.9-1.0": {
+          "n": 226,
+          "acc": 0.995575221238938
+        }
+      },
+      "per_class": {
+        "Apple___Alternaria_leaf_spot": {
+          "n": 63,
+          "acc_within_crop": 0.9682539682539683
+        },
+        "Apple___Apple_scab": {
+          "n": 54,
+          "acc_within_crop": 1.0
+        },
+        "Apple___Black_rot": {
+          "n": 29,
+          "acc_within_crop": 1.0
+        },
+        "Apple___Cedar_apple_rust": {
+          "n": 14,
+          "acc_within_crop": 1.0
+        },
+        "Apple___Gray_spot": {
+          "n": 50,
+          "acc_within_crop": 0.92
+        },
+        "Apple___Marssonina_blotch": {
+          "n": 62,
+          "acc_within_crop": 1.0
+        },
+        "Apple___Powdery_mildew": {
+          "n": 9,
+          "acc_within_crop": 1.0
+        },
+        "Apple___healthy": {
+          "n": 5,
+          "acc_within_crop": 1.0
+        }
+      }
+    },
+    "fgvc7": {
+      "n": 259,
+      "top1": 0.972972972972973,
+      "crop_acc": 1.0,
+      "disease_acc_within_true_crop": 0.972972972972973,
+      "confidence_bins": {
+        "0.0-0.5": {
+          "n": 4,
+          "acc": 0.5
+        },
+        "0.5-0.7": {
+          "n": 4,
+          "acc": 0.75
+        },
+        "0.7-0.9": {
+          "n": 64,
+          "acc": 0.96875
+        },
+        "0.9-1.0": {
+          "n": 187,
+          "acc": 0.9893048128342246
+        }
+      },
+      "per_class": {
+        "Apple___Apple_scab": {
+          "n": 89,
+          "acc_within_crop": 0.9662921348314607
+        },
+        "Apple___Cedar_apple_rust": {
+          "n": 93,
+          "acc_within_crop": 0.989247311827957
+        },
+        "Apple___healthy": {
+          "n": 77,
+          "acc_within_crop": 0.961038961038961
+        }
+      }
+    },
+    "fgvc8": {
+      "n": 1086,
+      "top1": 0.9631675874769797,
+      "crop_acc": 1.0,
+      "disease_acc_within_true_crop": 0.9631675874769797,
+      "confidence_bins": {
+        "0.0-0.5": {
+          "n": 11,
+          "acc": 0.5454545454545454
+        },
+        "0.5-0.7": {
+          "n": 32,
+          "acc": 0.59375
+        },
+        "0.7-0.9": {
+          "n": 159,
+          "acc": 0.9182389937106918
+        },
+        "0.9-1.0": {
+          "n": 884,
+          "acc": 0.9898190045248869
+        }
+      },
+      "per_class": {
+        "Apple___Apple_scab": {
+          "n": 225,
+          "acc_within_crop": 0.8888888888888888
+        },
+        "Apple___Black_rot": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        },
+        "Apple___Cedar_apple_rust": {
+          "n": 220,
+          "acc_within_crop": 0.9681818181818181
+        },
+        "Apple___Powdery_mildew": {
+          "n": 191,
+          "acc_within_crop": 0.9842931937172775
+        },
+        "Apple___healthy": {
+          "n": 225,
+          "acc_within_crop": 0.9777777777777777
+        }
+      }
+    },
+    "kashmir": {
+      "n": 62,
+      "top1": 0.532258064516129,
+      "crop_acc": 0.967741935483871,
+      "disease_acc_within_true_crop": 0.532258064516129,
+      "confidence_bins": {
+        "0.0-0.5": {
+          "n": 11,
+          "acc": 0.09090909090909091
+        },
+        "0.5-0.7": {
+          "n": 23,
+          "acc": 0.4782608695652174
+        },
+        "0.7-0.9": {
+          "n": 19,
+          "acc": 0.6842105263157895
+        },
+        "0.9-1.0": {
+          "n": 9,
+          "acc": 0.8888888888888888
+        }
+      },
+      "per_class": {
+        "Apple___Alternaria_leaf_spot": {
+          "n": 17,
+          "acc_within_crop": 0.7058823529411765
+        },
+        "Apple___Apple_scab": {
+          "n": 24,
+          "acc_within_crop": 0.25
+        },
+        "Apple___Black_rot": {
+          "n": 14,
+          "acc_within_crop": 0.7142857142857143
+        },
+        "Apple___healthy": {
+          "n": 7,
+          "acc_within_crop": 0.7142857142857143
+        }
+      }
+    },
+    "merged": {
+      "n": 3999,
+      "top1": 0.9954988747186797,
+      "crop_acc": 0.9992498124531133,
+      "disease_acc_within_true_crop": 0.9959989997499374,
+      "confidence_bins": {
+        "0.0-0.5": {
+          "n": 4,
+          "acc": 0.5
+        },
+        "0.5-0.7": {
+          "n": 22,
+          "acc": 0.5909090909090909
+        },
+        "0.7-0.9": {
+          "n": 143,
+          "acc": 0.951048951048951
+        },
+        "0.9-1.0": {
+          "n": 3830,
+          "acc": 1.0
+        }
+      },
+      "per_class": {
+        "Tomato___Bacterial_spot": {
+          "n": 225,
+          "acc_within_crop": 0.9911111111111112
+        },
+        "Tomato___Early_blight": {
+          "n": 150,
+          "acc_within_crop": 0.9933333333333333
+        },
+        "Tomato___Late_blight": {
+          "n": 225,
+          "acc_within_crop": 0.9866666666666667
+        },
+        "Tomato___Leaf_Mold": {
+          "n": 143,
+          "acc_within_crop": 1.0
+        },
+        "Tomato___Septoria_leaf_spot": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        },
+        "Tomato___Spider_mites Two-spotted_spider_mite": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        },
+        "Tomato___Target_Spot": {
+          "n": 211,
+          "acc_within_crop": 0.985781990521327
+        },
+        "Tomato___Tomato_Yellow_Leaf_Curl_Virus": {
+          "n": 225,
+          "acc_within_crop": 0.9955555555555555
+        },
+        "Tomato___Tomato_mosaic_virus": {
+          "n": 56,
+          "acc_within_crop": 1.0
+        },
+        "Tomato___healthy": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        },
+        "Potato___Early_blight": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        },
+        "Potato___Late_blight": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        },
+        "Potato___healthy": {
+          "n": 225,
+          "acc_within_crop": 0.9866666666666667
+        },
+        "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": {
+          "n": 77,
+          "acc_within_crop": 0.987012987012987
+        },
+        "Corn_(maize)___Common_rust_": {
+          "n": 179,
+          "acc_within_crop": 1.0
+        },
+        "Corn_(maize)___Northern_Leaf_Blight": {
+          "n": 148,
+          "acc_within_crop": 0.9864864864864865
+        },
+        "Corn_(maize)___healthy": {
+          "n": 174,
+          "acc_within_crop": 1.0
+        },
+        "Grape___Black_rot": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        },
+        "Grape___Esca_(Black_Measles)": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        },
+        "Grape___Leaf_blight_(Isariopsis_Leaf_Spot)": {
+          "n": 161,
+          "acc_within_crop": 1.0
+        },
+        "Grape___healthy": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        }
+      }
+    },
+    "plantdoc": {
+      "n": 288,
+      "top1": 0.71875,
+      "crop_acc": 0.9444444444444444,
+      "disease_acc_within_true_crop": 0.7534722222222222,
+      "confidence_bins": {
+        "0.0-0.5": {
+          "n": 39,
+          "acc": 0.3333333333333333
+        },
+        "0.5-0.7": {
+          "n": 48,
+          "acc": 0.5416666666666666
+        },
+        "0.7-0.9": {
+          "n": 106,
+          "acc": 0.7264150943396226
+        },
+        "0.9-1.0": {
+          "n": 95,
+          "acc": 0.9578947368421052
+        }
+      },
+      "per_class": {
+        "Apple___Apple_scab": {
+          "n": 12,
+          "acc_within_crop": 0.6666666666666666
+        },
+        "Apple___Cedar_apple_rust": {
+          "n": 14,
+          "acc_within_crop": 0.7142857142857143
+        },
+        "Apple___healthy": {
+          "n": 12,
+          "acc_within_crop": 1.0
+        },
+        "Tomato___Bacterial_spot": {
+          "n": 15,
+          "acc_within_crop": 0.3333333333333333
+        },
+        "Tomato___Early_blight": {
+          "n": 12,
+          "acc_within_crop": 0.4166666666666667
+        },
+        "Tomato___Late_blight": {
+          "n": 15,
+          "acc_within_crop": 0.9333333333333333
+        },
+        "Tomato___Leaf_Mold": {
+          "n": 13,
+          "acc_within_crop": 0.7692307692307693
+        },
+        "Tomato___Septoria_leaf_spot": {
+          "n": 22,
+          "acc_within_crop": 0.8636363636363636
+        },
+        "Tomato___Tomato_Yellow_Leaf_Curl_Virus": {
+          "n": 33,
+          "acc_within_crop": 0.9090909090909091
+        },
+        "Tomato___Tomato_mosaic_virus": {
+          "n": 7,
+          "acc_within_crop": 0.42857142857142855
+        },
+        "Tomato___healthy": {
+          "n": 7,
+          "acc_within_crop": 0.8571428571428571
+        },
+        "Potato___Early_blight": {
+          "n": 24,
+          "acc_within_crop": 0.6666666666666666
+        },
+        "Potato___Late_blight": {
+          "n": 30,
+          "acc_within_crop": 0.6666666666666666
+        },
+        "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": {
+          "n": 9,
+          "acc_within_crop": 0.4444444444444444
+        },
+        "Corn_(maize)___Common_rust_": {
+          "n": 16,
+          "acc_within_crop": 0.875
+        },
+        "Corn_(maize)___Northern_Leaf_Blight": {
+          "n": 27,
+          "acc_within_crop": 0.8148148148148148
+        },
+        "Grape___Black_rot": {
+          "n": 11,
+          "acc_within_crop": 0.9090909090909091
+        },
+        "Grape___healthy": {
+          "n": 9,
+          "acc_within_crop": 1.0
+        }
+      }
+    },
+    "plantvillage": {
+      "n": 900,
+      "top1": 1.0,
+      "crop_acc": 1.0,
+      "disease_acc_within_true_crop": 1.0,
+      "confidence_bins": {
+        "0.0-0.5": {
+          "n": 0,
+          "acc": null
+        },
+        "0.5-0.7": {
+          "n": 0,
+          "acc": null
+        },
+        "0.7-0.9": {
+          "n": 10,
+          "acc": 1.0
+        },
+        "0.9-1.0": {
+          "n": 890,
+          "acc": 1.0
+        }
+      },
+      "per_class": {
+        "Apple___Apple_scab": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        },
+        "Apple___Black_rot": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        },
+        "Apple___Cedar_apple_rust": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        },
+        "Apple___healthy": {
+          "n": 225,
+          "acc_within_crop": 1.0
+        }
+      }
+    },
+    "tomato_village": {
+      "n": 56,
+      "top1": 0.9107142857142857,
+      "crop_acc": 1.0,
+      "disease_acc_within_true_crop": 0.9107142857142857,
+      "confidence_bins": {
+        "0.0-0.5": {
+          "n": 1,
+          "acc": 0.0
+        },
+        "0.5-0.7": {
+          "n": 6,
+          "acc": 0.8333333333333334
+        },
+        "0.7-0.9": {
+          "n": 15,
+          "acc": 0.9333333333333333
+        },
+        "0.9-1.0": {
+          "n": 34,
+          "acc": 0.9411764705882353
+        }
+      },
+      "per_class": {
+        "Tomato___Early_blight": {
+          "n": 8,
+          "acc_within_crop": 0.75
+        },
+        "Tomato___Late_blight": {
+          "n": 15,
+          "acc_within_crop": 0.8666666666666667
+        },
+        "Tomato___healthy": {
+          "n": 33,
+          "acc_within_crop": 0.9696969696969697
+        }
+      }
+    }
+  },
+  "field_sources": [
+    "fgvc7",
+    "fgvc8",
+    "kashmir",
+    "plantdoc"
+  ],
+  "plantdoc_test_field": {
+    "n": 176,
+    "top1": 0.6477272727272727,
+    "crop_acc": 0.9431818181818182,
+    "disease_acc_within_true_crop": 0.6875,
+    "confidence_bins": {
+      "0.0-0.5": {
+        "n": 26,
+        "acc": 0.34615384615384615
+      },
+      "0.5-0.7": {
+        "n": 31,
+        "acc": 0.41935483870967744
+      },
+      "0.7-0.9": {
+        "n": 67,
+        "acc": 0.6567164179104478
+      },
+      "0.9-1.0": {
+        "n": 52,
+        "acc": 0.9230769230769231
+      }
+    },
+    "per_class": {
+      "Apple___Apple_scab": {
+        "n": 10,
+        "acc_within_crop": 0.8
+      },
+      "Apple___Cedar_apple_rust": {
+        "n": 10,
+        "acc_within_crop": 0.9
+      },
+      "Apple___healthy": {
+        "n": 9,
+        "acc_within_crop": 0.6666666666666666
+      },
+      "Tomato___Bacterial_spot": {
+        "n": 9,
+        "acc_within_crop": 0.4444444444444444
+      },
+      "Tomato___Early_blight": {
+        "n": 9,
+        "acc_within_crop": 0.7777777777777778
+      },
+      "Tomato___Late_blight": {
+        "n": 10,
+        "acc_within_crop": 0.8
+      },
+      "Tomato___Leaf_Mold": {
+        "n": 6,
+        "acc_within_crop": 1.0
+      },
+      "Tomato___Septoria_leaf_spot": {
+        "n": 12,
+        "acc_within_crop": 0.8333333333333334
+      },
+      "Tomato___Tomato_Yellow_Leaf_Curl_Virus": {
+        "n": 15,
+        "acc_within_crop": 0.8666666666666667
+      },
+      "Tomato___Tomato_mosaic_virus": {
+        "n": 10,
+        "acc_within_crop": 0.5
+      },
+      "Tomato___healthy": {
+        "n": 8,
+        "acc_within_crop": 0.375
+      },
+      "Potato___Early_blight": {
+        "n": 14,
+        "acc_within_crop": 0.2857142857142857
+      },
+      "Potato___Late_blight": {
+        "n": 8,
+        "acc_within_crop": 0.5
+      },
+      "Corn_(maize)___Cercospora_leaf_spot Gray_leaf_spot": {
+        "n": 4,
+        "acc_within_crop": 0.25
+      },
+      "Corn_(maize)___Common_rust_": {
+        "n": 10,
+        "acc_within_crop": 1.0
+      },
+      "Corn_(maize)___Northern_Leaf_Blight": {
+        "n": 12,
+        "acc_within_crop": 0.5
+      },
+      "Grape___Black_rot": {
+        "n": 8,
+        "acc_within_crop": 0.625
+      },
+      "Grape___healthy": {
+        "n": 12,
+        "acc_within_crop": 1.0
+      }
+    }
+  },
+  "tomato_village_test": {
+    "n": 59,
+    "top1": 0.9322033898305084,
+    "crop_acc": 1.0,
+    "disease_acc_within_true_crop": 0.9322033898305084,
+    "confidence_bins": {
+      "0.0-0.5": {
+        "n": 0,
+        "acc": null
+      },
+      "0.5-0.7": {
+        "n": 1,
+        "acc": 1.0
+      },
+      "0.7-0.9": {
+        "n": 17,
+        "acc": 0.8235294117647058
+      },
+      "0.9-1.0": {
+        "n": 41,
+        "acc": 0.975609756097561
+      }
+    },
+    "per_class": {
+      "Tomato___Early_blight": {
+        "n": 10,
+        "acc_within_crop": 0.8
+      },
+      "Tomato___Late_blight": {
+        "n": 18,
+        "acc_within_crop": 0.8888888888888888
+      },
+      "Tomato___healthy": {
+        "n": 31,
+        "acc_within_crop": 1.0
+      }
+    }
+  },
+  "apple_confusions_val": {
+    "Apple___Alternaria_leaf_spot -> Apple___Cedar_apple_rust": 1,
+    "Apple___Alternaria_leaf_spot -> Apple___Apple_scab": 2,
+    "Apple___Gray_spot -> Apple___Alternaria_leaf_spot": 4,
+    "Apple___Apple_scab -> Apple___Cedar_apple_rust": 2,
+    "Apple___Apple_scab -> Apple___healthy": 9,
+    "Apple___Cedar_apple_rust -> Apple___Black_rot": 4,
+    "Apple___healthy -> Apple___Powdery_mildew": 2,
+    "Apple___healthy -> Apple___Black_rot": 5,
+    "Apple___Apple_scab -> Apple___Black_rot": 28,
+    "Apple___Cedar_apple_rust -> Apple___Apple_scab": 5,
+    "Apple___Powdery_mildew -> Apple___healthy": 1,
+    "Apple___Powdery_mildew -> Apple___Apple_scab": 2,
+    "Apple___healthy -> Apple___Apple_scab": 1,
+    "Apple___healthy -> Apple___Cedar_apple_rust": 1,
+    "Apple___Alternaria_leaf_spot -> Apple___Black_rot": 3,
+    "Apple___Alternaria_leaf_spot -> Apple___healthy": 1,
+    "Apple___Apple_scab -> Apple___Alternaria_leaf_spot": 9,
+    "Apple___Apple_scab -> Potato___Late_blight": 1,
+    "Apple___Apple_scab -> Tomato___Leaf_Mold": 1,
+    "Apple___Black_rot -> Apple___Alternaria_leaf_spot": 1,
+    "Apple___Black_rot -> Apple___Apple_scab": 3,
+    "Apple___healthy -> Apple___Alternaria_leaf_spot": 1,
+    "Apple___Apple_scab -> Potato___Early_blight": 1,
+    "Apple___Apple_scab -> Tomato___Septoria_leaf_spot": 1,
+    "Apple___Cedar_apple_rust -> Apple___Marssonina_blotch": 1,
+    "Apple___Cedar_apple_rust -> Apple___Alternaria_leaf_spot": 1,
+    "Apple___Cedar_apple_rust -> Potato___Early_blight": 1
+  }
+}

@@ -25,11 +25,18 @@ import 'last_result.dart';
 /// without internet and says its date). Nothing shows when there is neither. Every block brings its own 12 dp gap above
 /// it (the mockup's `.pad` gap), so an empty block takes no room.
 class OfflineResultCards extends ConsumerStatefulWidget {
-  const OfflineResultCards({super.key});
+  const OfflineResultCards({super.key, this.part = OfflineResultPart.both});
+
+  /// Home shows the green "Result ready" card right under the camera card and the "Last advice" card below the weather: the same
+  /// widget, once for each part.
+  final OfflineResultPart part;
 
   @override
   ConsumerState<OfflineResultCards> createState() => _OfflineResultCardsState();
 }
+
+/// Which cards of [OfflineResultCards] a block shows.
+enum OfflineResultPart { both, ready, last }
 
 class _OfflineResultCardsState extends ConsumerState<OfflineResultCards> {
   bool _opening = false;
@@ -71,7 +78,9 @@ class _OfflineResultCardsState extends ConsumerState<OfflineResultCards> {
     var last = ref.watch(lastResultProvider);
     // A result that is ready to open is the same answer: one card is enough.
     if (last != null && status.any((r) => r.scanId == last!.scan.id)) last = null;
-    if (status.isEmpty && last == null) return const SizedBox.shrink();
+    final showReady = widget.part != OfflineResultPart.last && status.isNotEmpty;
+    final showLast = widget.part != OfflineResultPart.ready && last != null;
+    if (!showReady && !showLast) return const SizedBox.shrink();
     // The last advice that was already written into the diary shows the green tick.
     final lastAdviceId = last?.scan.advice?.id ?? '';
     final lastSprayed = lastAdviceId.isNotEmpty && ref.watch(sprayStateProvider(lastAdviceId)) == SprayState.done;
@@ -80,7 +89,7 @@ class _OfflineResultCardsState extends ConsumerState<OfflineResultCards> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (status.isNotEmpty) ...[
+        if (showReady) ...[
           const SizedBox(height: _blockGap),
           _ReadyCard(
             key: const ValueKey('offline-result-card'),
@@ -89,7 +98,7 @@ class _OfflineResultCardsState extends ConsumerState<OfflineResultCards> {
             onTap: _opening ? null : () => _openResult(status.first),
           ),
         ],
-        if (last != null) ...[
+        if (showLast) ...[
           const SizedBox(height: _blockGap),
           SectionLabel(heading, hindi: isDevanagari(heading)),
           const SizedBox(height: _labelGap),

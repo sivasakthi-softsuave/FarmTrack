@@ -6,7 +6,6 @@ import 'package:farmtrack/core/network/api_client.dart';
 import 'package:farmtrack/core/errors/api_exception.dart';
 import 'package:farmtrack/core/network/mock_api_client.dart';
 import 'package:farmtrack/core/network/mock_data.dart';
-import 'package:farmtrack/core/voice/utterance.dart';
 import 'package:farmtrack/features/diary/diary_screen.dart';
 import 'package:farmtrack/core/theme/app_theme.dart';
 import 'package:farmtrack/core/widgets/design.dart';
@@ -55,94 +54,114 @@ Future<TestEnv> envFor(MockScanScenario scenario, {String language = 'hi'}) =>
 
 void main() {
   group('ok: the advice screen', () {
-    testWidgets(
-      'shows severity, medicine, dose sentence, timing, warnings and steps, and speaks intro then the advice',
-      (tester) async {
-        final env = await envFor(MockScanScenario.ok);
-        await runScan(tester, env);
+    testWidgets('shows the crop, the disease, the medicine with its two steps and last one card of advice', (
+      tester,
+    ) async {
+      final env = await envFor(MockScanScenario.ok);
+      await runScan(tester, env);
 
-        expect(keyed('severity-yellow'), findsOneWidget);
-        expect(find.text('सेब का स्कैब (पपड़ी रोग)'), findsOneWidget);
-        expect(keyed('product-P007'), findsOneWidget);
-        expect(find.text('डिफेनोकोनाज़ोल'), findsOneWidget);
-        expect(find.textContaining('Score'), findsOneWidget);
-        expect(find.text('दो सौ लीटर पानी में तीस मिलीलीटर।'), findsOneWidget);
-        expect(find.text('तुड़ाई से 14 दिन पहले तक रुकें'), findsOneWidget);
-        expect(find.textContaining('आज छिड़काव कीजिए'), findsOneWidget);
-        expect(find.textContaining('कोई और दवा, खाद या हार्मोन मत मिलाइए'), findsOneWidget);
-        expect(find.textContaining('सात दिन के अंदर दोबारा'), findsOneWidget);
-        // The explanation sits in the severity card; the safety notes and steps wait behind "More".
-        expect(find.text('सलाह'), findsOneWidget, reason: 'the name of the screen in the top bar');
-        expect(keyed('advice-summary'), findsOneWidget);
-        expect(find.textContaining('पत्तियों पर भूरे, मखमली धब्बे'), findsOneWidget);
-        expect(find.textContaining('मुँह पर कपड़ा'), findsNothing);
-        expect(find.textContaining('पूरे पेड़ पर'), findsNothing);
-        await tapKey(tester, 'advice-more');
-        expect(find.textContaining('मुँह पर कपड़ा'), findsOneWidget);
-        expect(find.byIcon(AppIcons.warning), findsWidgets);
-        expect(find.byIcon(AppIcons.danger), findsWidgets, reason: 'the red warning has its own picture');
-        expect(find.textContaining('पूरे पेड़ पर'), findsOneWidget);
+      // The crop's round picture and name, then the disease with the severity's picture.
+      expect(keyed('advice-crop-card'), findsOneWidget);
+      expect(tester.widget<Text>(keyed('advice-crop')).data, 'सेब');
+      expect(tester.widget<Text>(keyed('advice-headline')).data, 'सेब का स्कैब (पपड़ी रोग)');
+      expect(keyed('severity-yellow'), findsOneWidget);
+      // The medicine: its name, the brand, the two steps and the waiting period; not the server's dose sentence.
+      expect(keyed('product-P007'), findsOneWidget);
+      expect(find.text('डिफेनोकोनाज़ोल'), findsOneWidget, reason: 'the card title; the step is a whole sentence');
+      expect(find.textContaining('Score'), findsOneWidget);
+      expect(find.text('डिफेनोकोनाज़ोल 30 मिली लें।'), findsOneWidget);
+      expect(find.text('इसे 200 लीटर पानी में मिलाएँ।'), findsOneWidget);
+      expect(find.text('दो सौ लीटर पानी में तीस मिलीलीटर।'), findsNothing);
+      expect(find.text('तुड़ाई से 14 दिन पहले तक रुकें'), findsOneWidget);
+      // Last, one card: when to spray, the warnings and the general measures. The long safety notes wait behind "More".
+      expect(keyed('advice-notes'), findsOneWidget);
+      expect(
+        find.descendant(of: keyed('advice-notes'), matching: find.textContaining('आज छिड़काव कीजिए')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('कोई और दवा, खाद या हार्मोन मत मिलाइए'), findsOneWidget);
+      expect(find.textContaining('सात दिन के अंदर दोबारा'), findsOneWidget);
+      expect(find.textContaining('पूरे पेड़ पर'), findsOneWidget, reason: 'a general measure of the advice');
+      expect(find.text('सलाह'), findsOneWidget, reason: 'the name of the screen in the top bar');
+      expect(keyed('advice-summary'), findsNothing, reason: 'no explanation text any more');
+      expect(find.textContaining('मुँह पर कपड़ा'), findsNothing);
+      await tapKey(tester, 'advice-more');
+      expect(find.textContaining('मुँह पर कपड़ा'), findsOneWidget);
+      expect(find.byIcon(AppIcons.warning), findsWidgets);
+      expect(find.byIcon(AppIcons.danger), findsWidgets, reason: 'the red warning has its own picture');
+      expectBigTouchTargets(tester);
 
-        final advice = MockData.scabAdvice('x');
-        expect(env.voice.log, ['result_intro@hi', '${advice.spoken.text.hi}@hi', 'diary_tick_sprayed@hi']);
-        expect(env.voice.unknownIds, isEmpty);
-      },
-    );
+      // Only the crop, the disease and the names of the medicines are said by themselves.
+      expect(env.voice.log, ['crop_is_apple@hi', 'सेब का स्कैब (पपड़ी रोग)@hi', 'दवा: डिफेनोकोनाज़ोल।@hi']);
+      expect(env.voice.unknownIds, isEmpty);
+    });
 
     testWidgets('in English everything reads and speaks in English', (tester) async {
       final env = await envFor(MockScanScenario.ok, language: 'en');
       await runScan(tester, env);
-      expect(find.text('Apple scab'), findsWidgets);
       expect(find.text('Advice'), findsOneWidget);
-      expect(find.text('Be careful'), findsOneWidget, reason: 'the severity word on the card');
-      expect(find.descendant(of: keyed('advice-crop'), matching: find.text('Apple')), findsOneWidget);
-      expect(find.text('Thirty millilitres in two hundred litres of water.'), findsOneWidget);
+      expect(tester.widget<Text>(keyed('advice-crop')).data, 'Apple');
+      expect(tester.widget<Text>(keyed('advice-headline')).data, 'Apple scab');
+      expect(find.text('Take 30 ml of Difenoconazole.'), findsOneWidget);
+      expect(find.text('Mix it in 200 litres of water.'), findsOneWidget);
       expect(find.text('Wait 14 days before harvest'), findsOneWidget);
-      expect(env.voice.log.first, 'result_intro@en');
-      expect(env.voice.spokenTexts.single, startsWith('This is apple scab. Spray Difenoconazole'));
+      expect(find.text('Advice and warnings'), findsOneWidget);
+      expect(env.voice.log, ['crop_is_apple@en', 'Apple scab@en', 'Medicine: Difenoconazole.@en']);
     });
 
-    testWidgets('the speaker button plays it all again', (tester) async {
+    testWidgets('the speaker button plays the three again', (tester) async {
       final env = await envFor(MockScanScenario.ok);
       await runScan(tester, env);
       final first = List.of(env.voice.log);
-      await tester.tap(keyed('speaker-button'));
-      await tester.pump();
+      await replayVoice(tester);
       expect(env.voice.log, [...first, ...first]);
     });
 
-    testWidgets('the server\'s spoken audio reference travels with the text', (tester) async {
-      final scan = MockData.okScan('scan-1');
-      final withAudio = ScanOut.fromJson({
-        ...scan.toJson(),
-        'advice': {
-          ...scan.advice!.toJson(),
-          'spoken': {
-            'text': scan.advice!.spoken.text.toJson(),
-            'audio': {
-              'hi': {'url': '/audio/abc.mp3', 'sha256': 'abc'},
-            },
-          },
-        },
-      });
-      final env = await TestEnv.create(loggedIn: true, api: _ScriptedApi((_) => withAudio));
+    testWidgets('a medicine card and the last card have a speaker; only a tap says them', (tester) async {
+      final env = await envFor(MockScanScenario.ok, language: 'en');
       await runScan(tester, env);
-      final utterance = env.voice.spoken.whereType<TextUtterance>().single;
-      expect(utterance.audio!.url, '/audio/abc.mp3');
-      expect(utterance.audio!.sha256, 'abc');
+      env.voice.clear();
+      expect(env.voice.log, isEmpty, reason: 'nothing of the cards is said by itself');
+
+      await tapKey(tester, 'product-speak-P007');
+      expect(env.voice.spokenTexts, [
+        'Difenoconazole. Take 30 millilitres of Difenoconazole. Mix it in 200 litres of water. '
+            'Wait 14 days before harvest.',
+      ]);
+
+      env.voice.clear();
+      await tapKey(tester, 'advice-notes-speak');
+      final said = env.voice.spokenTexts.single;
+      expect(said, startsWith('Spray today. No rain is expected in the next twelve hours.'));
+      expect(said, contains('Do not mix any other chemical, nutrient or hormone with this spray.'));
+      expect(said, contains('Spray the whole tree, on the top and the bottom of the leaves.'));
+      expect(said, isNot(contains('Wear a mask')), reason: 'the safety notes are said only once they are opened');
+
+      await tapKey(tester, 'advice-more');
+      env.voice.clear();
+      await tapKey(tester, 'advice-notes-speak');
+      expect(env.voice.spokenTexts.single, contains('Wear a mask and gloves.'));
+      expectBigTouchTargets(tester);
     });
 
-    testWidgets('server next_steps prompt ids win over the built-in ones', (tester) async {
-      final scan = MockData.okScan('scan-1');
-      final custom = ScanOut.fromJson({
-        ...scan.toJson(),
-        'next_steps': [
-          {'action': 'mark_sprayed', 'prompt_id': 'diary_tick_sprayed'},
-        ],
+    testWidgets('a dose that is not "X in N litres of water" is not cut into steps: the server sentence shows', (
+      tester,
+    ) async {
+      final base = MockData.scabAdvice('scan-1');
+      final scan = ScanOut.fromJson({
+        ...MockData.okScan('scan-1').toJson(),
+        'advice': {
+          ...base.toJson(),
+          'products': [
+            {...base.products.single.toJson(), 'dose_unit': 'ml/L'},
+          ],
+        },
       });
-      final env = await TestEnv.create(loggedIn: true, api: _ScriptedApi((_) => custom));
+      final env = await TestEnv.create(loggedIn: true, language: 'en', api: _ScriptedApi((_) => scan));
       await runScan(tester, env);
-      expect(env.voice.spokenIds, ['result_intro', 'diary_tick_sprayed']);
+      expect(find.text('Thirty millilitres in two hundred litres of water.'), findsOneWidget);
+      expect(find.textContaining('Take 30'), findsNothing);
+      expect(find.textContaining('Mix it in'), findsNothing);
     });
 
     testWidgets('the green tick opens the diary with the advice, crop and medicine preselected', (tester) async {
@@ -191,20 +210,22 @@ void main() {
       expect(keyed('severity-red'), findsOneWidget);
       expect(keyed('product-P007'), findsOneWidget);
       expect(keyed('product-P006'), findsOneWidget);
+      expect(keyed('advice-choose-one'), findsOneWidget, reason: 'with several medicines: choose one');
+      // A medicine's own warning is in the last card, once.
       expect(find.text('रोक लग सकती है'), findsOneWidget);
-      expect(keyed('advice-timing'), findsNothing);
+      expect(find.descendant(of: keyed('advice-notes'), matching: find.text('रोक लग सकती है')), findsOneWidget);
+      expect(find.textContaining('अगले बारह घंटे'), findsNothing, reason: 'no timing');
+      expect(env.voice.log.last, 'दवा: डिफेनोकोनाज़ोल, प्रोपीनेब।@hi');
     });
 
-    testWidgets('the "When" card says what to do by its colour: green spray, grey wait, blue information', (
-      tester,
-    ) async {
+    testWidgets('the first line of the last card says what to do by its picture', (tester) async {
       final base = MockData.scabAdvice('scan-1');
       final cases = {
-        TimingAction.sprayNow: (AppColors.greenSoft, AppIcons.tickBold),
-        TimingAction.wait: (AppColors.neutralSoft, AppIcons.hourglass),
-        TimingAction.repeatWithinDays: (AppColors.blueSoft, AppIcons.roundArrow),
-        TimingAction.notNeeded: (AppColors.blueSoft, AppIcons.info),
-        TimingAction.unknown: (AppColors.neutralSoft, AppIcons.clock),
+        TimingAction.sprayNow: AppIcons.tickBold,
+        TimingAction.wait: AppIcons.hourglass,
+        TimingAction.repeatWithinDays: AppIcons.roundArrow,
+        TimingAction.notNeeded: AppIcons.info,
+        TimingAction.unknown: AppIcons.info,
       };
       for (final entry in cases.entries) {
         final scan = ScanOut.fromJson({
@@ -219,134 +240,85 @@ void main() {
         });
         final env = await TestEnv.create(loggedIn: true, api: _ScriptedApi((_) => scan));
         await runScan(tester, env);
-        final card = tester.widget<DecoratedBox>(
-          find.descendant(of: keyed('advice-timing'), matching: find.byType(DecoratedBox)).first,
+        expect(find.descendant(of: keyed('advice-note-0'), matching: find.text('समय')), findsOneWidget);
+        expect(
+          find.descendant(of: keyed('advice-note-0'), matching: find.byIcon(entry.value)),
+          findsOneWidget,
+          reason: entry.key.wire,
         );
-        expect((card.decoration as BoxDecoration).color, entry.value.$1, reason: entry.key.wire);
-        expect(find.descendant(of: keyed('advice-timing'), matching: find.byIcon(entry.value.$2)), findsOneWidget);
         await tester.pumpWidget(const SizedBox());
       }
     });
 
-    testWidgets('the severity card is amber, red or green with its own picture', (tester) async {
+    testWidgets('the disease is only its name: no warning picture, the severity is for a screen reader', (
+      tester,
+    ) async {
       final base = MockData.scabAdvice('scan-1');
-      const cases = {
-        'yellow': (AppColors.amberSoft, AppColors.amber, AppIcons.warning),
-        'red': (AppColors.redSoft, AppColors.red, AppIcons.danger),
-        'green': (AppColors.greenSoft, AppColors.green, AppIcons.tick),
-      };
-      for (final entry in cases.entries) {
+      const words = {'yellow': 'सावधान', 'red': 'गंभीर', 'green': 'ठीक'};
+      for (final entry in words.entries) {
         final scan = ScanOut.fromJson({
           ...MockData.okScan('scan-1').toJson(),
           'advice': {...base.toJson(), 'severity': entry.key},
         });
         final env = await TestEnv.create(loggedIn: true, api: _ScriptedApi((_) => scan));
         await runScan(tester, env);
-        final severity = keyed('severity-${entry.key}');
-        final card = tester.widget<DecoratedBox>(
-          find.descendant(of: severity, matching: find.byType(DecoratedBox)).first,
-        );
-        expect((card.decoration as BoxDecoration).color, entry.value.$1, reason: entry.key);
-        final dot = tester.widget<IconDot>(find.descendant(of: severity, matching: find.byType(IconDot)).first);
-        expect(dot.background, entry.value.$2, reason: entry.key);
-        expect(
-          find.descendant(of: severity, matching: find.byIcon(entry.value.$3)),
-          findsOneWidget,
-          reason: entry.key,
-        );
+        final card = keyed('advice-crop-card');
+        for (final icon in [AppIcons.warning, AppIcons.danger, AppIcons.tick]) {
+          expect(
+            find.descendant(of: card, matching: find.byIcon(icon)),
+            findsNothing,
+            reason: '${entry.key} $icon',
+          );
+        }
+        final semantics = tester.ensureSemantics();
+        expect(tester.getSemantics(keyed('severity-${entry.key}')).label, startsWith('${entry.value}.'));
+        semantics.dispose();
         await tester.pumpWidget(const SizedBox());
       }
     });
   });
 
-  group('confirm_crop', () {
-    testWidgets('speaks the crop and asks for the tick; the green tick confirms the same crop and shows the advice', (
-      tester,
-    ) async {
-      final env = await envFor(MockScanScenario.confirmCrop);
-      await runScan(tester, env);
-      expect(find.text('सेब'), findsOneWidget);
-      expect(env.voice.log, ['crop_is_apple@hi', 'crop_confirm_prompt@hi', 'crop_tap_yes@hi', 'crop_tap_no@hi']);
-      expectBigTouchTargets(tester);
-
-      env.voice.clear();
-      await tapKey(tester, 'crop-yes');
-      expect(env.api.confirmedCrops, ['apple']);
-      expect(keyed('severity-yellow'), findsOneWidget);
-      expect(env.voice.spokenIds, ['scan_wait', 'result_intro', 'diary_tick_sprayed']);
-    });
-
-    testWidgets('the red cross opens the grid of crops: likely ones first, six per page, arrows instead of scrolling', (
+  group('the leaf is not identified', () {
+    testWidgets('confirm_crop: no question, no crop grid: "I cannot identify this leaf", another photo', (
       tester,
     ) async {
       final env = await envFor(MockScanScenario.confirmCrop, language: 'en');
       await runScan(tester, env);
-      env.voice.clear();
-      await tapKey(tester, 'crop-no');
-      expect(env.voice.spokenIds, ['crop_choose_other']);
-      for (final id in ['apple', 'pear', 'plum', 'tomato', 'potato', 'maize']) {
-        expect(keyed('crop-$id'), findsOneWidget, reason: id);
-      }
-      expect(keyed('crop-grape'), findsNothing);
-      expect(keyed('crops-prev'), findsNothing);
+      expect(find.text('I cannot identify this leaf'), findsOneWidget);
+      expect(keyed('retake-camera'), findsOneWidget);
+      expect(find.descendant(of: keyed('retake-issue'), matching: find.byIcon(AppIcons.leaf)), findsOneWidget);
+      expect(keyed('crop-yes'), findsNothing);
+      expect(keyed('crop-no'), findsNothing);
+      expect(keyed('crop-apple'), findsNothing);
+      expect(env.voice.spokenTexts, [
+        'I cannot identify this leaf. Please give me another photo. Show one leaf, close up, in daylight.',
+      ]);
+      expect(env.voice.spokenIds, ['scan_retake_tap']);
       expectBigTouchTargets(tester);
 
-      await tapKey(tester, 'crops-next');
-      expect(keyed('crop-grape'), findsOneWidget);
-      expect(keyed('crop-apple'), findsNothing);
-      await tapKey(tester, 'crops-prev');
-      expect(keyed('crop-apple'), findsOneWidget);
+      env.voice.clear();
+      await tapKey(tester, 'retake-camera');
+      expect(keyed('camera-button'), findsOneWidget);
+      expect(env.voice.spokenIds.first, 'scan_open_camera');
     });
 
-    testWidgets('choosing another crop posts that crop; a crop with data but no auto-advice goes to the expert', (
-      tester,
-    ) async {
-      final env = await envFor(MockScanScenario.confirmCrop);
-      await runScan(tester, env);
-      await tapKey(tester, 'crop-no');
-      expect(find.text('नाशपाती'), findsOneWidget, reason: 'names follow the language');
-      await tapKey(tester, 'crop-tomato');
-      expect(env.api.confirmedCrops, ['tomato']);
-      expect(keyed('expert-icon-needs_expert'), findsOneWidget);
-    });
-
-    testWidgets('a crop without approved data ends on the "no advice yet" screen', (tester) async {
-      final env = await envFor(MockScanScenario.confirmCrop);
-      await runScan(tester, env);
-      await tapKey(tester, 'crop-no');
-      await tapKey(tester, 'crops-next');
-      await tapKey(tester, 'crops-next');
-      await tapKey(tester, 'crop-cauliflower');
-      expect(env.api.confirmedCrops, ['cauliflower']);
-      expect(keyed('expert-icon-no_approved_data'), findsOneWidget);
-      expect(env.voice.spokenIds, contains('result_no_data'));
-    });
-
-    testWidgets('a crop the server could not name goes straight to the grid', (tester) async {
+    testWidgets('a crop the server could not name at all says the same, in Hindi too', (tester) async {
       final unknown = ScanOut.fromJson({
-        ...MockData.confirmCropScan('scan-1').toJson(),
-        'crop': const CropOut(unknown: true, confidence: 0.1, needsConfirmation: true).toJson(),
+        ...MockData.needsExpertScan('scan-1').toJson(),
+        'crop': const CropOut(unknown: true, confidence: 0.1).toJson(),
       });
       final env = await TestEnv.create(loggedIn: true, api: _ScriptedApi((_) => unknown));
       await runScan(tester, env);
-      expect(keyed('crop-apple'), findsOneWidget);
-      expect(env.voice.spokenIds, ['crop_choose_other']);
+      expect(find.text('इस पत्ती की पहचान नहीं हो पाई'), findsOneWidget);
+      expect(keyed('retake-camera'), findsOneWidget);
+      expect(keyed('ask-expert'), findsNothing);
     });
 
-    testWidgets('a crop that has no spoken prompt is read from its name', (tester) async {
-      final olive = ScanOut.fromJson({
-        ...MockData.confirmCropScan('scan-1').toJson(),
-        'crop': CropOut(
-          cropId: 'olive',
-          name: LocalizedText.pair(en: 'Olive', hi: 'जैतून'),
-          confidence: 0.5,
-          needsConfirmation: true,
-        ).toJson(),
-      });
-      final env = await TestEnv.create(loggedIn: true, api: _ScriptedApi((_) => olive));
+    testWidgets('a leaf of a known crop that the server is unsure about still goes to the expert', (tester) async {
+      final env = await envFor(MockScanScenario.needsExpert);
       await runScan(tester, env);
-      expect(env.voice.spokenTexts, ['जैतून']);
-      expect(env.voice.spokenIds, ['crop_confirm_prompt', 'crop_tap_yes', 'crop_tap_no']);
+      expect(keyed('expert-icon-needs_expert'), findsOneWidget);
+      expect(keyed('retake-camera'), findsNothing);
     });
   });
 
@@ -498,12 +470,14 @@ void main() {
     });
   });
 
-  testWidgets('the whole mock script, in order: confirm, advice, blurry, expert, no data, no disease', (tester) async {
+  testWidgets('the whole mock script, in order: not identified, advice, blurry, expert, no data, no disease', (
+    tester,
+  ) async {
     final env = await TestEnv.create(loggedIn: true);
     useSmallPhone(tester);
     await pumpApp(tester, env, location: '/home');
     const expected = [
-      'crop-yes',
+      'retake-camera',
       'severity-yellow',
       'retake-camera',
       'expert-icon-needs_expert',
@@ -516,10 +490,6 @@ void main() {
       await tapKey(tester, 'camera-button');
       await tapKey(tester, 'send-photos');
       expect(keyed(key), findsOneWidget, reason: 'expected $key');
-      if (key == 'crop-yes') {
-        await tapKey(tester, 'crop-yes');
-        expect(keyed('severity-yellow'), findsOneWidget);
-      }
       await tester.tap(find.byIcon(AppIcons.back));
       await tester.pumpAndSettle();
       expect(keyed('home-scan'), findsOneWidget, reason: 'back arrow returns to the home screen');

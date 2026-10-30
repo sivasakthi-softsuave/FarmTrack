@@ -104,6 +104,12 @@ class RateLimiters:
     # out-guess the limit and a real farmer's good logins never use up the budget.
     login_ip: SlidingWindowLimiter = field(default_factory=lambda: SlidingWindowLimiter(20, 600.0))
     login_user_fail: SlidingWindowLimiter = field(default_factory=lambda: SlidingWindowLimiter(8, 600.0))
+    # The place picker: weather lookups are bounded by the adapter's own hourly budget and cache, so this only stops one phone from
+    # hammering; place searches reach a public server that allows ONE request per second for the whole app, so they are stricter.
+    place_weather_farmer: SlidingWindowLimiter = field(default_factory=lambda: SlidingWindowLimiter(60, 600.0))
+    places_farmer: SlidingWindowLimiter = field(default_factory=lambda: SlidingWindowLimiter(20, 600.0))
+    # "Which place is this point?": the app asks once when the farmer CHOOSES a point (a touch on the map, the phone's position).
+    places_reverse_farmer: SlidingWindowLimiter = field(default_factory=lambda: SlidingWindowLimiter(30, 600.0))
 
     @classmethod
     def default(cls) -> RateLimiters:

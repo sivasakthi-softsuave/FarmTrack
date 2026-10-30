@@ -1,7 +1,7 @@
 # Starts the FarmTrack backend so a phone on the SAME Wi-Fi can use it (plain http, port 8005).
 #   - real crop + disease models from backend\storage\models (copied, no download), CPU, first scan loads them (~15 s)
 #   - no cloud calls: mock advice composer (validated templates), no OpenAI, no Google TTS (the phone speaks)
-#   - demo clock 12 May 2026 (apple season), demo farmers f001..f050, password farm1234
+#   - the real clock (the admin page can set a demo clock; the app then shows a "Demo date" strip), demo farmers f001..f050, password farm1234
 # Run:  powershell -ExecutionPolicy Bypass -File scripts/start_backend_for_phone.ps1      (stop with Ctrl+C)
 #       -Port 8010   use another port (default 8005)
 #       -Force       also stop a program that is NOT this backend if it holds the port (default: refuse and say what it is)
@@ -30,17 +30,36 @@ $env:EMBEDDINGS_PROVIDER = 'hash'
 $env:VECTOR_STORE = 'memory'
 $env:CROP_ID_PROVIDER = 'model'
 $env:DISEASE_PROVIDER = 'model'
-# DEMO ONLY (27 Oct 2026): apple answers come from the locally trained demo model alone (4 classes: scab, Marssonina, Alternaria, healthy).
-# It was trained with 30 web photos of unknown licence: never ship it. Delete the next line to go back to the downloaded models.
-$env:DISEASE_MODEL_DIR = Join-Path $root 'data\training\output\apple_leaf_demo'
+# DEMO ONLY (29 Oct 2026): the leaf answers for apple, tomato, potato, maize and grape come from farmtrack_leaf_v3 (29 classes, trained on
+# Kaggle; part of its photos have unclear licences, and it is right about 2 times in 3 on field photos): never ship it. It replaced the
+# 4-class apple model of 27 Oct (data\training\output\apple_leaf_demo: use that folder here to go back). Delete the next line to go back
+# to the downloaded models (model A and B).
+$env:DISEASE_MODEL_DIR = Join-Path $root 'data\training\output\farmtrack_leaf_v3'
 # Owner decision 19 Oct 2026 (CLAUDE.md): medicine advice for every disease with chemical control. Without it only scab gets advice and
 # Marssonina / Alternaria show "Not sure yet". Set to '' to go back to scab only. Wrong disease = wrong medicine advice: demo photos only.
 $env:RULES_AUTO_ADVICE_DISEASES = '*'
 $env:STORAGE_DIR = Join-Path $backend 'storage'
 $env:PUSH_PROVIDER = 'log'
 $env:ZOHO_PROVIDER = 'mock'
-$env:IOT_PROVIDER = 'mock'
-$env:WEATHER_PROVIDER = 'csv'
+# No field sensor yet (the sensors of the demo are simulated and stop on 17 Oct 2026): "My field" takes warmth, air and rain from the real
+# weather. Soil and leaf wetness need a sensor, so those tiles are not shown. 'mock' = the simulated sensors (only with a demo clock <= 17 Oct).
+$env:IOT_PROVIDER = 'none'
+# Weather ON so "My field" shows the whole mockup (warmth, air, rain, leaves, the next seven days). The weather comes through the
+# backend's weather adapter. 'openmeteo' = the real current weather and 7-day forecast of the farmer's place (needs internet; the free
+# endpoint is for non-commercial use only, see backend/README.md). 'csv' = the demo archive of 2026 (no internet; it ends on 17 Oct 2026,
+# so it only works with a demo clock inside it). The app does not change either way.
+$env:WEATHER_ENABLED = 'true'
+$env:WEATHER_PROVIDER = 'openmeteo'
+# "Choose a place" on My field (28 Oct 2026): live weather for any point the farmer picks (GET /v1/weather) and the search of a state, district,
+# tehsil, town or village by name (GET /v1/places/search); the map in the app is OpenStreetMap's. Both need internet and use the REAL date, not
+# the demo clock. The public Nominatim server wants a real contact in the User-Agent: replace the placeholder with yours before others use this
+# server. Set either to 'none' to switch it off (the app then hides the button or the search box).
+$env:PLACE_WEATHER_PROVIDER = 'openmeteo'
+# "Can I spray today?" on Home (wind, rain and heat of the next hours). DRAFT limits (SPRAY_* variables, see backend/README.md): an agronomist
+# must approve them before real farmers see this; on here for the demo phone only.
+$env:SPRAY_WEATHER_ENABLED = 'true'
+$env:PLACES_PROVIDER = 'nominatim'
+$env:PLACES_USER_AGENT = 'FarmTrack-demo/1.0 (Soft Suave Technologies; put your contact e-mail here)'
 $env:OTP_LOGIN_ENABLED = 'false'
 $env:HF_HUB_OFFLINE = '1'          # the weights are already in storage\models; never go to the internet
 

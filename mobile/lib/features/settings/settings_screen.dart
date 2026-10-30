@@ -111,6 +111,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               },
             ),
           ),
+          // Temporary: the owner compares the two looks of the camera screen on a phone. When one is chosen this group, the
+          // enum CaptureDesign and the other design are deleted.
+          _Group(
+            title: t('settings_capture_design'),
+            child: _Choices<CaptureDesign>(
+              keyPrefix: 'capture',
+              ids: const ['a', 'b'],
+              values: CaptureDesign.values,
+              selected: settings.captureDesign,
+              labels: [t('capture_design_a'), t('capture_design_b')],
+              onChosen: notifier.setCaptureDesign,
+            ),
+          ),
           const SizedBox(height: _gap),
           _SwitchRow(
             icon: AppIcons.speaker,
@@ -190,7 +203,7 @@ class _ProfileCard extends StatelessWidget {
 
   final FarmerOut farmer;
 
-  /// "DS" for "Dinesh Sharma": the first letter of up to two words.
+  /// "SS" for "Shahzad Sharma": the first letter of up to two words.
   static String _initials(String name) =>
       name.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).take(2).map((w) => w[0].toUpperCase()).join();
 

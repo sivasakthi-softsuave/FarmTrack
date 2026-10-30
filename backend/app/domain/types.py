@@ -120,6 +120,17 @@ class WeatherHour(BaseModel):
     leaf_wet: bool = False                   # derived: rain>=0.1 mm or RH>=90 (proxy; see rules_config.leaf_wetness_proxy)
 
 
+class OutlookHour(BaseModel):
+    """One hour of the next hours (Home's "next hours" strip and the spray check). Every field but the time may be unknown (None)."""
+    time: datetime
+    temp_c: float | None = None
+    sky: str | None = None                   # the same words as WeatherSnapshot.sky
+    is_day: bool | None = None
+    rain_chance_pct: int | None = None       # 0-100
+    rain_mm: float | None = None             # as in WeatherHour: the row stamped T (Open-Meteo: the rain of the hour before T)
+    wind_kmh: float | None = None
+
+
 class ForecastDay(BaseModel):
     day: date
     tmin_c: float
@@ -140,6 +151,28 @@ class WeatherSnapshot(BaseModel):
     daily_forecast: list[ForecastDay] = Field(default_factory=list)   # next 7 days
     stale: bool = False
     source: str = "csv"
+    # "Current weather" details of the hour of `as_of`, only from a source that has them (Open-Meteo); None = not known. The air quality
+    # is not here: it is a separate call that only the field screen makes (see OpenMeteoAdapter.air_quality).
+    sky: str | None = None                   # clear | mostly_clear | partly_cloudy | cloudy | fog | drizzle | rain | heavy_rain | showers | snow | thunderstorm
+    is_day: bool | None = None
+    feels_like_c: float | None = None
+    dew_point_c: float | None = None
+    pressure_hpa: float | None = None        # mean sea level (what a weather app shows), not the pressure at the field's own height
+    wind_kmh: float | None = None
+    visibility_km: float | None = None
+    uv_index: float | None = None            # of the hour of `as_of`
+    sunrise: datetime | None = None          # today's (timezone-aware, IST)
+    sunset: datetime | None = None
+    outlook: list[OutlookHour] = Field(default_factory=list)   # up to 12 hours, the first is the current hour; empty = the source has no hourly details
+
+
+class Place(BaseModel):
+    """A named place from a geocoder (a state, a district, a town or a village) with the point the map should fly to."""
+    name: str
+    label: str                                   # "Theog, Shimla, Himachal Pradesh": what the farmer reads in the list
+    kind: Literal["state", "district", "tehsil", "town", "village", "place"] = "place"
+    lat: float
+    lon: float
 
 
 class SensorReading(BaseModel):

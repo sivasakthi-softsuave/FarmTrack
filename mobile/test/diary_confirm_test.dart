@@ -11,6 +11,7 @@ import 'package:farmtrack/core/voice/utterance.dart';
 import 'package:farmtrack/core/widgets/design.dart';
 import 'package:farmtrack/features/diary/date_words.dart';
 import 'package:farmtrack/features/diary/diary_providers.dart';
+import 'package:farmtrack/features/diary/diary_widgets.dart' show RadioMark;
 import 'package:farmtrack/core/theme/app_theme.dart';
 
 import 'support/feature_fakes.dart';
@@ -168,12 +169,14 @@ void main() {
 
       await tapKey(tester, 'diary-product-P006');
       expect(env.voice.spokenTexts, ['प्रोपीनेब, Antracol', 'एक लीटर पानी में दो ग्राम।']);
-      expect(
-        find.descendant(of: keyed('diary-product-P006'), matching: find.byIcon(AppIcons.tickBold)),
-        findsOneWidget,
-      );
-      expect(find.descendant(of: keyed('diary-product-P007'), matching: find.byIcon(AppIcons.tickBold)), findsNothing);
+      expect(tester.widget<RadioMark>(keyed('radio-P006')).selected, isTrue);
+      expect(tester.widget<RadioMark>(keyed('radio-P007')).selected, isFalse);
+      expect(find.descendant(of: keyed('diary-product-P006'), matching: find.byIcon(AppIcons.tickBold)), findsNothing);
       expectBigTouchTargets(tester);
+      await tapKey(tester, 'diary-product-P007');
+      expect(tester.widget<RadioMark>(keyed('radio-P007')).selected, isTrue, reason: 'one chosen at a time');
+      expect(tester.widget<RadioMark>(keyed('radio-P006')).selected, isFalse);
+      await tapKey(tester, 'diary-product-P006');
 
       await tapKey(tester, 'diary-save');
       expect(env.api.sprayLogsIn.single.productId, 'P006', reason: 'the farmer picked one of several: send it');

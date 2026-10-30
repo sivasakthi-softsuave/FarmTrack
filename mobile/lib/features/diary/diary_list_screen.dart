@@ -12,12 +12,14 @@ import '../../core/widgets/voice_scaffold.dart';
 import '../home/app_bottom_nav.dart';
 import 'date_words.dart';
 import 'diary_providers.dart';
-import 'diary_widgets.dart';
+import 'diary_timeline.dart';
 import 'saved_speech.dart';
 
-/// "My spray diary": newest first, grouped by day under a small day heading; each entry is a card with the medicine,
-/// its brand and crop, a grey "Waiting" pill or a green tick, and its warnings inside it. Tapping an entry says it aloud.
-/// The floating green button writes a spray that was not advised.
+/// "My spray diary" (the owner's design 2 of `docs/design/diary-combined-proposals.html`): the crop circles on top (when there is
+/// more than one crop), a strip of this week with a button for the month, then the timeline: newest first along a thread, a big
+/// circle for each day and a card for each spray (its crop, the kind of medicine, the dose, the days to wait, its warnings, a
+/// speaker, and a grey "Waiting" tag while it has not reached the server). Tapping an entry opens it (how to use the
+/// medicine) and says it aloud. The floating green button writes a spray that was not advised.
 class DiaryListScreen extends ConsumerStatefulWidget {
   const DiaryListScreen({super.key});
 
@@ -27,6 +29,9 @@ class DiaryListScreen extends ConsumerStatefulWidget {
 
 class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
   final Object _owner = Object();
+
+  /// The lower case id of the crop chosen on the crop circles; null shows every crop.
+  String? _crop;
 
   void _back() {
     if (context.canPop()) {
@@ -50,32 +55,19 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
     return ref.read(voiceServiceProvider).speak(items, owner: _owner);
   }
 
-  /// The entries with a small heading above each day ("Today", "2 May"): 12 between cards, a little more above a heading.
-  List<Widget> _days(List<DiaryEntry> entries, DateWords words, DateTime now) {
-    final children = <Widget>[];
-    DateTime? day;
-    for (final entry in entries) {
-      final entryDay = dayOnly(entry.date);
-      if (entryDay != day) {
-        day = entryDay;
-        final label = words.relative(entryDay, now) ?? words.written(entryDay);
-        if (children.isNotEmpty) children.add(const SizedBox(height: 12));
-        children
-          ..add(SectionLabel(label, hindi: isDevanagari(label)))
-          ..add(const SizedBox(height: 10));
-      } else {
-        children.add(const SizedBox(height: 12));
-      }
-      children.add(DiaryEntryCard(entry: entry, onTap: () => _speakEntry(entry)));
-    }
-    return children;
+  /// Chooses the crop whose sprays the page shows (null: all of them) and says its name.
+  void _chooseCrop(String? cropId) {
+    setState(() => _crop = cropId);
+    final lang = ref.read(languageProvider);
+    final t = ref.read(stringsProvider);
+    final name = cropId == null ? t('diary_all_crops_say') : ref.read(resourcesProvider).cropName(cropId, lang);
+    ref.read(voiceServiceProvider).speak([TextUtterance(name, lang: lang)], owner: _owner);
   }
 
   @override
   Widget build(BuildContext context) {
     final t = ref.watch(stringsProvider);
     final now = ref.watch(clockProvider)();
-    final words = ref.watch(dateWordsProvider);
     final logs = ref.watch(sprayLogsProvider);
     final pending = ref.watch(pendingSpraysProvider).items;
 
@@ -94,6 +86,15 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
     }
     final loading = !logs.hasValue && !failed;
     final entries = mergeDiaryEntries(logs.value ?? remembered ?? const [], pending, now);
+    // Crop circles (only when there is more than one crop to choose from); a crop that has no entry any more is not chosen.
+    final crops = diaryCrops(entries);
+    final crop = _crop != null && crops.contains(_crop) ? _crop : null;
+    final shown = crop == null
+        ? entries
+        : [
+            for (final e in entries)
+              if (e.cropId.toLowerCase() == crop) e,
+          ];
     final script = promptList([
       'diary_intro',
       if (failed) errorPromptFor(logs.error!) else if (entries.isEmpty) 'diary_empty' else 'diary_add_hint',
@@ -166,7 +167,16 @@ class _DiaryListScreenState extends ConsumerState<DiaryListScreen> {
                       ),
                     ),
                   ),
-                ..._days(entries, words, now),
+                if (crops.length > 1) ...[
+                  DiaryCropRow(crops: crops, selected: crop, onSelect: _chooseCrop),
+                  const SizedBox(height: 12),
+                ],
+                DiaryWeekCard(
+                  counts: diarySprayCounts(shown),
+                  onOpen: () => showDiaryMonthSheet(context, entries: shown, owner: _owner),
+                ),
+                const SizedBox(height: 12),
+                DiaryTimeline(entries: shown, onSpeak: _speakEntry),
               ],
             ),
     );

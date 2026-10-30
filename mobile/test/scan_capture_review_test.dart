@@ -21,11 +21,9 @@ class _GuessingDetector implements OnDeviceDetector {
   Future<OnDeviceGuess?> detect(String imagePath) async => const OnDeviceGuess(cropId: 'apple', confidence: 0.7);
 }
 
-/// A server that never answers the call it is told to hang on, so the waiting screen stays.
+/// A server that never answers the photos, so the waiting screen stays.
 class _HangApi extends MockApiClient {
-  _HangApi({this.hangConfirm = false, super.scanScript}) : super(latency: Duration.zero);
-
-  final bool hangConfirm;
+  _HangApi() : super(latency: Duration.zero);
 
   @override
   Future<ScanOut> createScan({
@@ -39,14 +37,8 @@ class _HangApi extends MockApiClient {
     UploadProgressCallback? onProgress,
     CancelHandle? cancel,
   }) async {
-    if (!hangConfirm) await Completer<void>().future;
+    await Completer<void>().future;
     return super.createScan(photoPaths: photoPaths, idempotencyKey: idempotencyKey);
-  }
-
-  @override
-  Future<ScanOut> confirmCrop(String scanId, String cropId) async {
-    if (hangConfirm) await Completer<void>().future;
-    return super.confirmCrop(scanId, cropId);
   }
 }
 
@@ -429,31 +421,23 @@ void main() {
       expect(tester.binding.hasScheduledFrame, isTrue, reason: 'by default the spinner turns');
     });
 
-    testWidgets(
-      'after the crop is confirmed: photos sent, crop found with its name, now the disease; nothing turns when '
-      'the phone asks for no animations',
-      (tester) async {
-        noAnimations(tester);
-        final env = await TestEnv.create(
-          loggedIn: true,
-          language: 'en',
-          api: _HangApi(hangConfirm: true, scanScript: [MockScanScenario.confirmCrop]),
-        );
-        env.picker.queuePhotos(1);
-        await openCapture(tester, env);
-        await tapKey(tester, 'camera-button');
-        await tapKey(tester, 'send-photos'); // the mock answers at once: "is this your crop?"
-        expect(keyed('crop-name'), findsOneWidget);
-        await tapKey(tester, 'crop-yes'); // the server never answers: this settles only because nothing moves
-        expect(find.text('Photos sent'), findsOneWidget);
-        expect(find.text('Crop found'), findsOneWidget);
-        expect(find.text('Apple'), findsOneWidget);
-        expect(find.text('Finding the disease'), findsOneWidget);
-        expect(find.text('Choosing the medicine'), findsOneWidget);
-        expect(keyed('step-spinner'), findsOneWidget);
-        expect(tester.binding.hasScheduledFrame, isFalse, reason: 'the ring and the spinner stand still');
-      },
-    );
+    testWidgets('nothing turns when the phone asks for no animations', (tester) async {
+      noAnimations(tester);
+      final env = await TestEnv.create(loggedIn: true, language: 'en', api: _HangApi());
+      env.picker.queuePhotos(1);
+      await openCapture(tester, env);
+      await tapKey(tester, 'camera-button');
+      await tester.tap(keyed('send-photos'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400)); // let the page transition finish
+      expect(find.text('Sending photos'), findsOneWidget);
+      expect(find.text('Finding the crop'), findsOneWidget);
+      expect(find.text('Finding the disease'), findsOneWidget);
+      expect(find.text('Choosing the medicine'), findsOneWidget);
+      expect(keyed('step-spinner'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(tester.binding.hasScheduledFrame, isFalse, reason: 'the ring and the spinner stand still');
+    });
   });
 }
 

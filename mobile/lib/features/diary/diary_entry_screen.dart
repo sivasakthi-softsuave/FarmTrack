@@ -505,7 +505,7 @@ class _DiaryEntryScreenState extends ConsumerState<DiaryEntryScreen> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: MedicineCard(
                   product: p,
-                  selected: products.length > 1 && p.productId == selected?.productId,
+                  selected: p.productId == selected?.productId,
                   onTap: () {
                     setState(() => _productId = p.productId);
                     _say(_Step.summary, [

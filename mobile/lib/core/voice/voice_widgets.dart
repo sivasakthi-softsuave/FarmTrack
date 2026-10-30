@@ -11,58 +11,23 @@ import 'voice_service.dart';
 /// The mockup's `.ibtn.glass`: a white circle at 14 % on the dark green of the Home header and on the camera.
 const glassButtonColor = Color(0x24FFFFFF);
 
-/// The speaker picture, a round button of the top bar ("Listen again"). Plays the screen's speech again; a green ring
-/// shows while this screen is speaking. [onDark] is for the deep-green Home header and the camera.
+/// The one voice button of every screen (the top bar, the Home header, the camera): the speaker, with a mute and an unmute in it.
 ///
-/// While the voice is muted a tap turns the voice on again and plays the screen's speech: whoever asks to listen wants to hear.
-class SpeakerButton extends ConsumerWidget {
-  const SpeakerButton({super.key, this.onDark = false});
+/// While the voice is on it shows the speaker (a ring round it while this screen is speaking) and one tap silences the voice at
+/// once and keeps the app quiet on every screen until it is tapped again (the words still show, see [VoiceCaption]). While the
+/// voice is off it shows the crossed-out speaker in red, and a tap turns the voice on and plays the screen's speech again, so the
+/// farmer hears that it is back. [onDark] is for the deep-green Home header and the camera; [diameter] draws the circle smaller
+/// (the tap area stays 56 dp).
+class VoiceButton extends ConsumerWidget {
+  const VoiceButton({super.key, this.onDark = false, this.diameter});
 
   final bool onDark;
+  final double? diameter;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = VoiceSession.maybeOf(context);
     final voice = ref.watch(voiceServiceProvider);
-    final muted = ref.watch(settingsProvider.select((s) => s.muted));
-    final t = ref.watch(stringsProvider);
-    return ValueListenableBuilder<VoiceState>(
-      valueListenable: voice.state,
-      builder: (context, state, _) {
-        final speaking = state.speaking && !muted && session != null && state.owner == session.owner;
-        return KeyedSubtree(
-          key: const ValueKey('speaker-button'),
-          child: BigIconButton(
-            icon: AppIcons.speaker,
-            semanticLabel: t('a11y_listen'),
-            color: onDark ? glassButtonColor : AppColors.greenSoft,
-            foreground: onDark ? Colors.white : AppColors.green,
-            size: Dimens.minTouch,
-            ringColor: speaking ? (onDark ? Colors.white : AppColors.green) : null,
-            onPressed: session == null
-                ? null
-                : () async {
-                    if (muted) await ref.read(settingsProvider.notifier).setMuted(on: false);
-                    await session.replay();
-                  },
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// The mute button, next to the speaker in the top bar: the crossed-out speaker. One tap silences the voice at once and
-/// keeps the app quiet on every screen until it is tapped again (the words still show, see [VoiceCaption]); it turns red
-/// while the voice is off. Turning the voice on plays the screen's speech again, so the farmer hears that it is back.
-class MuteButton extends ConsumerWidget {
-  const MuteButton({super.key, this.onDark = false});
-
-  final bool onDark;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final session = VoiceSession.maybeOf(context);
     final muted = ref.watch(settingsProvider.select((s) => s.muted));
     final t = ref.watch(stringsProvider);
     final Color fill;
@@ -71,29 +36,36 @@ class MuteButton extends ConsumerWidget {
       fill = onDark ? Colors.white : AppColors.redSoft;
       pict = AppColors.red;
     } else {
-      fill = onDark ? glassButtonColor : AppColors.neutralSoft;
-      pict = onDark ? Colors.white : AppColors.inkSoft;
+      fill = onDark ? glassButtonColor : AppColors.greenSoft;
+      pict = onDark ? Colors.white : AppColors.green;
     }
-    return KeyedSubtree(
-      key: const ValueKey('mute-button'),
-      child: BigIconButton(
-        icon: AppIcons.noVoice,
-        semanticLabel: muted ? t('a11y_unmute') : t('a11y_mute'),
-        color: fill,
-        foreground: pict,
-        size: Dimens.minTouch,
-        onPressed: () async {
-          final notifier = ref.read(settingsProvider.notifier);
-          final voice = ref.read(voiceServiceProvider);
-          if (muted) {
-            await notifier.setMuted(on: false);
-            await session?.replay();
-          } else {
-            await notifier.setMuted(on: true);
-            await voice.stop();
-          }
-        },
-      ),
+    return ValueListenableBuilder<VoiceState>(
+      valueListenable: voice.state,
+      builder: (context, state, _) {
+        final speaking = state.speaking && !muted && session != null && state.owner == session.owner;
+        return KeyedSubtree(
+          key: const ValueKey('voice-button'),
+          child: BigIconButton(
+            icon: muted ? AppIcons.noVoice : AppIcons.speaker,
+            semanticLabel: muted ? t('a11y_unmute') : t('a11y_mute'),
+            color: fill,
+            foreground: pict,
+            size: Dimens.minTouch,
+            diameter: diameter,
+            ringColor: speaking ? pict : null,
+            onPressed: () async {
+              final notifier = ref.read(settingsProvider.notifier);
+              if (muted) {
+                await notifier.setMuted(on: false);
+                await session?.replay();
+              } else {
+                await notifier.setMuted(on: true);
+                await voice.stop();
+              }
+            },
+          ),
+        );
+      },
     );
   }
 }

@@ -33,6 +33,7 @@ from app.interfaces import (
     KnowledgeBase,
     LLMProvider,
     PhotoQualityChecker,
+    PlacesAdapter,
     PushProvider,
     RulesEngine,
     WeatherAdapter,
@@ -57,6 +58,10 @@ class Container:
     iot: IoTAdapter
     weather: WeatherAdapter
     push: PushProvider
+    # The field screen's place picker (both default to None so a Container built without them, e.g. by an older test, still works):
+    # live weather for a place the farmer picks, and the place-name search. The routes answer 503 when they are None or switched off.
+    place_weather: WeatherAdapter | None = None
+    places: PlacesAdapter | None = None
 
 
 def disabled_products_from_db() -> set[str]:
@@ -71,7 +76,14 @@ def disabled_products_from_db() -> set[str]:
 
 def build_container(settings: Settings | None = None, disabled_products: Callable[[], set[str]] | None = None) -> Container:
     from app.advice.factory import build_advice_composer
-    from app.integrations.factory import build_iot, build_push, build_weather, build_zoho
+    from app.integrations.factory import (
+        build_iot,
+        build_place_weather,
+        build_places,
+        build_push,
+        build_weather,
+        build_zoho,
+    )
     from app.llm.factory import build_llm
     from app.rag.ask import build_ask_service
     from app.rag.factory import build_knowledge_base
@@ -98,4 +110,6 @@ def build_container(settings: Settings | None = None, disabled_products: Callabl
         iot=build_iot(s),
         weather=build_weather(s),
         push=build_push(s),
+        place_weather=build_place_weather(s),
+        places=build_places(s),
     )

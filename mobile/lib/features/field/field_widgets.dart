@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/models/models.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/widgets/big_buttons.dart';
 import '../../core/widgets/design.dart';
 import '../diary/date_words.dart';
 import 'field_words.dart';
+import 'weather_glyph.dart';
 
 /// "This information is old": shown when the server says the sensor is quiet or the answer comes from the phone's memory.
 /// An amber warning card as the mockup draws warnings: flat, a thin amber line, the round amber dot with a dark picture.
@@ -106,7 +106,11 @@ class ReadingTiles extends ConsumerWidget {
             key: ValueKey('reading-word-${tile.id}'),
             style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, height: 1.35),
           ),
-          Text(tile.digits, key: ValueKey('reading-digits-${tile.id}'), style: AppText.hMeta),
+          Text(
+            tile.unitKey == null ? tile.digits : '${tile.digits} ${t(tile.unitKey!)}',
+            key: ValueKey('reading-digits-${tile.id}'),
+            style: AppText.hMeta,
+          ),
         ],
       ),
     );
@@ -133,78 +137,16 @@ class ReadingTiles extends ConsumerWidget {
   }
 }
 
-/// A weather risk, drawn like the mockup's danger card: a flat tinted card with a thin line (amber for "be careful", red
-/// for "serious", green for fine), the round dot with the level's picture, the risk's name and its text. The level's
-/// word is in the semantics (the picture and colour carry it on screen); the speaker button says the card aloud.
-class RiskCard extends ConsumerWidget {
-  const RiskCard({super.key, required this.risk, required this.onSpeak});
-
-  final RiskOut risk;
-  final VoidCallback onSpeak;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = ref.watch(stringsProvider);
-    final lang = ref.watch(languageProvider);
-    final level = risk.level;
-    final title = risk.title.forLang(lang);
-    final text = risk.text.forLang(lang);
-    return AppCard(
-      key: ValueKey('risk-${risk.id}'),
-      color: AppColors.severitySoft(level),
-      flat: true,
-      line: severityLine(level),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Semantics(
-            label: t('severity_${level.wire}'),
-            child: IconDot(
-              severityPicture(level),
-              background: AppColors.severity(level),
-              foreground: AppColors.onSeverity(level),
-              round: true,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // The server's name of the risk; "Weather danger" when it sent none.
-                Text(title.isEmpty ? t('field_risks_title') : title, style: AppText.hName),
-                if (text.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(text, style: AppText.body),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 4),
-          BigIconButton(
-            key: ValueKey('risk-speak-${risk.id}'),
-            icon: AppIcons.speaker,
-            semanticLabel: t('field_listen_card'),
-            color: AppColors.card,
-            foreground: AppColors.green,
-            size: Dimens.minTouch,
-            onPressed: onSpeak,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Seven days in one white card, seven equal columns (the mockup's week): the day's name in bold, a blue weather picture
-/// (sun, cloud, rain), the high and the low in grey. The word for the rain is in the day's semantics label.
+/// Seven days in one white card, seven equal columns, in the style of a weather app's strip: the day's name on top (grey, today in
+/// bold ink on a soft panel), a coloured weather picture (sun, cloud with a little rain, cloud with a lot), the high in bold and the
+/// low in grey. The word for the rain is in the day's semantics label.
 class ForecastStrip extends ConsumerWidget {
   const ForecastStrip({super.key, required this.days});
 
   final List<ForecastDayOut> days;
 
   static const _columns = 7;
+  static const glyphSize = 32.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -216,30 +158,63 @@ class ForecastStrip extends ConsumerWidget {
 
     Widget column(ForecastDayOut day) {
       final date = DateTime.tryParse(day.day);
-      final name = date == null ? '' : (daysAgo(date, now) == 0 ? words.today : words.shortWeekday(date));
+      final today = date != null && daysAgo(date, now) == 0;
+      final name = date == null ? '' : (today ? words.today : words.shortWeekday(date));
       final rainWord = t(forecastWordKey(day.rainMm));
       return Semantics(
         container: true,
         label: '$name, $rainWord',
         excludeSemantics: true,
-        child: Column(
-          key: ValueKey('forecast-${day.day}'),
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            fit(Text(name, style: small.copyWith(fontWeight: FontWeight.w700))),
-            const SizedBox(height: 6),
-            Icon(forecastIcon(day.rainMm), size: 24, color: forecastColor(day.rainMm)),
-            const SizedBox(height: 6),
-            fit(Text('${day.tmaxC.round()}°', style: small)),
-            fit(Text('${day.tminC.round()}°', style: small.copyWith(color: AppColors.inkSoft))),
-          ],
+        child: DecoratedBox(
+          // Today stands on a soft panel, like the "Now" of a weather strip.
+          decoration: BoxDecoration(
+            color: today ? AppColors.paper : null,
+            borderRadius: BorderRadius.circular(Dimens.radiusSmall),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              key: ValueKey('forecast-${day.day}'),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                fit(
+                  Text(
+                    name,
+                    style: small.copyWith(
+                      fontWeight: today ? FontWeight.w800 : FontWeight.w600,
+                      color: today ? AppColors.ink : AppColors.inkSoft,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                WeatherGlyph(
+                  key: ValueKey('forecast-glyph-${day.day}'),
+                  kind: weatherKindOfRain(day.rainMm),
+                  size: glyphSize,
+                ),
+                const SizedBox(height: 8),
+                fit(
+                  Text(
+                    '${day.tmaxC.round()}°',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      height: 1.35,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                ),
+                fit(Text('${day.tminC.round()}°', style: small.copyWith(color: AppColors.inkSoft))),
+              ],
+            ),
+          ),
         ),
       );
     }
 
     return AppCard(
       key: const ValueKey('forecast-strip'),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

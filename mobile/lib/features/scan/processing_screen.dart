@@ -14,13 +14,9 @@ import '../../core/widgets/voice_scaffold.dart';
 import '../../core/theme/app_theme.dart';
 import 'scan_flow.dart';
 
-/// Sends the photos (or the confirmed crop) and waits for the server's answer, then routes by its status.
-///
-/// With [confirmCropId] null it uploads the photos; otherwise it posts the crop the farmer ticked or chose.
+/// Sends the photos and waits for the server's answer, then routes by its status.
 class ProcessingScreen extends ConsumerStatefulWidget {
-  const ProcessingScreen({super.key, this.confirmCropId});
-
-  final String? confirmCropId;
+  const ProcessingScreen({super.key});
 
   @override
   ConsumerState<ProcessingScreen> createState() => _ProcessingScreenState();
@@ -39,14 +35,12 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
     if (!mounted) return;
     _started = true;
     final flow = ref.read(scanFlowProvider.notifier);
-    final cropId = widget.confirmCropId;
-    final current = ref.read(scanFlowProvider);
-    if (cropId == null ? current.photos.isEmpty : current.scan == null) {
+    if (ref.read(scanFlowProvider).photos.isEmpty) {
       // Opened without anything to send (for example after the app restarted): start from the beginning.
-      context.go(cropId == null ? Routes.scan : Routes.home);
+      context.go(Routes.scan);
       return;
     }
-    final scan = cropId == null ? await flow.submit() : await flow.confirmCrop(cropId);
+    final scan = await flow.submit();
     if (!mounted) return;
     if (scan == null) {
       if (ref.read(scanFlowProvider).phase == ScanPhase.queued) {
@@ -65,34 +59,26 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
 
   void _cancel() {
     ref.read(scanFlowProvider.notifier).cancel();
-    context.go(widget.confirmCropId == null ? Routes.scanReview : Routes.scanConfirm);
+    context.go(Routes.scanReview);
   }
 
   @override
   Widget build(BuildContext context) {
     final flow = ref.watch(scanFlowProvider);
     final t = ref.watch(stringsProvider);
-    final lang = ref.watch(languageProvider);
-    final resources = ref.watch(resourcesProvider);
-    final uploading = widget.confirmCropId == null;
 
     if (_started && flow.phase == ScanPhase.failed && flow.error != null) {
       return ErrorRetryScreen(error: flow.error!, onRetry: _run, onBack: _cancel);
     }
 
     // The four steps of the mockup, from what the app really knows: the photos are going up (step 1), the server is
-    // looking at them (2: finding the crop), the crop is settled and the server looks for the disease (3). Choosing the
-    // medicine (4) is part of the answer that ends this screen, so it never starts here.
-    final looking = uploading && flow.phase == ScanPhase.analysing;
-    final done = uploading ? (looking ? 1 : 0) : 2;
-    final upload = uploading && flow.phase == ScanPhase.uploading && flow.progress > 0 ? flow.progress : null;
-    final cropId = widget.confirmCropId;
+    // looking at them (2: finding the crop). The disease (3) and the medicine (4) are part of the answer that ends this
+    // screen, so they never start here.
+    final done = flow.phase == ScanPhase.analysing ? 1 : 0;
+    final upload = flow.phase == ScanPhase.uploading && flow.progress > 0 ? flow.progress : null;
     final steps = [
       _Step(t(done >= 1 ? 'step_photos_sent' : 'uploading')),
-      _Step(
-        t(done >= 2 ? 'step_crop_found' : 'step_finding_crop'),
-        pill: done >= 2 && cropId != null ? resources.cropName(cropId, lang) : null,
-      ),
+      _Step(t('step_finding_crop')),
       _Step(t('step_finding_disease')),
       _Step(t('step_choosing_medicine')),
     ];
@@ -104,7 +90,7 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
       alignTop: true,
       // The mockup's row is 56 high and its content starts 10 below it; the bar is 64 high.
       bodyPadding: const EdgeInsets.fromLTRB(Dimens.gutter, 2, Dimens.gutter, 0),
-      script: promptList(uploading ? const ['scan_uploading', 'scan_wait'] : const ['scan_wait']),
+      script: promptList(const ['scan_uploading', 'scan_wait']),
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -155,12 +141,9 @@ class _ProcessingScreenState extends ConsumerState<ProcessingScreen> {
 }
 
 class _Step {
-  const _Step(this.label, {this.pill});
+  const _Step(this.label);
 
   final String label;
-
-  /// The crop's name, shown at the right of the "Crop found" row.
-  final String? pill;
 }
 
 enum _StepState { done, current, pending }
@@ -209,10 +192,6 @@ class _StepRow extends StatelessWidget {
                       : AppText.hName.copyWith(fontSize: 16),
                 ),
               ),
-              if (step.pill != null) ...[
-                const SizedBox(width: 12),
-                AppPill(step.pill!, background: AppColors.greenSoft, foreground: AppColors.green),
-              ],
             ],
           ),
         ),

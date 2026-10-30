@@ -84,11 +84,28 @@ class Settings(BaseSettings):
     # (format and rules in app/vision/hints.py). Ignored by the factory and refused at start-up when ENV=prod.
     demo_disease_hints: str | None = None
     zoho_provider: str = "mock"                        # mock | real
-    iot_provider: str = "mock"
+    iot_provider: str = "mock"                         # mock (simulated sensors, 2026 archive) | none (no sensor: readings come from the weather)
     weather_provider: str = "csv"                      # csv (demo archive) | openmeteo
+    # "Weather for a place I pick" (field screen: GET /v1/weather?lat=&lon=): none | openmeteo. Independent of WEATHER_ENABLED, which
+    # governs the farmer's OWN field, risks and advice. It always uses the REAL clock (live weather), never the demo clock. The free
+    # Open-Meteo endpoint is for non-commercial use: set OPEN_METEO_API_KEY (paid plan) for production.
+    place_weather_provider: str = "none"
+    # Place-name search for that picker (GET /v1/places/search): none | nominatim. The public Nominatim server wants a real contact in
+    # the User-Agent, allows one request per second for the whole app and forbids search-as-you-type: see integrations/places_nominatim.py.
+    places_provider: str = "none"
+    places_user_agent: str = "FarmTrack/1.0 (set PLACES_USER_AGENT with your contact)"
+    places_url: str = "https://nominatim.openstreetmap.org/search"
     # WEATHER_ENABLED=false switches weather OFF everywhere: no weather lookup or network call, no weather risks or alerts,
     # no forecast card, no repeat-after-rain timing; advice says nothing about weather. /v1/meta reports it so the app can hide the UI.
     weather_enabled: bool = False
+    # "Can I spray today?" on Home (weather side only: wind, rain, heat of the next hours). DRAFT thresholds: an agronomist must approve
+    # them before real farmers see this. Off by default: /v1/field and /v1/weather then send `spray: null` (see app/services/spray_weather.py).
+    spray_weather_enabled: bool = False
+    spray_rain_mm: float = 0.5                         # an hour with at least this much rain counts as a wet hour
+    spray_wind_care_kmh: float = 15.0                  # from here "be careful" (drift), from the next one "not now"
+    spray_wind_stop_kmh: float = 30.0
+    spray_heat_care_c: float = 32.0
+    spray_heat_stop_c: float = 40.0
     push_provider: str = "log"                         # log | fcm
     fcm_credentials_file: str | None = None
     # Zoho CRM self-client (ZOHO_PROVIDER=real) and the optional Open-Meteo customer key: read through Settings so a .env file works too.

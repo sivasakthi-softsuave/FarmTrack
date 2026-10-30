@@ -22,6 +22,18 @@ enum VolumeLevel {
   final double value;
 }
 
+/// The two looks of the camera screen (`docs/design/scan-capture-options.html`, options A and B). The owner compares them on
+/// a phone; once one is chosen the other, this enum and its row in Settings are deleted.
+///
+/// The default of a fresh install is `--dart-define=CAPTURE_DESIGN=a|b` (A when nothing is given).
+enum CaptureDesign {
+  a,
+  b;
+
+  static CaptureDesign get defaultDesign =>
+      const String.fromEnvironment('CAPTURE_DESIGN', defaultValue: 'a').toLowerCase() == 'b' ? b : a;
+}
+
 class AppSettings {
   const AppSettings({
     this.language,
@@ -32,6 +44,7 @@ class AppSettings {
     this.onboardingDone = false,
     this.homeTourDone = false,
     this.cameraExplained = false,
+    this.captureDesign = CaptureDesign.a,
   });
 
   /// `null` until the farmer picks a language on the first screen.
@@ -53,6 +66,9 @@ class AppSettings {
   /// The "the phone will ask for the camera" prompt has been played once.
   final bool cameraExplained;
 
+  /// Which look the camera screen has (A or B, see [CaptureDesign]).
+  final CaptureDesign captureDesign;
+
   AppSettings copyWith({
     String? language,
     SpeechSpeed? speed,
@@ -62,6 +78,7 @@ class AppSettings {
     bool? onboardingDone,
     bool? homeTourDone,
     bool? cameraExplained,
+    CaptureDesign? captureDesign,
   }) => AppSettings(
     language: language ?? this.language,
     speed: speed ?? this.speed,
@@ -71,6 +88,7 @@ class AppSettings {
     onboardingDone: onboardingDone ?? this.onboardingDone,
     homeTourDone: homeTourDone ?? this.homeTourDone,
     cameraExplained: cameraExplained ?? this.cameraExplained,
+    captureDesign: captureDesign ?? this.captureDesign,
   );
 }
 
@@ -88,6 +106,7 @@ class SettingsStore {
   static const _onboardingDone = 'onboarding_done';
   static const _homeTourDone = 'home_tour_done';
   static const _cameraExplained = 'camera_explained';
+  static const _captureDesign = 'capture_design';
 
   AppSettings load() => AppSettings(
     language: _prefs.getString(_language),
@@ -98,6 +117,7 @@ class SettingsStore {
     onboardingDone: _prefs.getBool(_onboardingDone) ?? false,
     homeTourDone: _prefs.getBool(_homeTourDone) ?? false,
     cameraExplained: _prefs.getBool(_cameraExplained) ?? false,
+    captureDesign: _enum(CaptureDesign.values, _prefs.getString(_captureDesign), CaptureDesign.defaultDesign),
   );
 
   Future<void> save(AppSettings s) async {
@@ -114,6 +134,7 @@ class SettingsStore {
     await _prefs.setBool(_onboardingDone, s.onboardingDone);
     await _prefs.setBool(_homeTourDone, s.homeTourDone);
     await _prefs.setBool(_cameraExplained, s.cameraExplained);
+    await _prefs.setString(_captureDesign, s.captureDesign.name);
   }
 
   static const _lastUsername = 'last_username';

@@ -57,13 +57,21 @@ class ScanFlowState {
   static const Object _keep = Object();
 }
 
+/// True when the server could not tell which plant the leaf is from: it asked for a tick on its guess (`confirm_crop`),
+/// or named no crop at all. The farmer is never asked to pick a crop: the app says it cannot identify the leaf and asks
+/// for another photo.
+bool cropNotIdentified(ScanOut scan) =>
+    scan.status == ScanStatus.confirmCrop || (scan.status == ScanStatus.needsExpert && (scan.crop?.unknown ?? false));
+
 /// Where each scan answer goes. The server's status decides the screen.
-String routeForScan(ScanOut scan) => switch (scan.status) {
-  ScanStatus.ok => Routes.scanAdvice,
-  ScanStatus.confirmCrop => scan.crop?.isKnown ?? false ? Routes.scanConfirm : Routes.scanCrops,
-  ScanStatus.photoUnusable => Routes.scanRetake,
-  ScanStatus.needsExpert || ScanStatus.noApprovedData || ScanStatus.notADisease => Routes.scanExpert,
-};
+String routeForScan(ScanOut scan) {
+  if (cropNotIdentified(scan)) return Routes.scanRetake;
+  return switch (scan.status) {
+    ScanStatus.ok => Routes.scanAdvice,
+    ScanStatus.photoUnusable || ScanStatus.confirmCrop => Routes.scanRetake,
+    ScanStatus.needsExpert || ScanStatus.noApprovedData || ScanStatus.notADisease => Routes.scanExpert,
+  };
+}
 
 final scanFlowProvider = NotifierProvider<ScanFlowNotifier, ScanFlowState>(ScanFlowNotifier.new);
 
@@ -223,25 +231,6 @@ class ScanFlowNotifier extends Notifier<ScanFlowState> {
     } on Object catch (e) {
       if (run != _run) return;
       state = state.copyWith(phase: ScanPhase.failed, error: e);
-    }
-  }
-
-  /// The farmer ticked (or chose) a crop for the current scan.
-  Future<ScanOut?> confirmCrop(String cropId) async {
-    final scan = state.scan;
-    if (scan == null) return null;
-    final run = ++_run;
-    state = state.copyWith(phase: ScanPhase.analysing, error: null);
-    try {
-      final next = await ref.read(apiClientProvider).confirmCrop(scan.id, cropId);
-      if (run != _run) return null;
-      state = state.copyWith(phase: ScanPhase.done, scan: next);
-      _remember(next);
-      return next;
-    } on Object catch (e) {
-      if (run != _run) return null;
-      state = state.copyWith(phase: ScanPhase.failed, error: e);
-      return null;
     }
   }
 
